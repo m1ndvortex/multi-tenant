@@ -31,6 +31,7 @@
 - **Use REAL API calls in integration tests** - minimal mocking
 - Test with actual data scenarios that mirror production usage
 - Validate multi-tenant data isolation with real database queries
+- We are not simplify anything just because it not working . if there is a problem we fix it
 
 ### Database Testing Requirements
 - Create separate test database container: `hesaabplus_test`
