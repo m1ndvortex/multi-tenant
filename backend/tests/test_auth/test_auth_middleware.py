@@ -6,7 +6,7 @@ import pytest
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.testclient import TestClient
 from datetime import datetime, timedelta
-import jwt
+from jose import jwt
 
 from app.core.auth import (
     get_current_user, 
@@ -349,7 +349,12 @@ class TestAuthenticationMiddleware:
         db_session.refresh(test_user)
         
         # Activity should be updated
-        assert test_user.last_activity_at > initial_activity
+        if initial_activity is None:
+            # If there was no initial activity, just check that it's now set
+            assert test_user.last_activity_at is not None
+        else:
+            # If there was initial activity, check that it's been updated
+            assert test_user.last_activity_at > initial_activity
     
     def test_token_context_attributes(self, client, test_user, test_tenant, super_admin_user):
         """Test that token context is properly added to user object"""

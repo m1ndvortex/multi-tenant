@@ -26,7 +26,7 @@ RUN pip install --no-cache-dir --upgrade pip \
 COPY . .
 
 # Create necessary directories
-RUN mkdir -p /app/uploads /app/logs
+RUN mkdir -p /app/uploads /app/logs /app/celery /app/celery-beat /app/.cache
 
 # Expose port
 EXPOSE 8000

@@ -227,12 +227,49 @@ async def refresh_token(
     - **refresh_token**: Valid refresh token
     """
     try:
+        # Get user from refresh token first
+        from ..core.auth import verify_token, AuthenticationError
+        
+        payload = verify_token(refresh_data.refresh_token)
+        user_id: str = payload.get("user_id")
+        token_type: str = payload.get("type")
+        
+        if user_id is None or token_type != "refresh":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid refresh token"
+            )
+        
+        # Get user from database
+        user = db.query(User).filter(User.id == user_id).first()
+        
+        if user is None or user.status != UserStatus.ACTIVE:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found or inactive"
+            )
+        
+        # Get new tokens
         tokens = refresh_access_token(refresh_data.refresh_token, db)
         
-        return {
+        # Prepare response
+        response_data = {
             **tokens,
             "expires_in": 30 * 60,  # 30 minutes in seconds
+            "user": serialize_user(user)
         }
+        
+        # Add tenant information for non-super admin users
+        if not user.is_super_admin and user.tenant:
+            response_data["tenant"] = serialize_tenant(user.tenant)
+        
+        return response_data
+        
+    except AuthenticationError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token"
+        )
     except HTTPException:
         raise
     except Exception as e:

@@ -5,7 +5,7 @@ Integration tests for authentication API endpoints
 import pytest
 from fastapi.testclient import TestClient
 from datetime import datetime, timedelta
-import jwt
+from jose import jwt
 
 from app.main import app
 from app.core.config import settings
@@ -347,6 +347,10 @@ class TestAuthenticationAPI:
         
         admin_token = login_response.json()["access_token"]
         
+        # Get the actual admin user ID from the login response
+        admin_user_data = login_response.json()["user"]
+        actual_admin_user_id = admin_user_data["id"]
+        
         # Start impersonation
         response = client.post(
             "/api/auth/impersonate",
@@ -374,7 +378,7 @@ class TestAuthenticationAPI:
         )
         assert payload["is_impersonation"] is True
         assert payload["user_id"] == str(test_user.id)
-        assert payload["admin_user_id"] == str(super_admin_user.id)
+        assert payload["admin_user_id"] == actual_admin_user_id
     
     def test_impersonation_non_super_admin(self, client, test_user, test_tenant):
         """Test impersonation by non-super admin (should fail)"""

@@ -19,7 +19,7 @@ from app.core.redis_client import redis_client
 
 # Import API routers
 from app.api.health import router as health_router
-# from app.api.auth import router as auth_router
+from app.api.auth import router as auth_router
 
 # Configure logging
 import os
@@ -126,7 +126,7 @@ async def add_process_time_header(request: Request, call_next):
 
 # Include API routers
 app.include_router(health_router, prefix="/api")
-# app.include_router(auth_router, prefix="/api")
+app.include_router(auth_router, prefix="/api")
 
 # Root endpoint
 @app.get("/")

@@ -8,7 +8,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
-import jwt
+from jose import jwt, JWTError
 import uuid
 
 from .config import settings
@@ -132,7 +132,7 @@ def verify_token(token: str) -> Dict[str, Any]:
         return payload
     except jwt.ExpiredSignatureError:
         raise AuthenticationError("Token has expired")
-    except jwt.PyJWTError:
+    except JWTError:
         raise AuthenticationError("Invalid token")
 
 

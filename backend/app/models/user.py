@@ -191,15 +191,19 @@ class User(BaseModel):
         if not self.last_activity_at:
             return False
         
-        return (datetime.utcnow() - self.last_activity_at).total_seconds() < 300
+        from datetime import timezone
+        now = datetime.now(timezone.utc)
+        return (now - self.last_activity_at).total_seconds() < 300
     
     def update_activity(self):
         """Update last activity timestamp"""
-        self.last_activity_at = datetime.utcnow()
+        from datetime import timezone
+        self.last_activity_at = datetime.now(timezone.utc)
     
     def update_login(self):
         """Update login information"""
-        self.last_login_at = datetime.utcnow()
+        from datetime import timezone
+        self.last_login_at = datetime.now(timezone.utc)
         self.login_count = (self.login_count or 0) + 1
         self.update_activity()
     
@@ -256,8 +260,9 @@ class User(BaseModel):
     
     def set_password_reset_token(self, token: str):
         """Set password reset token with expiration"""
+        from datetime import timezone
         self.password_reset_token = token
-        self.password_reset_expires = datetime.utcnow() + timedelta(hours=24)
+        self.password_reset_expires = datetime.now(timezone.utc) + timedelta(hours=24)
     
     def clear_password_reset_token(self):
         """Clear password reset token"""
@@ -269,7 +274,8 @@ class User(BaseModel):
         if not self.password_reset_token or not self.password_reset_expires:
             return False
         
-        return datetime.utcnow() < self.password_reset_expires
+        from datetime import timezone
+        return datetime.now(timezone.utc) < self.password_reset_expires
     
     def verify_email(self):
         """Mark email as verified"""

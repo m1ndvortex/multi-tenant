@@ -5,7 +5,7 @@ Unit tests for authentication utilities
 import pytest
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
-import jwt
+from jose import jwt
 
 from app.core.auth import (
     verify_password,
