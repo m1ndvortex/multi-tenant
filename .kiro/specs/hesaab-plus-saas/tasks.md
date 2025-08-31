@@ -130,31 +130,43 @@
   - Write unit tests for impersonation system with security validation
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6_
 
-## Backup and Recovery System
+## Comprehensive Backup and Recovery System
 
-- [ ] 11. Implement Operational Recovery Backend (Per-Tenant Backup)
-  - Create Celery tasks for daily tenant-specific data backup
-  - Implement tenant data export with encryption and compression
-  - Create Cloudflare R2 upload functionality for tenant backups
-  - Implement backup listing and retrieval endpoints
-  - Write unit tests for backup creation and storage
-  - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.8_
+- [ ] 11. Implement Individual Tenant Backup System Backend
+  - Create Celery tasks for automated daily tenant-specific SQL backup with encryption
+  - Implement dual-cloud storage service for Backblaze B2 (primary) and Cloudflare R2 (secondary)
+  - Create tenant data export with AES-256 encryption and gzip compression
+  - Implement backup metadata tracking with storage location and integrity verification
+  - Create backup listing and retrieval endpoints with storage provider selection
+  - Write unit tests for tenant backup creation, encryption, and dual-cloud upload
+  - _Requirements: 32.1, 32.2, 32.7, 32.10_
 
-- [ ] 12. Implement Tenant Data Restore System Backend
-  - Create tenant data restore endpoints with transaction safety
-  - Implement backup validation and integrity checking
-  - Create restore confirmation and rollback mechanisms
-  - Implement restore logging and audit trail
-  - Write unit tests for restore operations with rollback scenarios
-  - _Requirements: 6.5, 6.6, 6.7, 6.8_
+- [ ] 12. Implement Flexible Tenant Restore System Backend
+  - Create tenant data restore endpoints with individual, multiple, and all-tenant options
+  - Implement storage provider selection for restore operations (Backblaze B2 or Cloudflare R2)
+  - Create backup validation and integrity checking before restore operations
+  - Implement transaction-safe restore with rollback mechanisms and confirmation workflows
+  - Create comprehensive restore logging and audit trail with detailed operation tracking
+  - Write unit tests for flexible restore operations with real database scenarios
+  - _Requirements: 32.3, 32.7, 32.9_
 
-- [ ] 13. Implement Disaster Recovery Backend (Full Platform Backup)
-  - Create Celery tasks for nightly full PostgreSQL database backup
-  - Implement dual-cloud backup to both Cloudflare R2 and Backblaze B2
-  - Create backup encryption and verification systems
-  - Implement backup integrity checking and monitoring
-  - Write unit tests for full platform backup system
-  - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7_
+- [ ] 13. Implement Disaster Recovery System Backend
+  - Create Celery tasks for nightly full PostgreSQL database backup with pg_dump
+  - Implement container configuration backup for complete platform reconstruction
+  - Create dual-cloud disaster recovery storage with encryption and verification
+  - Implement full platform restore capabilities with configuration reconstruction
+  - Create disaster recovery monitoring and automated backup verification
+  - Write unit tests for complete disaster recovery backup and restore procedures
+  - _Requirements: 32.4, 32.5, 32.7, 32.8, 32.10_
+
+- [ ] 14. Implement Customer Self-Backup System Backend
+  - Create customer self-backup endpoints for local-only data export
+  - Implement daily backup limit enforcement (once per day per tenant)
+  - Create tenant-specific data export with all customer business data
+  - Implement local backup generation without cloud storage upload
+  - Create backup download endpoints with secure temporary file handling
+  - Write unit tests for customer backup system with daily limit validation
+  - _Requirements: 32.6, 32.7, 32.9_
 
 ## Super Admin Platform Frontend
 
@@ -190,13 +202,15 @@
   - Write component tests for impersonation interface
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7_
 
-- [ ] 18. Create Backup and Recovery Management Interface
-  - Implement tenant recovery interface with backup point selection
-  - Create disaster recovery dashboard with backup status monitoring
-  - Implement backup integrity verification interface
-  - Create restore confirmation modals with critical warnings
-  - Write component tests for backup and recovery interfaces
-  - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8, 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7, 9.8_
+- [ ] 18. Create Comprehensive Backup and Recovery Management Interface
+  - Implement Super Admin tenant backup/restore interface with flexible restore options (individual, multiple, all tenants)
+  - Create disaster recovery dashboard with full platform backup status and restore capabilities
+  - Implement storage provider selection interface for both backup and restore operations
+  - Create backup integrity verification interface with real-time status monitoring
+  - Implement storage usage analytics dashboard for Backblaze B2 and Cloudflare R2 cost monitoring
+  - Create restore confirmation workflows with critical warnings and rollback options
+  - Write component tests for comprehensive backup and recovery management interfaces
+  - _Requirements: 33.1, 33.2, 33.3, 33.5, 33.6, 33.8, 33.9, 33.10_
 
 ## Tenant Application Backend - Core Business Logic
 
@@ -446,13 +460,14 @@
 
 ## Data Export and Settings Frontend
 
-- [ ] 47. Implement Data Export and Backup Interface
-  - Create data export interface with format selection (CSV, JSON, PDF)
-  - Implement export progress tracking and download management
-  - Create backup scheduling interface for automated exports
-  - Implement export history display with file management
-  - Write component tests for data export interface
-  - _Requirements: 33.1, 33.2, 33.3, 33.4, 33.5, 33.6, 33.7_
+- [ ] 47. Implement Customer Self-Backup and Data Export Interface
+  - Create customer self-backup interface with daily limit enforcement and local download
+  - Implement data export interface with format selection (CSV, JSON, PDF)
+  - Create backup progress tracking and download management with secure file handling
+  - Implement backup history display showing daily backup status and download links
+  - Create export progress tracking for large dataset exports with real-time updates
+  - Write component tests for customer backup and data export interface
+  - _Requirements: 33.4, 33.7, 33.9, 33.10_
 
 - [ ] 48. Implement Settings and Configuration Interface
   - Create tenant settings interface with business information management
@@ -467,7 +482,7 @@
 - [ ] 67. Implement Comprehensive Integration Tests
   - Create end-to-end tests for complete invoice creation and payment workflows
   - Implement multi-tenant data isolation testing with real database scenarios
-  - Create backup and restore integration tests with actual file operations
+  - Create comprehensive backup and restore integration tests with dual-cloud storage operations
   - Implement notification system integration tests with mock email/SMS services
   - Write performance tests for critical API endpoints and database operations
   - _Requirements: 36.1, 36.2, 36.3, 36.4, 36.5, 36.6, 36.7, 36.8, 36.9, 36.10_
@@ -484,7 +499,7 @@
   - Create load testing for critical API endpoints with concurrent users
   - Implement database performance testing with large datasets
   - Create frontend performance testing for responsive design
-  - Implement backup system performance testing with large data volumes
+  - Implement comprehensive backup system performance testing with large tenant datasets and dual-cloud upload scenarios
   - Write scalability tests for multi-tenant architecture
   - _Requirements: 36.10_
 
@@ -588,23 +603,25 @@
   - Write component tests for API access management interface
   - _Requirements: 10.3_
 
-## Enhanced Backup System with Backblaze B2
+## Enhanced Dual-Cloud Storage and Monitoring
 
-- [ ] 61. Implement Dual-Cloud Backup System Backend
-  - Integrate Backblaze B2 storage alongside Cloudflare R2 for redundant backups
-  - Implement backup verification across both storage providers
-  - Create backup synchronization and consistency checking between R2 and B2
-  - Implement backup retention policies and automated cleanup for both providers
-  - Write unit tests for dual-cloud backup system with provided B2 credentials
-  - _Requirements: 8.2, 34.3_
+- [ ] 61. Implement Cloud Storage Configuration and Management Backend
+  - Configure Backblaze B2 storage with provided credentials (securesyntax bucket, us-east-005 endpoint)
+  - Implement Cloudflare R2 storage configuration for secondary redundancy
+  - Create storage provider health monitoring and availability checking
+  - Implement automated storage failover and redundancy management
+  - Create storage cost tracking and usage analytics for both providers
+  - Write unit tests for dual-cloud storage configuration and failover scenarios
+  - _Requirements: 32.2, 32.8, 32.10_
 
-- [ ] 62. Implement Backup Storage Management Frontend
-  - Create backup storage status dashboard showing both R2 and B2 storage usage
-  - Implement backup verification interface with integrity checking across both providers
-  - Create storage cost monitoring and usage analytics for both cloud providers
-  - Implement backup retention policy configuration interface
-  - Write component tests for backup storage management interface
-  - _Requirements: 9.6_
+- [ ] 62. Implement Advanced Backup Monitoring and Analytics Frontend
+  - Create comprehensive backup monitoring dashboard with real-time status for all backup types
+  - Implement storage provider analytics showing usage, costs, and performance metrics
+  - Create backup verification dashboard with integrity checking results across both providers
+  - Implement backup retention policy management interface with automated cleanup configuration
+  - Create backup operation audit trail with detailed logging and filtering capabilities
+  - Write component tests for backup monitoring and analytics interfaces
+  - _Requirements: 33.3, 33.7, 33.8, 33.9_
 
 ## Enhanced Notification System Features
 

@@ -463,33 +463,39 @@ HesaabPlus is an elite, multi-tenant, cloud-native business management SaaS plat
 6. WHEN tracking access THEN the frontend SHALL show invoice view statistics and access logs
 7. WHEN customizing sharing THEN the frontend SHALL provide options for QR code size and placement on invoices
 
-### Requirement 32: Tenant Application - Data Export and Backup Backend
+### Requirement 32: Comprehensive Backup and Recovery System Backend
 
-**User Story:** As a business owner, I want data export backend APIs so that I can backup and export my business data.
-
-#### Acceptance Criteria
-
-1. WHEN exporting data THEN the API SHALL provide endpoints to export products, customers, invoices in CSV and JSON formats
-2. WHEN generating exports THEN the API SHALL use Celery workers for large data exports with progress tracking
-3. WHEN creating backups THEN the API SHALL provide tenant-specific data export with all related records
-4. WHEN validating exports THEN the API SHALL ensure exported data maintains referential integrity
-5. WHEN compressing exports THEN the API SHALL create compressed archives for large datasets
-6. WHEN scheduling exports THEN the API SHALL provide endpoints for automated periodic data exports
-7. WHEN tracking exports THEN the API SHALL log all export activities with user, timestamp, and data scope
-
-### Requirement 33: Tenant Application - Data Export and Backup Frontend
-
-**User Story:** As a business owner, I want data export interfaces so that I can easily backup and export my business data.
+**User Story:** As a platform owner and business owner, I want a comprehensive backup and recovery system so that I can protect tenant data, enable disaster recovery, and allow customers to backup their own data.
 
 #### Acceptance Criteria
 
-1. WHEN exporting data THEN the frontend SHALL provide export interface with format selection (CSV, JSON, PDF)
-2. WHEN selecting data THEN the frontend SHALL provide checkboxes for different data types (products, customers, invoices)
-3. WHEN processing exports THEN the frontend SHALL show progress bars and estimated completion times for large exports
-4. WHEN downloads are ready THEN the frontend SHALL provide download links with file size and format information
-5. WHEN scheduling exports THEN the frontend SHALL provide interface to set up automated periodic exports
-6. WHEN viewing export history THEN the frontend SHALL display past exports with download links and expiration dates
-7. WHEN managing backups THEN the frontend SHALL provide full tenant backup option with restore instructions
+1. WHEN performing individual tenant backup THEN the API SHALL create encrypted SQL dumps for specific tenants with all related data
+2. WHEN uploading tenant backups THEN the API SHALL store backups on both Backblaze B2 (primary) and Cloudflare R2 (secondary) with dual redundancy
+3. WHEN restoring tenant data THEN the API SHALL provide endpoints to restore individual tenants, multiple tenants, or all tenants with storage provider selection
+4. WHEN performing disaster recovery backup THEN the API SHALL create nightly full PostgreSQL dumps and container configuration backups
+5. WHEN storing disaster backups THEN the API SHALL upload full platform backups to both cloud storage providers with encryption
+6. WHEN enabling customer self-backup THEN the API SHALL provide endpoints for customers to generate local-only backups once daily
+7. WHEN validating backups THEN the API SHALL verify backup integrity, encryption, and successful cloud storage uploads
+8. WHEN managing storage THEN the API SHALL provide endpoints to monitor storage usage, costs, and backup retention policies
+9. WHEN tracking backup operations THEN the API SHALL log all backup and restore activities with detailed audit trails
+10. WHEN configuring storage THEN the API SHALL support Backblaze B2 credentials (B2_BUCKET_NAME="securesyntax", B2_ENDPOINT_URL="https://s3.us-east-005.backblaze2.com") and Cloudflare R2 configuration
+
+### Requirement 33: Comprehensive Backup and Recovery System Frontend
+
+**User Story:** As a platform owner and business owner, I want comprehensive backup and recovery interfaces so that I can manage all backup operations through intuitive dashboards.
+
+#### Acceptance Criteria
+
+1. WHEN managing tenant backups THEN the Super Admin frontend SHALL provide tenant backup/restore interface with provider selection and flexible restore options
+2. WHEN monitoring disaster recovery THEN the Super Admin frontend SHALL display disaster recovery dashboard with full platform backup status and restore capabilities
+3. WHEN viewing backup storage THEN the Super Admin frontend SHALL show storage usage analytics for both Backblaze B2 and Cloudflare R2 with cost monitoring
+4. WHEN performing customer backup THEN the Tenant Application frontend SHALL provide customer self-backup interface with daily limit enforcement and local download
+5. WHEN verifying backups THEN both frontends SHALL display backup integrity status, verification results, and backup history
+6. WHEN selecting restore options THEN the Super Admin frontend SHALL provide confirmation workflows for individual, multiple, or full tenant restoration
+7. WHEN monitoring backup operations THEN both frontends SHALL show real-time backup progress, completion status, and error notifications
+8. WHEN managing backup policies THEN the Super Admin frontend SHALL provide retention policy configuration and automated cleanup settings
+9. WHEN accessing backup history THEN both frontends SHALL display comprehensive backup logs with filtering, search, and audit trail capabilities
+10. WHEN handling backup errors THEN both frontends SHALL provide clear error messages, retry options, and troubleshooting guidance
 
 ### Requirement 34: Technology Stack and Deployment Infrastructure
 
@@ -499,7 +505,7 @@ HesaabPlus is an elite, multi-tenant, cloud-native business management SaaS plat
 
 1. WHEN deploying backend THEN the system SHALL use Python 3.11+, FastAPI, PostgreSQL, Redis, and Celery in Docker containers
 2. WHEN deploying frontend THEN the system SHALL use React with Vite, TypeScript, Tailwind CSS, and shadcn/ui in Docker containers
-3. WHEN storing backups THEN the system SHALL use Cloudflare R2 as primary and Backblaze B2 as secondary storage with provided credentials
+3. WHEN storing backups THEN the system SHALL use Backblaze B2 as primary and Cloudflare R2 as secondary storage with dual redundancy for maximum data protection
 4. WHEN deploying application THEN the system SHALL be fully containerized using Docker and Docker Compose with multi-service orchestration
 5. WHEN running in production THEN all components SHALL run in separate Docker containers with proper networking and volume management
 6. WHEN scaling is needed THEN the system SHALL support horizontal scaling through container orchestration and load balancing
