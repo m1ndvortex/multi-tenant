@@ -19,6 +19,7 @@ from app.core.redis_client import redis_client
 
 # Import API routers
 from app.api.health import router as health_router
+# from app.api.auth import router as auth_router
 
 # Configure logging
 import os
@@ -125,6 +126,7 @@ async def add_process_time_header(request: Request, call_next):
 
 # Include API routers
 app.include_router(health_router, prefix="/api")
+# app.include_router(auth_router, prefix="/api")
 
 # Root endpoint
 @app.get("/")
@@ -152,7 +154,10 @@ async def api_status():
             "detailed_health": "/api/health/detailed",
             "system_health": "/api/health/system",
             "readiness": "/api/health/readiness",
-            "liveness": "/api/health/liveness"
+            "liveness": "/api/health/liveness",
+            "auth": "/api/auth",
+            "login": "/api/auth/login",
+            "super_admin_login": "/api/auth/super-admin/login"
         },
         "features": {
             "multi_tenant": True,

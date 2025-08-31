@@ -8,7 +8,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
 from datetime import datetime, timedelta
-from .base import BaseModel, TenantMixin
+from .base import BaseModel
 
 
 class UserRole(enum.Enum):
@@ -28,12 +28,21 @@ class UserStatus(enum.Enum):
     PENDING = "pending"
 
 
-class User(BaseModel, TenantMixin):
+class User(BaseModel):
     """
     User model with multi-tenant support
     Represents users within tenant organizations
     """
     __tablename__ = "users"
+    
+    # Override tenant_id to allow null for super admin users
+    tenant_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey('tenants.id'),
+        nullable=True,  # Allow null for super admin users
+        index=True,
+        comment="Tenant ID for multi-tenant data isolation (null for super admin)"
+    )
     
     # Basic Information
     email = Column(
@@ -279,6 +288,20 @@ class User(BaseModel, TenantMixin):
     def deactivate(self):
         """Deactivate user account"""
         self.status = UserStatus.INACTIVE
+    
+    @classmethod
+    def get_for_tenant(cls, db, tenant_id):
+        """Get all users for a specific tenant"""
+        return db.query(cls).filter(cls.tenant_id == tenant_id)
+    
+    @classmethod
+    def create_for_tenant(cls, db, tenant_id, **kwargs):
+        """Create a new user for a specific tenant"""
+        obj = cls(tenant_id=tenant_id, **kwargs)
+        db.add(obj)
+        db.commit()
+        db.refresh(obj)
+        return obj
 
 
 # Create indexes for performance optimization
