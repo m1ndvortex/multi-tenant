@@ -25,6 +25,7 @@ from app.api.auth import router as auth_router
 from app.api.tenant_management import router as tenant_router
 from app.api.user_management import router as user_management_router
 from app.api.super_admin import router as super_admin_router
+from app.api.analytics import router as analytics_router
 
 # Configure logging
 import os
@@ -136,6 +137,26 @@ async def add_process_time_header(request: Request, call_next):
     # Log response
     logger.info(f"Response: {response.status_code} - {round(process_time * 1000, 2)}ms")
     
+    # Record API metrics for monitoring
+    try:
+        from app.services.monitoring_service import MonitoringService
+        monitoring_service = MonitoringService()
+        
+        # Extract tenant ID from request if available
+        tenant_id = None
+        if hasattr(request.state, 'current_user') and hasattr(request.state.current_user, 'tenant_id'):
+            tenant_id = str(request.state.current_user.tenant_id)
+        
+        monitoring_service.record_api_metrics(
+            endpoint=str(request.url.path),
+            method=request.method,
+            response_time_ms=process_time * 1000,
+            status_code=response.status_code,
+            tenant_id=tenant_id
+        )
+    except Exception as e:
+        logger.warning(f"Failed to record API metrics: {e}")
+    
     return response
 
 # Include API routers
@@ -144,6 +165,7 @@ app.include_router(auth_router, prefix="/api")
 app.include_router(tenant_router, prefix="/api")
 app.include_router(user_management_router)
 app.include_router(super_admin_router, prefix="/api")
+app.include_router(analytics_router, prefix="/api")
 
 # Root endpoint
 @app.get("/")
