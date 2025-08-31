@@ -7,9 +7,8 @@ WORKDIR /app
 ENV PATH /app/node_modules/.bin:$PATH
 
 # Install app dependencies
-COPY package.json package-lock.json* ./
-RUN npm ci --silent
-RUN npm install react-scripts@5.0.1 -g --silent
+COPY package.json ./
+RUN npm install --silent
 
 # Copy app source
 COPY . ./
@@ -21,5 +20,5 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:3001 || exit 1
 
-# Start app
-CMD ["npm", "start"]
+# Start app in development mode
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
