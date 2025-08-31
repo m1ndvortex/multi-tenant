@@ -57,19 +57,7 @@ class SuperAdminLoginRequest(BaseModel):
     password: str = Field(..., min_length=6, description="Super admin password")
 
 
-class ImpersonationRequest(BaseModel):
-    """User impersonation request model"""
-    target_user_id: str = Field(..., description="Target user ID to impersonate")
-    duration_hours: Optional[int] = Field(2, ge=1, le=8, description="Impersonation duration in hours")
-
-
-class ImpersonationResponse(BaseModel):
-    """User impersonation response model"""
-    access_token: str
-    token_type: str = "bearer"
-    expires_in: int
-    target_user: dict
-    admin_user: dict
+# Impersonation models moved to dedicated impersonation API
 
 
 class UserProfileResponse(BaseModel):
@@ -329,79 +317,8 @@ async def get_current_tenant_profile(
     return serialize_tenant(current_user.tenant)
 
 
-@router.post("/impersonate", response_model=ImpersonationResponse)
-async def start_impersonation(
-    impersonation_data: ImpersonationRequest,
-    admin_user: User = Depends(get_super_admin_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Start user impersonation session (Super Admin only)
-    
-    - **target_user_id**: ID of user to impersonate
-    - **duration_hours**: Impersonation session duration (1-8 hours)
-    """
-    # Get target user
-    target_user = db.query(User).filter(User.id == impersonation_data.target_user_id).first()
-    
-    if not target_user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Target user not found"
-        )
-    
-    if target_user.is_super_admin:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot impersonate super admin users"
-        )
-    
-    if target_user.status != UserStatus.ACTIVE:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot impersonate inactive users"
-        )
-    
-    # Create impersonation token
-    expires_delta = timedelta(hours=impersonation_data.duration_hours)
-    impersonation_token = create_impersonation_token(
-        admin_user_id=str(admin_user.id),
-        target_user_id=str(target_user.id),
-        target_tenant_id=str(target_user.tenant_id) if target_user.tenant_id else "",
-        expires_delta=expires_delta
-    )
-    
-    # TODO: Log impersonation start in audit trail
-    
-    return {
-        "access_token": impersonation_token,
-        "token_type": "bearer",
-        "expires_in": impersonation_data.duration_hours * 3600,  # Convert to seconds
-        "target_user": serialize_user(target_user),
-        "admin_user": serialize_user(admin_user)
-    }
-
-
-@router.post("/end-impersonation")
-async def end_impersonation(
-    current_user: User = Depends(get_current_user)
-):
-    """
-    End current impersonation session
-    
-    Note: This endpoint validates that the current session is an impersonation
-    and provides a clean way to end it. The actual token invalidation happens
-    client-side by removing the impersonation token.
-    """
-    if not hasattr(current_user, 'is_impersonation') or not current_user.is_impersonation:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Not currently in an impersonation session"
-        )
-    
-    # TODO: Log impersonation end in audit trail
-    
-    return {"message": "Impersonation session ended successfully"}
+# Impersonation endpoints moved to dedicated impersonation API
+# See /api/impersonation/ for all impersonation functionality
 
 
 @router.get("/validate-token")

@@ -26,6 +26,7 @@ from app.api.tenant_management import router as tenant_router
 from app.api.user_management import router as user_management_router
 from app.api.super_admin import router as super_admin_router
 from app.api.analytics import router as analytics_router
+from app.api.impersonation import router as impersonation_router
 
 # Configure logging
 import os
@@ -166,6 +167,7 @@ app.include_router(tenant_router, prefix="/api")
 app.include_router(user_management_router)
 app.include_router(super_admin_router, prefix="/api")
 app.include_router(analytics_router, prefix="/api")
+app.include_router(impersonation_router, prefix="/api")
 
 # Root endpoint
 @app.get("/")
