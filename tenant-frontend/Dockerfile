@@ -16,6 +16,9 @@ RUN npm install --silent
 # Copy app source
 COPY . ./
 
+# Create necessary directories for volumes
+RUN mkdir -p /app/dist /app/.cache
+
 # Expose port
 EXPOSE 3001
 

@@ -13,7 +13,7 @@ services:
       - test_postgres_data:/var/lib/postgresql/data
       - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
-      - "5433:5432"
+      - "5434:5432"
     networks:
       - hesaabplus_test_network
     healthcheck:
@@ -29,7 +29,7 @@ services:
     volumes:
       - test_redis_data:/data
     ports:
-      - "6380:6379"
+      - "6381:6379"
     networks:
       - hesaabplus_test_network
     healthcheck:
