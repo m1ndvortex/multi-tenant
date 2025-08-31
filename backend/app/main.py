@@ -24,6 +24,7 @@ from app.api.health import router as health_router
 from app.api.auth import router as auth_router
 from app.api.tenant_management import router as tenant_router
 from app.api.user_management import router as user_management_router
+from app.api.super_admin import router as super_admin_router
 
 # Configure logging
 import os
@@ -142,6 +143,7 @@ app.include_router(health_router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
 app.include_router(tenant_router, prefix="/api")
 app.include_router(user_management_router)
+app.include_router(super_admin_router, prefix="/api")
 
 # Root endpoint
 @app.get("/")

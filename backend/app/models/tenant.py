@@ -7,7 +7,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from .base import BaseModel
 
 
@@ -178,7 +178,7 @@ class Tenant(BaseModel):
             return True
         
         if self.subscription_expires_at:
-            return datetime.utcnow() < self.subscription_expires_at
+            return datetime.now(timezone.utc) < self.subscription_expires_at
         
         return False
     
@@ -188,14 +188,14 @@ class Tenant(BaseModel):
         if not self.subscription_expires_at:
             return -1
         
-        delta = self.subscription_expires_at - datetime.utcnow()
+        delta = self.subscription_expires_at - datetime.now(timezone.utc)
         return max(0, delta.days + (1 if delta.seconds > 0 else 0))
     
     def upgrade_to_pro(self, duration_months: int = 12):
         """Upgrade tenant to Pro subscription"""
         self.subscription_type = SubscriptionType.PRO
-        self.subscription_starts_at = datetime.utcnow()
-        self.subscription_expires_at = datetime.utcnow() + timedelta(days=duration_months * 30)
+        self.subscription_starts_at = datetime.now(timezone.utc)
+        self.subscription_expires_at = datetime.now(timezone.utc) + timedelta(days=duration_months * 30)
         
         # Update limits for Pro tier
         self.max_users = 5
@@ -218,7 +218,7 @@ class Tenant(BaseModel):
         """Suspend tenant account"""
         self.status = TenantStatus.SUSPENDED
         if reason:
-            self.notes = f"{self.notes or ''}\nSuspended: {reason} ({datetime.utcnow()})"
+            self.notes = f"{self.notes or ''}\nSuspended: {reason} ({datetime.now(timezone.utc)})"
     
     def activate(self):
         """Activate tenant account"""
@@ -226,7 +226,7 @@ class Tenant(BaseModel):
     
     def update_activity(self):
         """Update last activity timestamp"""
-        self.last_activity_at = datetime.utcnow()
+        self.last_activity_at = datetime.now(timezone.utc)
     
     def check_limits(self, resource_type: str, current_count: int) -> bool:
         """Check if tenant is within resource limits"""
@@ -251,8 +251,8 @@ class Tenant(BaseModel):
         from .invoice import Invoice
         from sqlalchemy import func, extract
         
-        current_month = datetime.utcnow().month
-        current_year = datetime.utcnow().year
+        current_month = datetime.now(timezone.utc).month
+        current_year = datetime.now(timezone.utc).year
         
         stats = {
             'users': db.query(User).filter(User.tenant_id == self.id, User.is_active == True).count(),

@@ -32,7 +32,7 @@
 - Test with actual data scenarios that mirror production usage
 - Validate multi-tenant data isolation with real database queries
 - We are not simplify anything just because it not working . if there is a problem we fix it
-
+- Always check for task requirement before you start implement it to understand task better
 ### Database Testing Requirements
 - Create separate test database container: `hesaabplus_test`
 - Use real PostgreSQL with proper schema and constraints
@@ -76,7 +76,7 @@
 - Multi-tenant isolation must be validated with concurrent test scenarios
 - Backup and restore procedures must be tested with actual file operations
 - Performance benchmarks must meet specified thresholds
-
+- Always check for task requirement before you start implement it to understand task better
 ### Error Handling Standards
 - Test all error scenarios with real database constraint violations
 - Validate proper HTTP status codes and error messages
