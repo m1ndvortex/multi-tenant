@@ -7,6 +7,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
 from app.core.config import settings
+from app.models.base import Base
 import logging
 
 logger = logging.getLogger(__name__)
@@ -23,9 +24,6 @@ engine = create_engine(
 
 # Create SessionLocal class
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Create Base class for models
-Base = declarative_base()
 
 
 def get_db() -> Session:
