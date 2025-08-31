@@ -1,0 +1,105 @@
+version: '3.8'
+
+services:
+  test-postgres:
+    image: postgres:15
+    container_name: hesaabplus_test_postgres
+    environment:
+      POSTGRES_DB: hesaabplus_test
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - test_postgres_data:/var/lib/postgresql/data
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5433:5432"
+    networks:
+      - hesaabplus_test_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d hesaabplus_test"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  test-redis:
+    image: redis:7-alpine
+    container_name: hesaabplus_test_redis
+    command: redis-server --appendonly yes
+    volumes:
+      - test_redis_data:/data
+    ports:
+      - "6380:6379"
+    networks:
+      - hesaabplus_test_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  test-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: hesaabplus_test_backend
+    environment:
+      - DATABASE_URL=postgresql://test_user:test_password@test-postgres:5432/hesaabplus_test
+      - REDIS_URL=redis://test-redis:6379/0
+      - JWT_SECRET_KEY=test_jwt_secret_key_for_testing_only
+      - ENVIRONMENT=test
+    volumes:
+      - ./backend:/app
+    depends_on:
+      test-postgres:
+        condition: service_healthy
+      test-redis:
+        condition: service_healthy
+    networks:
+      - hesaabplus_test_network
+    command: python -m pytest tests/ -v --cov=app --cov-report=html --cov-report=term
+
+  test-super-admin-frontend:
+    build:
+      context: ./super-admin-frontend
+      dockerfile: Dockerfile
+    container_name: hesaabplus_test_super_admin
+    environment:
+      - REACT_APP_API_URL=http://test-backend:8000
+      - REACT_APP_APP_TYPE=super-admin
+      - CI=true
+    volumes:
+      - ./super-admin-frontend:/app
+      - /app/node_modules
+    networks:
+      - hesaabplus_test_network
+    command: npm test -- --coverage --watchAll=false
+
+  test-tenant-frontend:
+    build:
+      context: ./tenant-frontend
+      dockerfile: Dockerfile
+    container_name: hesaabplus_test_tenant
+    environment:
+      - REACT_APP_API_URL=http://test-backend:8000
+      - REACT_APP_APP_TYPE=tenant
+      - CI=true
+    volumes:
+      - ./tenant-frontend:/app
+      - /app/node_modules
+    networks:
+      - hesaabplus_test_network
+    command: npm test -- --coverage --watchAll=false
+
+volumes:
+  test_postgres_data:
+    driver: local
+  test_redis_data:
+    driver: local
+
+networks:
+  hesaabplus_test_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16

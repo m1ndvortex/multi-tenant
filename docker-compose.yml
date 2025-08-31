@@ -1,0 +1,189 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: hesaabplus_postgres
+    environment:
+      POSTGRES_DB: hesaabplus
+      POSTGRES_USER: hesaab
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secure_password_2024}
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - hesaabplus_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hesaab -d hesaabplus"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: hesaabplus_redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - hesaabplus_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: hesaabplus_backend
+    environment:
+      - DATABASE_URL=postgresql://hesaab:${POSTGRES_PASSWORD:-secure_password_2024}@postgres:5432/hesaabplus
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your_jwt_secret_key_change_in_production}
+      - CLOUDFLARE_R2_ACCESS_KEY=${CLOUDFLARE_R2_ACCESS_KEY}
+      - CLOUDFLARE_R2_SECRET_KEY=${CLOUDFLARE_R2_SECRET_KEY}
+      - CLOUDFLARE_R2_BUCKET=${CLOUDFLARE_R2_BUCKET}
+      - CLOUDFLARE_R2_ENDPOINT=${CLOUDFLARE_R2_ENDPOINT}
+      - BACKBLAZE_B2_ACCESS_KEY=${BACKBLAZE_B2_ACCESS_KEY}
+      - BACKBLAZE_B2_SECRET_KEY=${BACKBLAZE_B2_SECRET_KEY}
+      - BACKBLAZE_B2_BUCKET=${BACKBLAZE_B2_BUCKET}
+      - EMAIL_SMTP_HOST=${EMAIL_SMTP_HOST}
+      - EMAIL_SMTP_PORT=${EMAIL_SMTP_PORT:-587}
+      - EMAIL_USERNAME=${EMAIL_USERNAME}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+      - SMS_API_KEY=${SMS_API_KEY}
+      - SMS_API_URL=${SMS_API_URL}
+    volumes:
+      - ./backend:/app
+      - backend_uploads:/app/uploads
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - hesaabplus_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  celery:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: hesaabplus_celery
+    environment:
+      - DATABASE_URL=postgresql://hesaab:${POSTGRES_PASSWORD:-secure_password_2024}@postgres:5432/hesaabplus
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your_jwt_secret_key_change_in_production}
+      - CLOUDFLARE_R2_ACCESS_KEY=${CLOUDFLARE_R2_ACCESS_KEY}
+      - CLOUDFLARE_R2_SECRET_KEY=${CLOUDFLARE_R2_SECRET_KEY}
+      - CLOUDFLARE_R2_BUCKET=${CLOUDFLARE_R2_BUCKET}
+      - CLOUDFLARE_R2_ENDPOINT=${CLOUDFLARE_R2_ENDPOINT}
+      - BACKBLAZE_B2_ACCESS_KEY=${BACKBLAZE_B2_ACCESS_KEY}
+      - BACKBLAZE_B2_SECRET_KEY=${BACKBLAZE_B2_SECRET_KEY}
+      - BACKBLAZE_B2_BUCKET=${BACKBLAZE_B2_BUCKET}
+      - EMAIL_SMTP_HOST=${EMAIL_SMTP_HOST}
+      - EMAIL_SMTP_PORT=${EMAIL_SMTP_PORT:-587}
+      - EMAIL_USERNAME=${EMAIL_USERNAME}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+      - SMS_API_KEY=${SMS_API_KEY}
+      - SMS_API_URL=${SMS_API_URL}
+    volumes:
+      - ./backend:/app
+      - backend_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - hesaabplus_network
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=4
+
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: hesaabplus_celery_beat
+    environment:
+      - DATABASE_URL=postgresql://hesaab:${POSTGRES_PASSWORD:-secure_password_2024}@postgres:5432/hesaabplus
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your_jwt_secret_key_change_in_production}
+    volumes:
+      - ./backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - hesaabplus_network
+    command: celery -A app.celery_app beat --loglevel=info
+
+  super-admin-frontend:
+    build:
+      context: ./super-admin-frontend
+      dockerfile: Dockerfile
+    container_name: hesaabplus_super_admin
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+      - REACT_APP_APP_TYPE=super-admin
+      - REACT_APP_VERSION=2.0.0
+    volumes:
+      - ./super-admin-frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - hesaabplus_network
+    command: npm start
+
+  tenant-frontend:
+    build:
+      context: ./tenant-frontend
+      dockerfile: Dockerfile
+    container_name: hesaabplus_tenant
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+      - REACT_APP_APP_TYPE=tenant
+      - REACT_APP_VERSION=2.0.0
+    volumes:
+      - ./tenant-frontend:/app
+      - /app/node_modules
+    ports:
+      - "3001:3001"
+    depends_on:
+      - backend
+    networks:
+      - hesaabplus_network
+    command: npm start
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  backend_uploads:
+    driver: local
+
+networks:
+  hesaabplus_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
