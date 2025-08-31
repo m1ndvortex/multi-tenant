@@ -74,10 +74,11 @@ services:
       - hesaabplus_network
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/health/"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      start_period: 20s
+      retries: 5
 
   celery:
     build:
@@ -113,10 +114,11 @@ services:
       - hesaabplus_network
     command: celery -A app.celery_app worker --loglevel=info --concurrency=4
     healthcheck:
-      test: ["CMD-SHELL", "celery -A app.celery_app inspect ping"]
+      test: ["CMD-SHELL", "celery -A app.celery_app status || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      start_period: 30s
+      retries: 5
 
   celery-beat:
     build:
@@ -137,6 +139,12 @@ services:
     networks:
       - hesaabplus_network
     command: celery -A app.celery_app beat --loglevel=info
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.celery_app status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 5
 
   super-admin-frontend:
     build:
@@ -158,10 +166,11 @@ services:
       - hesaabplus_network
     command: npm run dev -- --host 0.0.0.0
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3000 || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      start_period: 60s
+      retries: 5
 
   tenant-frontend:
     build:
@@ -183,10 +192,11 @@ services:
       - hesaabplus_network
     command: npm run dev -- --host 0.0.0.0 --port 3001
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3001 || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3001 || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      start_period: 60s
+      retries: 5
 
 volumes:
   postgres_data:
