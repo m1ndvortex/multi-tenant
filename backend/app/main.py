@@ -1,103 +1,212 @@
 """
 HesaabPlus FastAPI Application
-Multi-tenant SaaS platform for business management
+Multi-tenant SaaS platform for business management with Persian RTL support
 """
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
+from contextlib import asynccontextmanager
 import time
 import logging
+import sys
+
+# Import core modules
+from app.core.config import settings
+from app.core.database import create_database_tables, check_database_connection
+from app.core.redis_client import redis_client
+
+# Import API routers
+from app.api.health import router as health_router
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+import os
+os.makedirs("/app/logs", exist_ok=True)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler("/app/logs/app.log")
+    ]
+)
 logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan manager"""
+    # Startup
+    logger.info("HesaabPlus API starting up...")
+    
+    try:
+        # Initialize database tables
+        create_database_tables()
+        logger.info("Database tables initialized")
+        
+        # Check database connection
+        try:
+            from app.core.database import SessionLocal
+            from sqlalchemy import text
+            db = SessionLocal()
+            db.execute(text("SELECT 1"))
+            db.close()
+            logger.info("Database connection successful")
+        except Exception as e:
+            logger.error(f"Database connection failed during startup: {e}")
+            raise Exception("Database connection failed")
+        
+        # Check Redis connection
+        try:
+            redis_client.redis_client.ping()
+            logger.info("Redis connection successful")
+        except Exception as e:
+            logger.error(f"Redis connection failed during startup: {e}")
+            raise Exception("Redis connection failed")
+        
+        logger.info("All services initialized successfully")
+        
+    except Exception as e:
+        logger.error(f"Startup failed: {e}")
+        raise
+    
+    yield
+    
+    # Shutdown
+    logger.info("HesaabPlus API shutting down...")
+    # Cleanup will be handled here in future tasks
+
 
 # Create FastAPI application
 app = FastAPI(
-    title="HesaabPlus API",
+    title=settings.app_name,
     description="Multi-tenant business management platform with Persian RTL support",
-    version="2.0.0",
+    version=settings.app_version,
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan
 )
 
 # Security middleware
 app.add_middleware(
     TrustedHostMiddleware, 
-    allowed_hosts=["localhost", "127.0.0.1", "*.hesaabplus.com"]
+    allowed_hosts=["localhost", "127.0.0.1", "*.hesaabplus.com", "*"]
 )
 
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",  # Super Admin Frontend
-        "http://localhost:3001",  # Tenant Frontend
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:3001",
-    ],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
 )
 
-# Request timing middleware
+# Request timing and logging middleware
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
     start_time = time.time()
+    
+    # Log request
+    logger.info(f"Request: {request.method} {request.url}")
+    
     response = await call_next(request)
+    
+    # Calculate and add process time
     process_time = time.time() - start_time
-    response.headers["X-Process-Time"] = str(process_time)
+    response.headers["X-Process-Time"] = str(round(process_time, 4))
+    
+    # Log response
+    logger.info(f"Response: {response.status_code} - {round(process_time * 1000, 2)}ms")
+    
     return response
 
-# Health check endpoint
-@app.get("/health")
-async def health_check():
-    """Health check endpoint for Docker health checks"""
-    return {
-        "status": "healthy",
-        "service": "hesaabplus-backend",
-        "version": "2.0.0",
-        "timestamp": time.time()
-    }
+# Include API routers
+app.include_router(health_router, prefix="/api")
 
 # Root endpoint
 @app.get("/")
 async def root():
     """Root endpoint with API information"""
     return {
-        "message": "HesaabPlus API v2.0.0",
-        "description": "Multi-tenant business management platform",
+        "message": f"{settings.app_name} v{settings.app_version}",
+        "description": "Multi-tenant business management platform with Persian RTL support",
         "docs": "/docs",
-        "health": "/health"
+        "redoc": "/redoc",
+        "health": "/api/health",
+        "detailed_health": "/api/health/detailed",
+        "system_health": "/api/health/system"
+    }
+
+# API status endpoint
+@app.get("/api")
+async def api_status():
+    """API status and available endpoints"""
+    return {
+        "status": "operational",
+        "version": settings.app_version,
+        "endpoints": {
+            "health": "/api/health",
+            "detailed_health": "/api/health/detailed",
+            "system_health": "/api/health/system",
+            "readiness": "/api/health/readiness",
+            "liveness": "/api/health/liveness"
+        },
+        "features": {
+            "multi_tenant": True,
+            "persian_rtl": True,
+            "dual_invoice_system": True,
+            "gold_installments": True,
+            "backup_recovery": True,
+            "real_time_notifications": True
+        }
     }
 
 # Global exception handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Global exception: {exc}", exc_info=True)
+    logger.error(f"Global exception on {request.method} {request.url}: {exc}", exc_info=True)
+    
+    # Don't expose internal errors in production
+    if settings.debug:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "detail": str(exc),
+                "type": "internal_error",
+                "path": str(request.url)
+            }
+        )
+    else:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "detail": "Internal server error",
+                "type": "internal_error"
+            }
+        )
+
+# HTTP exception handler
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    logger.warning(f"HTTP exception on {request.method} {request.url}: {exc.status_code} - {exc.detail}")
     return JSONResponse(
-        status_code=500,
+        status_code=exc.status_code,
         content={
-            "detail": "Internal server error",
-            "type": "internal_error"
+            "detail": exc.detail,
+            "type": "http_error",
+            "status_code": exc.status_code
         }
     )
 
-# Startup event
-@app.on_event("startup")
-async def startup_event():
-    logger.info("HesaabPlus API starting up...")
-    # Database connection will be initialized here in future tasks
-
-# Shutdown event
-@app.on_event("shutdown")
-async def shutdown_event():
-    logger.info("HesaabPlus API shutting down...")
-    # Cleanup will be handled here in future tasks
-
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=settings.debug,
+        log_level="info"
+    )

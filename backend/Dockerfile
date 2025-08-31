@@ -25,8 +25,8 @@ RUN pip install --no-cache-dir --upgrade pip \
 # Copy project
 COPY . .
 
-# Create uploads directory
-RUN mkdir -p /app/uploads
+# Create necessary directories
+RUN mkdir -p /app/uploads /app/logs
 
 # Expose port
 EXPOSE 8000
