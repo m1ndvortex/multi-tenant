@@ -16,10 +16,12 @@ import sys
 from app.core.config import settings
 from app.core.database import create_database_tables, check_database_connection
 from app.core.redis_client import redis_client
+from app.core.tenant_context import TenantMiddleware
 
 # Import API routers
 from app.api.health import router as health_router
 from app.api.auth import router as auth_router
+from app.api.tenant_management import router as tenant_router
 
 # Configure logging
 import os
@@ -105,6 +107,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Tenant context middleware
+app.add_middleware(TenantMiddleware)
+
 # Request timing and logging middleware
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
@@ -127,6 +132,7 @@ async def add_process_time_header(request: Request, call_next):
 # Include API routers
 app.include_router(health_router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
+app.include_router(tenant_router, prefix="/api")
 
 # Root endpoint
 @app.get("/")

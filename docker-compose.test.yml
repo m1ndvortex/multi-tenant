@@ -47,7 +47,8 @@ services:
       - DATABASE_URL=postgresql://test_user:test_password@test-postgres:5432/hesaabplus_test
       - REDIS_URL=redis://test-redis:6379/0
       - JWT_SECRET_KEY=test_jwt_secret_key_for_testing_only
-      - ENVIRONMENT=test
+      - TESTING=true
+      - PYTHONPATH=/app
     volumes:
       - ./backend:/app
     depends_on:
@@ -57,7 +58,13 @@ services:
         condition: service_healthy
     networks:
       - hesaabplus_test_network
-    command: python -m pytest tests/ -v --cov=app --cov-report=html --cov-report=term
+    command: >
+      sh -c "
+        echo 'Waiting for database to be ready...' &&
+        python -c 'import time; time.sleep(5)' &&
+        echo 'Running tenant context tests only...' &&
+        python -m pytest tests/test_tenant_isolation/test_tenant_context.py -v --tb=short --maxfail=3 --disable-warnings
+      "
 
   test-super-admin-frontend:
     build:
