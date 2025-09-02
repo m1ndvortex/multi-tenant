@@ -31,6 +31,11 @@ celery_app.conf.update(
     task_routes={
         "app.tasks.backup_tenant_data": {"queue": "backup"},
         "app.tasks.full_platform_backup": {"queue": "backup"},
+        "app.tasks.validate_backup_integrity_task": {"queue": "backup"},
+        "app.tasks.restore_single_tenant_task": {"queue": "restore"},
+        "app.tasks.restore_multiple_tenants_task": {"queue": "restore"},
+        "app.tasks.restore_all_tenants_task": {"queue": "restore"},
+        "app.tasks.cleanup_restore_files_task": {"queue": "maintenance"},
         "app.tasks.send_email": {"queue": "notifications"},
         "app.tasks.send_sms": {"queue": "notifications"},
         "app.tasks.process_image": {"queue": "media"},
@@ -72,6 +77,11 @@ celery_app.conf.update(
             "schedule": 60.0 * 60.0 * 24.0,  # Daily at 9 AM
             "options": {"eta": "09:00"}
         },
+        "cleanup-restore-files": {
+            "task": "app.tasks.periodic_restore_cleanup",
+            "schedule": 60.0 * 60.0 * 24.0,  # Daily at 3 AM
+            "options": {"eta": "03:00"}
+        },
     },
 )
 
@@ -86,6 +96,31 @@ celery_app.conf.task_annotations = {
         "rate_limit": "1/h",
         "time_limit": 1800,  # 30 minutes
         "soft_time_limit": 1500,  # 25 minutes
+    },
+    "app.tasks.validate_backup_integrity_task": {
+        "rate_limit": "20/m",
+        "time_limit": 180,  # 3 minutes
+        "soft_time_limit": 150,  # 2.5 minutes
+    },
+    "app.tasks.restore_single_tenant_task": {
+        "rate_limit": "5/m",
+        "time_limit": 600,  # 10 minutes
+        "soft_time_limit": 540,  # 9 minutes
+    },
+    "app.tasks.restore_multiple_tenants_task": {
+        "rate_limit": "2/m",
+        "time_limit": 1800,  # 30 minutes
+        "soft_time_limit": 1500,  # 25 minutes
+    },
+    "app.tasks.restore_all_tenants_task": {
+        "rate_limit": "1/h",
+        "time_limit": 3600,  # 60 minutes
+        "soft_time_limit": 3300,  # 55 minutes
+    },
+    "app.tasks.cleanup_restore_files_task": {
+        "rate_limit": "1/h",
+        "time_limit": 300,  # 5 minutes
+        "soft_time_limit": 240,  # 4 minutes
     },
     "app.tasks.send_email": {
         "rate_limit": "100/m",

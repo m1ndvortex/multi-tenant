@@ -554,6 +554,8 @@ class TestBackupAPI:
     @pytest.fixture
     def super_admin_user(self, db_session):
         """Create a super admin user for testing"""
+        from app.core.auth import get_password_hash
+        
         user = User(
             email="admin@hesaabplus.com",
             first_name="Super",
@@ -561,9 +563,9 @@ class TestBackupAPI:
             role=UserRole.OWNER,  # Use OWNER role for super admin
             is_active=True,
             is_super_admin=True,
-            tenant_id=None  # Super admin has no tenant
+            tenant_id=None,  # Super admin has no tenant
+            password_hash=get_password_hash("admin123")
         )
-        user.set_password("admin123")
         db_session.add(user)
         db_session.commit()
         db_session.refresh(user)
@@ -577,6 +579,7 @@ class TestBackupAPI:
             data={
                 "user_id": str(super_admin_user.id), 
                 "email": super_admin_user.email,
+                "role": super_admin_user.role.value,
                 "is_super_admin": True
             }
         )
@@ -788,6 +791,79 @@ class TestBackupAPI:
         
         response = client.get("/api/backup/storage/usage")
         assert response.status_code == 403
+
+
+class TestRealCloudStorageIntegration:
+    """Integration tests using real cloud storage"""
+    
+    def test_real_b2_upload_download(self):
+        """Test real Backblaze B2 upload and download"""
+        cloud_storage = CloudStorageService()
+        
+        # Skip test if B2 client is not available
+        if not cloud_storage.b2_client:
+            pytest.skip("Backblaze B2 client not configured")
+        
+        test_content = b"Real cloud storage test content for B2 integration"
+        test_filename = f"test_backup_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.txt"
+        
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            
+            # Create test file
+            test_file = temp_path / "test_upload.txt"
+            with open(test_file, 'wb') as f:
+                f.write(test_content)
+            
+            try:
+                # Test upload to B2
+                upload_location = cloud_storage.upload_to_b2(
+                    test_file, 
+                    test_filename,
+                    metadata={"test": "true", "integration": "backup_system"}
+                )
+                
+                assert upload_location is not None
+                assert test_filename in upload_location
+                logger.info(f"Successfully uploaded to B2: {upload_location}")
+                
+                # Test download from B2
+                download_file = temp_path / "downloaded_file.txt"
+                cloud_storage.download_from_b2(test_filename, download_file)
+                
+                # Verify downloaded content
+                with open(download_file, 'rb') as f:
+                    downloaded_content = f.read()
+                
+                assert downloaded_content == test_content
+                logger.info("Successfully downloaded and verified content from B2")
+                
+            finally:
+                # Clean up - delete the test file from B2
+                try:
+                    cloud_storage.delete_from_b2(test_filename)
+                    logger.info(f"Cleaned up test file from B2: {test_filename}")
+                except Exception as e:
+                    logger.warning(f"Failed to clean up test file: {e}")
+    
+    def test_real_storage_connectivity(self):
+        """Test real storage connectivity"""
+        cloud_storage = CloudStorageService()
+        
+        connectivity = cloud_storage.test_connectivity()
+        
+        # B2 should be available with configured credentials
+        assert "backblaze_b2" in connectivity
+        if cloud_storage.b2_client:
+            assert connectivity["backblaze_b2"]["available"] is True
+            logger.info("Backblaze B2 connectivity test passed")
+        else:
+            assert connectivity["backblaze_b2"]["available"] is False
+            logger.info("Backblaze B2 not configured, connectivity test skipped")
+        
+        # R2 might not be configured
+        assert "cloudflare_r2" in connectivity
+        logger.info(f"Cloudflare R2 connectivity: {connectivity['cloudflare_r2']}")
 
 
 class TestRealDatabaseIntegration:

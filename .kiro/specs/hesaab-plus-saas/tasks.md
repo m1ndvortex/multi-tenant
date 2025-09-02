@@ -145,7 +145,12 @@
   - Write unit tests for tenant backup creation, encryption, and dual-cloud upload
   - _Requirements: 32.1, 32.2, 32.7, 32.10_
 
-- [ ] 12. Implement Flexible Tenant Restore System Backend
+- [x] 12. Implement Flexible Tenant Restore System Backend
+
+
+
+
+
   - Create tenant data restore endpoints with individual, multiple, and all-tenant options
   - Implement storage provider selection for restore operations (Backblaze B2 or Cloudflare R2)
   - Create backup validation and integrity checking before restore operations

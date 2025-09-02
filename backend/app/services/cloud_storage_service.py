@@ -39,11 +39,11 @@ class CloudStorageService:
                     aws_secret_access_key=settings.backblaze_b2_secret_key,
                     region_name='us-east-005'
                 )
-                logger.info("Backblaze B2 client initialized successfully")
+                logger.info(f"Backblaze B2 client initialized successfully with bucket: {settings.backblaze_b2_bucket}")
             except Exception as e:
                 logger.error(f"Failed to initialize Backblaze B2 client: {e}")
         else:
-            logger.warning("Backblaze B2 credentials not configured")
+            logger.warning(f"Backblaze B2 credentials not configured: access_key={bool(settings.backblaze_b2_access_key)}, secret_key={bool(settings.backblaze_b2_secret_key)}, bucket={bool(settings.backblaze_b2_bucket)}")
         
         # Initialize Cloudflare R2 client
         if all([

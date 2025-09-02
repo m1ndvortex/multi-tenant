@@ -28,6 +28,7 @@ from app.api.super_admin import router as super_admin_router
 from app.api.analytics import router as analytics_router
 from app.api.impersonation import router as impersonation_router
 from app.api.backup import router as backup_router
+from app.api.restore import router as restore_router
 
 # Configure logging
 import os
@@ -170,6 +171,7 @@ app.include_router(super_admin_router, prefix="/api")
 app.include_router(analytics_router, prefix="/api")
 app.include_router(impersonation_router, prefix="/api")
 app.include_router(backup_router)
+app.include_router(restore_router)
 
 # Root endpoint
 @app.get("/")
