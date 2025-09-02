@@ -116,18 +116,17 @@ def backup_all_tenants(self):
 
 @celery_app.task(bind=True, name="app.tasks.full_platform_backup")
 def full_platform_backup(self):
-    """Perform full platform backup"""
+    """Perform full platform backup - delegates to disaster recovery service"""
     try:
-        logger.info("Starting full platform backup")
+        logger.info("Starting full platform backup (disaster recovery)")
         
-        # This will be implemented in future disaster recovery tasks
-        # For now, return a placeholder response
+        # Import disaster recovery task
+        from app.tasks.disaster_recovery_tasks import create_disaster_recovery_backup
         
-        return {
-            "status": "success",
-            "backup_file": "platform_full_backup.sql.gz",
-            "message": "Full platform backup completed successfully"
-        }
+        # Execute disaster recovery backup
+        result = create_disaster_recovery_backup.apply()
+        
+        return result.get()
         
     except Exception as exc:
         logger.error(f"Full platform backup failed: {exc}")

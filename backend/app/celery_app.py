@@ -32,6 +32,10 @@ celery_app.conf.update(
         "app.tasks.backup_tenant_data": {"queue": "backup"},
         "app.tasks.full_platform_backup": {"queue": "backup"},
         "app.tasks.validate_backup_integrity_task": {"queue": "backup"},
+        "app.tasks.create_disaster_recovery_backup": {"queue": "disaster_recovery"},
+        "app.tasks.verify_disaster_recovery_backup": {"queue": "disaster_recovery"},
+        "app.tasks.automated_disaster_recovery_verification": {"queue": "disaster_recovery"},
+        "app.tasks.disaster_recovery_monitoring": {"queue": "monitoring"},
         "app.tasks.restore_single_tenant_task": {"queue": "restore"},
         "app.tasks.restore_multiple_tenants_task": {"queue": "restore"},
         "app.tasks.restore_all_tenants_task": {"queue": "restore"},
@@ -63,10 +67,19 @@ celery_app.conf.update(
             "task": "app.tasks.backup_all_tenants",
             "schedule": 60.0 * 60.0 * 24.0,  # Daily at midnight
         },
-        "nightly-platform-backup": {
-            "task": "app.tasks.full_platform_backup",
+        "nightly-disaster-recovery-backup": {
+            "task": "app.tasks.create_disaster_recovery_backup",
             "schedule": 60.0 * 60.0 * 24.0,  # Daily at 2 AM
             "options": {"eta": "02:00"}
+        },
+        "weekly-disaster-recovery-verification": {
+            "task": "app.tasks.automated_disaster_recovery_verification",
+            "schedule": 60.0 * 60.0 * 24.0 * 7.0,  # Weekly on Sunday at 3 AM
+            "options": {"eta": "03:00"}
+        },
+        "hourly-disaster-recovery-monitoring": {
+            "task": "app.tasks.disaster_recovery_monitoring",
+            "schedule": 60.0 * 60.0,  # Hourly
         },
         "cleanup-expired-sessions": {
             "task": "app.tasks.cleanup_expired_sessions",
@@ -96,6 +109,26 @@ celery_app.conf.task_annotations = {
         "rate_limit": "1/h",
         "time_limit": 1800,  # 30 minutes
         "soft_time_limit": 1500,  # 25 minutes
+    },
+    "app.tasks.create_disaster_recovery_backup": {
+        "rate_limit": "1/h",
+        "time_limit": 1800,  # 30 minutes
+        "soft_time_limit": 1500,  # 25 minutes
+    },
+    "app.tasks.verify_disaster_recovery_backup": {
+        "rate_limit": "10/m",
+        "time_limit": 300,  # 5 minutes
+        "soft_time_limit": 240,  # 4 minutes
+    },
+    "app.tasks.automated_disaster_recovery_verification": {
+        "rate_limit": "1/h",
+        "time_limit": 600,  # 10 minutes
+        "soft_time_limit": 540,  # 9 minutes
+    },
+    "app.tasks.disaster_recovery_monitoring": {
+        "rate_limit": "12/h",
+        "time_limit": 120,  # 2 minutes
+        "soft_time_limit": 90,  # 1.5 minutes
     },
     "app.tasks.validate_backup_integrity_task": {
         "rate_limit": "20/m",
