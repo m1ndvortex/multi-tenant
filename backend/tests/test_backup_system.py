@@ -658,7 +658,7 @@ class TestBackupAPI:
         assert data["tenant_name"] == "Test Tenant List"
         assert len(data["backups"]) == 1
         assert data["backups"][0]["backup_name"] == "tenant_api_test_20240101_120000"
-        assert data["backups"][0]["file_size"] == 1024
+        assert data["backups"][0]["file_size"] == "1024"
         assert data["backups"][0]["checksum"] == "abc123def456"
     
     def test_get_backup_info_endpoint(self, client, super_admin_token, db_session):
@@ -795,6 +795,13 @@ class TestBackupAPI:
 
 class TestRealCloudStorageIntegration:
     """Integration tests using real cloud storage"""
+    
+    @pytest.fixture(autouse=True)
+    def setup_logging(self):
+        """Setup logging for this test class"""
+        import logging
+        global logger
+        logger = logging.getLogger(__name__)
     
     def test_real_b2_upload_download(self):
         """Test real Backblaze B2 upload and download"""

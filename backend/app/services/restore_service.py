@@ -66,11 +66,16 @@ class RestoreService:
                 else:
                     raise Exception(f"Unsupported storage provider: {storage_provider}")
                 
+                # Verify file was downloaded
+                if not temp_file.exists():
+                    raise Exception(f"Download failed - temporary file not created: {temp_file}")
+                
                 # Calculate and verify checksum
                 actual_checksum = self.backup_service.calculate_checksum(temp_file)
                 expected_checksum = backup.checksum
                 
                 is_valid = actual_checksum == expected_checksum
+                file_size = temp_file.stat().st_size
                 
                 validation_result = {
                     "backup_id": backup_id,
@@ -78,7 +83,7 @@ class RestoreService:
                     "is_valid": is_valid,
                     "expected_checksum": expected_checksum,
                     "actual_checksum": actual_checksum,
-                    "file_size": temp_file.stat().st_size,
+                    "file_size": file_size,
                     "backup_date": backup.started_at.isoformat(),
                     "tenant_id": str(backup.tenant_id) if backup.tenant_id else None
                 }

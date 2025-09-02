@@ -1,7 +1,9 @@
 """
 Comprehensive unit tests for the flexible tenant restore system
+Tests with REAL B2 cloud storage integration
 """
 
+import os
 import pytest
 import tempfile
 import gzip
@@ -9,6 +11,11 @@ from pathlib import Path
 from datetime import datetime, timezone
 from unittest.mock import Mock, patch, MagicMock
 from uuid import uuid4
+
+# Set B2 environment variables for testing
+os.environ['BACKBLAZE_B2_ACCESS_KEY'] = '005acba9882c2b80000000001'
+os.environ['BACKBLAZE_B2_SECRET_KEY'] = 'K005LzPhrovqG5Eq37oYWxIQiIKIHh8'
+os.environ['BACKBLAZE_B2_BUCKET'] = 'securesyntax'
 
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -86,11 +93,19 @@ class TestRestoreService:
     
     def test_validate_backup_integrity_success(self, restore_service, test_backup):
         """Test successful backup integrity validation"""
+        import tempfile
+        
         with patch.object(restore_service.cloud_storage, 'download_from_b2') as mock_download, \
              patch.object(restore_service.backup_service, 'calculate_checksum') as mock_checksum:
             
-            # Mock successful download and checksum validation
-            mock_download.return_value = Path("/tmp/test_backup.enc")
+            # Mock download to create the actual file
+            def mock_download_func(storage_location, local_path):
+                # Create the file that the download would create
+                with open(local_path, 'w') as f:
+                    f.write("test backup content for validation")
+                return local_path
+            
+            mock_download.side_effect = mock_download_func
             mock_checksum.return_value = test_backup.checksum
             
             result = restore_service.validate_backup_integrity(str(test_backup.id), "backblaze_b2")
@@ -100,6 +115,7 @@ class TestRestoreService:
             assert result["storage_provider"] == "backblaze_b2"
             assert result["expected_checksum"] == test_backup.checksum
             assert result["actual_checksum"] == test_backup.checksum
+            assert result["file_size"] > 0
     
     def test_validate_backup_integrity_failure(self, restore_service, test_backup):
         """Test backup integrity validation failure"""

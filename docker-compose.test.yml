@@ -49,6 +49,9 @@ services:
       - JWT_SECRET_KEY=test_jwt_secret_key_for_testing_only
       - TESTING=true
       - PYTHONPATH=/app
+      - BACKBLAZE_B2_ACCESS_KEY=005acba9882c2b80000000001
+      - BACKBLAZE_B2_SECRET_KEY=K005LzPhrovqG5Eq37oYWxIQiIKIHh8
+      - BACKBLAZE_B2_BUCKET=securesyntax
     volumes:
       - ./backend:/app
     depends_on:
