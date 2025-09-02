@@ -7,7 +7,7 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
-from datetime import datetime
+from datetime import datetime, timezone
 from .base import BaseModel
 
 
@@ -145,13 +145,13 @@ class BackupLog(BaseModel):
     def start_backup(self):
         """Mark backup as started"""
         self.status = BackupStatus.IN_PROGRESS
-        self.started_at = datetime.utcnow()
+        self.started_at = datetime.now(timezone.utc)
     
     def complete_backup(self, file_size: int = None, compressed_size: int = None, 
                        checksum: str = None, storage_locations: list = None):
         """Mark backup as completed"""
         self.status = BackupStatus.COMPLETED
-        self.completed_at = datetime.utcnow()
+        self.completed_at = datetime.now(timezone.utc)
         
         if self.started_at:
             delta = self.completed_at - self.started_at
@@ -173,7 +173,7 @@ class BackupLog(BaseModel):
         """Mark backup as failed"""
         self.status = BackupStatus.FAILED
         self.error_message = error_message
-        self.completed_at = datetime.utcnow()
+        self.completed_at = datetime.now(timezone.utc)
         
         if self.started_at:
             delta = self.completed_at - self.started_at
@@ -182,7 +182,7 @@ class BackupLog(BaseModel):
     def cancel_backup(self):
         """Cancel backup operation"""
         self.status = BackupStatus.CANCELLED
-        self.completed_at = datetime.utcnow()
+        self.completed_at = datetime.now(timezone.utc)
     
     @property
     def compression_ratio(self) -> float:
@@ -283,12 +283,12 @@ class RestoreLog(BaseModel):
     def start_restore(self):
         """Mark restore as started"""
         self.status = BackupStatus.IN_PROGRESS
-        self.started_at = datetime.utcnow()
+        self.started_at = datetime.now(timezone.utc)
     
     def complete_restore(self):
         """Mark restore as completed"""
         self.status = BackupStatus.COMPLETED
-        self.completed_at = datetime.utcnow()
+        self.completed_at = datetime.now(timezone.utc)
         
         if self.started_at:
             delta = self.completed_at - self.started_at
@@ -298,7 +298,7 @@ class RestoreLog(BaseModel):
         """Mark restore as failed"""
         self.status = BackupStatus.FAILED
         self.error_message = error_message
-        self.completed_at = datetime.utcnow()
+        self.completed_at = datetime.now(timezone.utc)
         
         if self.started_at:
             delta = self.completed_at - self.started_at

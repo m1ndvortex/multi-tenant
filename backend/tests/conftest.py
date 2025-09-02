@@ -31,6 +31,7 @@ def clean_database():
     try:
         # Get all table names
         tables = [
+            'backup_logs', 'restore_logs', 'storage_locations',
             'invoices', 'products', 'customers', 'users', 'tenants'
         ]
         

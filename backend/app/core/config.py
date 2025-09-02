@@ -44,9 +44,9 @@ class Settings(BaseSettings):
     cloudflare_r2_endpoint: Optional[str] = Field(default=None, env="CLOUDFLARE_R2_ENDPOINT")
     
     # Cloud Storage - Backblaze B2
-    backblaze_b2_access_key: Optional[str] = Field(default=None, env="BACKBLAZE_B2_ACCESS_KEY")
-    backblaze_b2_secret_key: Optional[str] = Field(default=None, env="BACKBLAZE_B2_SECRET_KEY")
-    backblaze_b2_bucket: Optional[str] = Field(default=None, env="BACKBLAZE_B2_BUCKET")
+    backblaze_b2_access_key: Optional[str] = Field(default="005acba9882c2b80000000001", env="BACKBLAZE_B2_ACCESS_KEY")
+    backblaze_b2_secret_key: Optional[str] = Field(default="K005LzPhrovqG5Eq37oYWxIQiIKIHh8", env="BACKBLAZE_B2_SECRET_KEY")
+    backblaze_b2_bucket: Optional[str] = Field(default="securesyntax", env="BACKBLAZE_B2_BUCKET")
     
     # Email Configuration
     email_smtp_host: Optional[str] = Field(default=None, env="EMAIL_SMTP_HOST")
