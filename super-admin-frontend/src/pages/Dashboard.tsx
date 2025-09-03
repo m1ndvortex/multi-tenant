@@ -32,7 +32,7 @@ const StatCard: React.FC<StatCardProps> = ({
   const cardProps = link ? { to: link } : {};
 
   return (
-    <CardWrapper {...cardProps} className={link ? 'block' : ''}>
+    <CardWrapper {...(cardProps as any)} className={link ? 'block' : ''}>
       <Card variant="professional" className={cn(
         "h-full transition-all duration-300",
         link && "hover:shadow-xl hover:scale-[1.02] cursor-pointer"
