@@ -315,7 +315,7 @@ const UserImpersonation: React.FC = () => {
             users={users}
             onImpersonate={handleImpersonate}
             isLoading={usersLoading}
-            impersonatingUserId={impersonatingUserId}
+            impersonatingUserId={impersonatingUserId || undefined}
           />
         </TabsContent>
 
@@ -325,7 +325,7 @@ const UserImpersonation: React.FC = () => {
             sessions={activeSessions}
             onTerminateSession={handleTerminateSession}
             isLoading={sessionsLoading}
-            terminatingSessionId={terminatingSessionId}
+            terminatingSessionId={terminatingSessionId || undefined}
           />
         </TabsContent>
 

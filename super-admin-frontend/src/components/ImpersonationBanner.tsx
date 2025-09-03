@@ -5,8 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, LogOut, Clock, User, Shield } from 'lucide-react';
 import { impersonationService } from '@/services/impersonationService';
 import { CurrentSessionInfo } from '@/types/impersonation';
-import { formatDistanceToNow } from 'date-fns';
-import { faIR } from 'date-fns/locale';
+
 
 interface ImpersonationBannerProps {
   onEndImpersonation?: () => void;
