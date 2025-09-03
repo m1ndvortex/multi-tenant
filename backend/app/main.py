@@ -31,6 +31,7 @@ from app.api.backup import router as backup_router
 from app.api.restore import router as restore_router
 from app.api.disaster_recovery import router as disaster_recovery_router
 from app.api.customer_backup import router as customer_backup_router
+from app.api.subscription import router as subscription_router
 
 # Configure logging
 import os
@@ -176,6 +177,7 @@ app.include_router(backup_router)
 app.include_router(restore_router)
 app.include_router(disaster_recovery_router, prefix="/api/super-admin")
 app.include_router(customer_backup_router)
+app.include_router(subscription_router)
 
 # Root endpoint
 @app.get("/")
