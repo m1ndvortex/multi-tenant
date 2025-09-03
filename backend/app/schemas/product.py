@@ -2,7 +2,7 @@
 Product and inventory management schemas
 """
 
-from pydantic import BaseModel, Field, validator, root_validator
+from pydantic import BaseModel, Field, validator, model_validator
 from typing import Optional, List, Dict, Any
 from decimal import Decimal
 from datetime import datetime
@@ -12,9 +12,9 @@ import uuid
 
 class ProductStatus(str, Enum):
     """Product status enumeration"""
-    ACTIVE = "active"
-    INACTIVE = "inactive"
-    DISCONTINUED = "discontinued"
+    ACTIVE = "ACTIVE"
+    INACTIVE = "INACTIVE"
+    DISCONTINUED = "DISCONTINUED"
 
 
 class StockStatus(str, Enum):
@@ -108,13 +108,13 @@ class ProductBase(BaseModel):
         # Remove duplicates and empty strings
         return list(set(tag.strip() for tag in v if tag and tag.strip()))
 
-    @root_validator
-    def validate_pricing(cls, values):
+    @model_validator(mode='after')
+    def validate_pricing(self):
         """Validate pricing constraints"""
-        selling_price = values.get('selling_price')
-        min_price = values.get('min_price')
-        max_price = values.get('max_price')
-        cost_price = values.get('cost_price')
+        selling_price = self.selling_price
+        min_price = self.min_price
+        max_price = self.max_price
+        cost_price = self.cost_price
         
         if min_price and selling_price and min_price > selling_price:
             raise ValueError('Minimum price cannot be greater than selling price')
@@ -129,14 +129,14 @@ class ProductBase(BaseModel):
             # This is just a warning, not an error
             pass
         
-        return values
+        return self
 
-    @root_validator
-    def validate_gold_fields(cls, values):
+    @model_validator(mode='after')
+    def validate_gold_fields(self):
         """Validate gold-specific fields"""
-        is_gold_product = values.get('is_gold_product', False)
-        gold_purity = values.get('gold_purity')
-        weight_per_unit = values.get('weight_per_unit')
+        is_gold_product = self.is_gold_product
+        gold_purity = self.gold_purity
+        weight_per_unit = self.weight_per_unit
         
         if is_gold_product:
             if not gold_purity:
@@ -144,23 +144,23 @@ class ProductBase(BaseModel):
             if not weight_per_unit:
                 raise ValueError('Weight per unit is required for gold products')
         
-        return values
+        return self
 
-    @root_validator
-    def validate_inventory(cls, values):
+    @model_validator(mode='after')
+    def validate_inventory(self):
         """Validate inventory fields"""
-        track_inventory = values.get('track_inventory', True)
-        is_service = values.get('is_service', False)
-        stock_quantity = values.get('stock_quantity', 0)
-        reserved_quantity = values.get('reserved_quantity', 0)
-        min_stock_level = values.get('min_stock_level', 0)
-        max_stock_level = values.get('max_stock_level')
+        track_inventory = self.track_inventory
+        is_service = self.is_service
+        stock_quantity = self.stock_quantity
+        reserved_quantity = self.reserved_quantity
+        min_stock_level = self.min_stock_level
+        max_stock_level = self.max_stock_level
         
         if is_service:
             # Services don't track inventory
-            values['track_inventory'] = False
-            values['stock_quantity'] = 0
-            values['reserved_quantity'] = 0
+            self.track_inventory = False
+            self.stock_quantity = 0
+            self.reserved_quantity = 0
         
         if reserved_quantity > stock_quantity:
             raise ValueError('Reserved quantity cannot exceed stock quantity')
@@ -168,7 +168,7 @@ class ProductBase(BaseModel):
         if max_stock_level and min_stock_level > max_stock_level:
             raise ValueError('Minimum stock level cannot exceed maximum stock level')
         
-        return values
+        return self
 
 
 class ProductCreate(ProductBase):
@@ -261,7 +261,7 @@ class ProductSearchRequest(BaseModel):
     
     # Sorting
     sort_by: Optional[str] = Field(default="name", description="Sort field")
-    sort_order: Optional[str] = Field(default="asc", regex="^(asc|desc)$", description="Sort order")
+    sort_order: Optional[str] = Field(default="asc", pattern="^(asc|desc)$", description="Sort order")
     
     # Pagination
     page: int = Field(default=1, ge=1, description="Page number")

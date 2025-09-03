@@ -40,6 +40,11 @@ class AuthorizationError(BaseCustomException):
     pass
 
 
+class PermissionError(BaseCustomException):
+    """Raised when permission is denied"""
+    pass
+
+
 class TenantIsolationError(BaseCustomException):
     """Raised when tenant isolation is violated"""
     pass
@@ -104,6 +109,16 @@ def exception_to_http_exception(exc: BaseCustomException) -> HTTPException:
             detail={
                 "message": exc.message,
                 "type": "authorization_error",
+                "details": exc.details
+            }
+        )
+    
+    elif isinstance(exc, PermissionError):
+        return HTTPException(
+            status_code=403,
+            detail={
+                "message": exc.message,
+                "type": "permission_error",
                 "details": exc.details
             }
         )

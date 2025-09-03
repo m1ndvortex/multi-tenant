@@ -14,9 +14,9 @@ from .base import BaseModel, TenantMixin
 
 class ProductStatus(enum.Enum):
     """Product status enumeration"""
-    ACTIVE = "active"
-    INACTIVE = "inactive"
-    DISCONTINUED = "discontinued"
+    ACTIVE = "ACTIVE"
+    INACTIVE = "INACTIVE"
+    DISCONTINUED = "DISCONTINUED"
 
 
 class StockStatus(enum.Enum):

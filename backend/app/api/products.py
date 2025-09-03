@@ -73,7 +73,7 @@ async def search_products(
     manufacturer: Optional[str] = Query(None, description="Filter by manufacturer"),
     brand: Optional[str] = Query(None, description="Filter by brand"),
     sort_by: Optional[str] = Query("name", description="Sort field"),
-    sort_order: Optional[str] = Query("asc", regex="^(asc|desc)$", description="Sort order"),
+    sort_order: Optional[str] = Query("asc", pattern="^(asc|desc)$", description="Sort order"),
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Page size"),
     current_user: User = Depends(get_current_user),
@@ -112,6 +112,181 @@ async def search_products(
         )
     except Exception as e:
         logger.error(f"Failed to search products: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+# Category Management Endpoints (must be before /{product_id} route)
+
+@router.post("/categories", response_model=ProductCategoryResponse)
+async def create_category(
+    category_data: ProductCategoryCreate,
+    current_user: User = Depends(get_current_user),
+    product_service: ProductService = Depends(get_product_service)
+):
+    """Create a new product category"""
+    try:
+        category = product_service.create_category(current_user.tenant_id, category_data)
+        return ProductCategoryResponse.from_orm(category)
+    except ValidationError as e:
+        raise exception_to_http_exception(e)
+    except Exception as e:
+        logger.error(f"Failed to create category: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get("/categories", response_model=List[ProductCategoryResponse])
+async def get_categories(
+    current_user: User = Depends(get_current_user),
+    product_service: ProductService = Depends(get_product_service)
+):
+    """Get all product categories"""
+    try:
+        categories = product_service.get_categories(current_user.tenant_id)
+        return [ProductCategoryResponse.from_orm(category) for category in categories]
+    except Exception as e:
+        logger.error(f"Failed to get categories: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.put("/categories/{category_id}", response_model=ProductCategoryResponse)
+async def update_category(
+    category_id: uuid.UUID,
+    category_data: ProductCategoryUpdate,
+    current_user: User = Depends(get_current_user),
+    product_service: ProductService = Depends(get_product_service)
+):
+    """Update a product category"""
+    try:
+        category = product_service.update_category(current_user.tenant_id, category_id, category_data)
+        if not category:
+            raise NotFoundError("Category not found")
+        
+        return ProductCategoryResponse.from_orm(category)
+    except (ValidationError, NotFoundError) as e:
+        raise exception_to_http_exception(e)
+    except Exception as e:
+        logger.error(f"Failed to update category {category_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.delete("/categories/{category_id}")
+async def delete_category(
+    category_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    product_service: ProductService = Depends(get_product_service)
+):
+    """Delete a product category"""
+    try:
+        success = product_service.delete_category(current_user.tenant_id, category_id)
+        if not success:
+            raise NotFoundError("Category not found")
+        
+        return {"message": "Category deleted successfully"}
+    except (NotFoundError, BusinessLogicError) as e:
+        raise exception_to_http_exception(e)
+    except Exception as e:
+        logger.error(f"Failed to delete category {category_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+# Analytics and Reporting Endpoints (must be before /{product_id} route)
+
+@router.get("/analytics/stats", response_model=ProductStatsResponse)
+async def get_product_stats(
+    current_user: User = Depends(get_current_user),
+    product_service: ProductService = Depends(get_product_service)
+):
+    """Get product statistics"""
+    try:
+        stats = product_service.get_product_stats(current_user.tenant_id)
+        return stats
+    except Exception as e:
+        logger.error(f"Failed to get product stats: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get("/analytics/low-stock", response_model=List[LowStockAlert])
+async def get_low_stock_alerts(
+    current_user: User = Depends(get_current_user),
+    product_service: ProductService = Depends(get_product_service)
+):
+    """Get low stock alerts"""
+    try:
+        alerts = product_service.get_low_stock_alerts(current_user.tenant_id)
+        return alerts
+    except Exception as e:
+        logger.error(f"Failed to get low stock alerts: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+# Bulk Operations (must be before /{product_id} route)
+
+@router.post("/bulk/update")
+async def bulk_update_products(
+    product_ids: List[uuid.UUID],
+    update_data: ProductUpdate,
+    current_user: User = Depends(get_current_user),
+    product_service: ProductService = Depends(get_product_service)
+):
+    """Bulk update multiple products"""
+    try:
+        updated_products = []
+        failed_updates = []
+        
+        for product_id in product_ids:
+            try:
+                product = product_service.update_product(current_user.tenant_id, product_id, update_data)
+                if product:
+                    updated_products.append(ProductResponse.from_orm(product))
+                else:
+                    failed_updates.append({"product_id": str(product_id), "error": "Product not found"})
+            except Exception as e:
+                failed_updates.append({"product_id": str(product_id), "error": str(e)})
+        
+        return {
+            "message": f"Updated {len(updated_products)} products",
+            "updated_products": updated_products,
+            "failed_updates": failed_updates
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to bulk update products: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.post("/bulk/delete")
+async def bulk_delete_products(
+    request: dict,
+    current_user: User = Depends(get_current_user),
+    product_service: ProductService = Depends(get_product_service)
+):
+    """Bulk delete multiple products"""
+    try:
+        product_ids = request.get("product_ids", [])
+        if not product_ids:
+            raise HTTPException(status_code=400, detail="No product IDs provided")
+        
+        deleted_products = []
+        failed_deletes = []
+        
+        for product_id in product_ids:
+            try:
+                success = product_service.delete_product(current_user.tenant_id, product_id)
+                if success:
+                    deleted_products.append(str(product_id))
+                else:
+                    failed_deletes.append({"product_id": str(product_id), "error": "Product not found"})
+            except Exception as e:
+                failed_deletes.append({"product_id": str(product_id), "error": str(e)})
+        
+        return {
+            "message": f"Deleted {len(deleted_products)} products",
+            "deleted_products": deleted_products,
+            "failed_deletes": failed_deletes
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to bulk delete products: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
@@ -344,80 +519,6 @@ async def remove_product_image(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-# Category Management Endpoints
-
-@router.post("/categories", response_model=ProductCategoryResponse)
-async def create_category(
-    category_data: ProductCategoryCreate,
-    current_user: User = Depends(get_current_user),
-    product_service: ProductService = Depends(get_product_service)
-):
-    """Create a new product category"""
-    try:
-        category = product_service.create_category(current_user.tenant_id, category_data)
-        return ProductCategoryResponse.from_orm(category)
-    except ValidationError as e:
-        raise exception_to_http_exception(e)
-    except Exception as e:
-        logger.error(f"Failed to create category: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
-@router.get("/categories", response_model=List[ProductCategoryResponse])
-async def get_categories(
-    current_user: User = Depends(get_current_user),
-    product_service: ProductService = Depends(get_product_service)
-):
-    """Get all product categories"""
-    try:
-        categories = product_service.get_categories(current_user.tenant_id)
-        return [ProductCategoryResponse.from_orm(category) for category in categories]
-    except Exception as e:
-        logger.error(f"Failed to get categories: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
-@router.put("/categories/{category_id}", response_model=ProductCategoryResponse)
-async def update_category(
-    category_id: uuid.UUID,
-    category_data: ProductCategoryUpdate,
-    current_user: User = Depends(get_current_user),
-    product_service: ProductService = Depends(get_product_service)
-):
-    """Update a product category"""
-    try:
-        category = product_service.update_category(current_user.tenant_id, category_id, category_data)
-        if not category:
-            raise NotFoundError("Category not found")
-        
-        return ProductCategoryResponse.from_orm(category)
-    except (ValidationError, NotFoundError) as e:
-        raise exception_to_http_exception(e)
-    except Exception as e:
-        logger.error(f"Failed to update category {category_id}: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
-@router.delete("/categories/{category_id}")
-async def delete_category(
-    category_id: uuid.UUID,
-    current_user: User = Depends(get_current_user),
-    product_service: ProductService = Depends(get_product_service)
-):
-    """Delete a product category"""
-    try:
-        success = product_service.delete_category(current_user.tenant_id, category_id)
-        if not success:
-            raise NotFoundError("Category not found")
-        
-        return {"message": "Category deleted successfully"}
-    except (NotFoundError, BusinessLogicError) as e:
-        raise exception_to_http_exception(e)
-    except Exception as e:
-        logger.error(f"Failed to delete category {category_id}: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
 # Analytics and Reporting Endpoints
 
 @router.get("/analytics/stats", response_model=ProductStatsResponse)
@@ -464,9 +565,9 @@ async def bulk_update_products(
         
         for product_id in product_ids:
             try:
-                product = product_service.update_product(current_user.tenant_id, product_id, updates)
+                product = product_service.update_product(current_user.tenant_id, product_id, update_data)
                 if product:
-                    updated_products.append(str(product_id))
+                    updated_products.append(ProductResponse.from_orm(product))
                 else:
                     failed_updates.append({"product_id": str(product_id), "error": "Product not found"})
             except Exception as e:
@@ -480,36 +581,4 @@ async def bulk_update_products(
         
     except Exception as e:
         logger.error(f"Failed to bulk update products: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
-@router.post("/bulk/delete")
-async def bulk_delete_products(
-    product_ids: List[uuid.UUID],
-    current_user: User = Depends(get_current_user),
-    product_service: ProductService = Depends(get_product_service)
-):
-    """Bulk delete multiple products"""
-    try:
-        deleted_products = []
-        failed_deletes = []
-        
-        for product_id in product_ids:
-            try:
-                success = product_service.delete_product(current_user.tenant_id, product_id)
-                if success:
-                    deleted_products.append(str(product_id))
-                else:
-                    failed_deletes.append({"product_id": str(product_id), "error": "Product not found"})
-            except Exception as e:
-                failed_deletes.append({"product_id": str(product_id), "error": str(e)})
-        
-        return {
-            "message": f"Deleted {len(deleted_products)} products",
-            "deleted_products": deleted_products,
-            "failed_deletes": failed_deletes
-        }
-        
-    except Exception as e:
-        logger.error(f"Failed to bulk delete products: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
