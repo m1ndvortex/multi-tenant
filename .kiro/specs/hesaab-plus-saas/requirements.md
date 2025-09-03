@@ -374,7 +374,42 @@ HesaabPlus is an elite, multi-tenant, cloud-native business management SaaS plat
 1. WHEN managing products THEN the frontend SHALL provide product management interface with image upload and category selection
 2. WHEN viewing inventory THEN the frontend SHALL display product list with stock levels, categories, and search functionality
 3. WHEN organizing products THEN the frontend SHALL provide category management interface with drag-and-drop organization
-4. WHEN tracking stock THEN the frontend SHALL show stock movement history and low stock alerts with visual indicators
+4. WHEN tracking stock THEN the frontend SHALL show stock levels, low stock alerts, and inventory movement history
+5. WHEN uploading images THEN the frontend SHALL provide drag-and-drop image upload with preview and optimization
+6. WHEN searching products THEN the frontend SHALL provide advanced search with filters for category, price, and stock status
+7. WHEN managing variants THEN the frontend SHALL provide product variant management with different prices and stock levels
+
+### Requirement 26: Super Admin Platform - Authentication Interface
+
+**User Story:** As a platform owner, I want a secure Super Admin login interface so that I can access the platform management dashboard with proper authentication.
+
+#### Acceptance Criteria
+
+1. WHEN accessing Super Admin application THEN the system SHALL display a dedicated login page with gradient design
+2. WHEN entering credentials THEN the system SHALL validate Super Admin email and password against secure authentication
+3. WHEN authentication succeeds THEN the system SHALL generate Super Admin JWT token with special claims
+4. WHEN authentication fails THEN the system SHALL display clear error messages and security logging
+5. WHEN logged in THEN the system SHALL redirect to Super Admin dashboard with full platform access
+6. WHEN session expires THEN the system SHALL automatically redirect to login page with session timeout message
+7. WHEN logging out THEN the system SHALL invalidate JWT token and redirect to login page
+8. WHEN accessing protected routes THEN the system SHALL verify Super Admin authentication and redirect if unauthorized
+
+### Requirement 27: Tenant Application - Authentication Interface
+
+**User Story:** As a business owner, I want a secure tenant login interface so that I can access my business management dashboard with proper authentication and subscription validation.
+
+#### Acceptance Criteria
+
+1. WHEN accessing Tenant application THEN the system SHALL display a dedicated login page with gradient design and Persian RTL support
+2. WHEN entering credentials THEN the system SHALL validate tenant user email and password with tenant context
+3. WHEN authentication succeeds THEN the system SHALL generate tenant JWT token with tenant_id and user role claims
+4. WHEN authentication fails THEN the system SHALL display clear error messages in Persian with security logging
+5. WHEN logged in THEN the system SHALL redirect to tenant dashboard with subscription-based feature access
+6. WHEN subscription is expired THEN the system SHALL display subscription renewal notice and limit access to paid features
+7. WHEN subscription is Free tier THEN the system SHALL display usage limits and upgrade prompts when approaching limits
+8. WHEN session expires THEN the system SHALL automatically redirect to login page with session timeout message in Persian
+9. WHEN logging out THEN the system SHALL invalidate JWT token and redirect to login page
+10. WHEN accessing protected routes THEN the system SHALL verify tenant authentication and subscription status stock movement history and low stock alerts with visual indicators
 5. WHEN uploading images THEN the frontend SHALL provide drag-and-drop image upload with preview and optimization status
 6. WHEN managing variants THEN the frontend SHALL provide product variant interface for different sizes, colors, or specifications
 7. WHEN analyzing inventory THEN the frontend SHALL show inventory reports with stock valuation and turnover metrics
