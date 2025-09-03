@@ -5,6 +5,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { TenantProvider } from '@/contexts/TenantContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import Layout from '@/components/Layout';
+import ImpersonationBanner from '@/components/ImpersonationBanner';
 import Dashboard from '@/pages/Dashboard';
 import Invoices from '@/pages/Invoices';
 import Customers from '@/pages/Customers';
@@ -32,6 +33,7 @@ function App() {
           <TenantProvider>
             <Router>
               <div className="min-h-screen bg-gradient-to-br from-green-50/30 to-white" dir="rtl">
+                <ImpersonationBanner />
                 <Layout>
                   <Routes>
                     <Route path="/" element={<Dashboard />} />

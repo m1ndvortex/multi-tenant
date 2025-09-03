@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -21,6 +22,8 @@ import {
 import { Tenant, TenantFilters as TenantFiltersType, TenantFormData } from '@/types/tenant';
 
 const TenantManagement: React.FC = () => {
+  const navigate = useNavigate();
+  
   // State management
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
@@ -142,6 +145,11 @@ const TenantManagement: React.FC = () => {
     );
   };
 
+  const handleImpersonate = (tenant: Tenant) => {
+    // Navigate to impersonation page with tenant filter
+    navigate(`/impersonation?tenant_id=${tenant.id}`);
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -230,6 +238,7 @@ const TenantManagement: React.FC = () => {
         onSuspend={handleSuspendTenant}
         onActivate={handleActivateTenant}
         onConfirmPayment={handleConfirmPayment}
+        onImpersonate={handleImpersonate}
         isLoading={isLoading}
       />
 

@@ -28,7 +28,7 @@ const ApiErrorLog: React.FC<ApiErrorLogProps> = ({ className }) => {
     setFilters(prev => ({
       ...prev,
       search: searchTerm || undefined,
-      status_code: selectedStatusCode ? parseInt(selectedStatusCode) : undefined,
+      status_code: selectedStatusCode && selectedStatusCode !== 'all' ? parseInt(selectedStatusCode) : undefined,
       endpoint: selectedEndpoint || undefined,
       page: 1,
     }));
@@ -36,7 +36,7 @@ const ApiErrorLog: React.FC<ApiErrorLogProps> = ({ className }) => {
 
   const handleClearFilters = () => {
     setSearchTerm('');
-    setSelectedStatusCode('');
+    setSelectedStatusCode('all');
     setSelectedEndpoint('');
     setFilters({
       page: 1,
@@ -128,7 +128,7 @@ const ApiErrorLog: React.FC<ApiErrorLogProps> = ({ className }) => {
                 <SelectValue placeholder="کد وضعیت" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">همه</SelectItem>
+                <SelectItem value="all">همه</SelectItem>
                 <SelectItem value="400">400 - Bad Request</SelectItem>
                 <SelectItem value="401">401 - Unauthorized</SelectItem>
                 <SelectItem value="403">403 - Forbidden</SelectItem>

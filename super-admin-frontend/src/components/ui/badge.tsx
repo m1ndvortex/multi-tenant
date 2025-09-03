@@ -23,6 +23,10 @@ const badgeVariants = cva(
           "border-transparent bg-red-500 text-white hover:bg-red-600",
         "gradient-green":
           "border-transparent bg-gradient-to-r from-green-500 to-teal-600 text-white hover:from-green-600 hover:to-teal-700",
+        "gradient-blue":
+          "border-transparent bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700",
+        "gradient-purple":
+          "border-transparent bg-gradient-to-r from-purple-500 to-violet-600 text-white hover:from-purple-600 hover:to-violet-700",
       },
     },
     defaultVariants: {

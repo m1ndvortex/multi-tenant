@@ -15,7 +15,8 @@ import {
   Trash2, 
   Play, 
   Pause, 
-  CheckCircle
+  CheckCircle,
+  UserCheck
 } from 'lucide-react';
 import { Tenant } from '@/types/tenant';
 import { formatDistanceToNow } from 'date-fns';
@@ -28,6 +29,7 @@ interface TenantTableProps {
   onSuspend: (tenant: Tenant) => void;
   onActivate: (tenant: Tenant) => void;
   onConfirmPayment: (tenant: Tenant) => void;
+  onImpersonate?: (tenant: Tenant) => void;
   isLoading?: boolean;
 }
 
@@ -38,6 +40,7 @@ const TenantTable: React.FC<TenantTableProps> = ({
   onSuspend,
   onActivate,
   onConfirmPayment,
+  onImpersonate,
   isLoading = false,
 }) => {
   const getSubscriptionBadge = (subscription_type: string) => {
@@ -190,6 +193,19 @@ const TenantTable: React.FC<TenantTableProps> = ({
                         className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
                       >
                         <CheckCircle className="h-4 w-4" />
+                      </Button>
+                    )}
+
+                    {/* Impersonate Button */}
+                    {onImpersonate && tenant.is_active && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onImpersonate(tenant)}
+                        className="h-8 w-8 p-0 text-purple-600 hover:text-purple-700"
+                        title="جانشینی کاربران تنانت"
+                      >
+                        <UserCheck className="h-4 w-4" />
                       </Button>
                     )}
 

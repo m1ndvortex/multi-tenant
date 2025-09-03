@@ -239,8 +239,8 @@ describe('ApiErrorLog', () => {
 
     render(<ApiErrorLog />, { wrapper: createWrapper() });
     
-    // Should format timestamp in Persian locale
-    const timestamps = screen.getAllByText(/\d{4}\/\d{2}\/\d{2}/);
+    // Should format timestamp in Persian locale - look for Persian digits
+    const timestamps = screen.getAllByText(/۱۴۰۲\/۱۰\/۱۱/);
     expect(timestamps.length).toBeGreaterThan(0);
   });
 
@@ -256,8 +256,9 @@ describe('ApiErrorLog', () => {
     const postBadge = screen.getByText('POST');
     const getBadge = screen.getByText('GET');
     
-    expect(postBadge.parentElement).toHaveClass('bg-blue-100', 'text-blue-800');
-    expect(getBadge.parentElement).toHaveClass('bg-green-100', 'text-green-800');
+    // Check that the badges have the correct color classes
+    expect(postBadge).toHaveClass('bg-blue-100', 'text-blue-800');
+    expect(getBadge).toHaveClass('bg-green-100', 'text-green-800');
   });
 
   it('displays error details correctly', () => {
