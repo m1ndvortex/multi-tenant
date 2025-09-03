@@ -16,6 +16,7 @@ class BackupType(enum.Enum):
     TENANT_DAILY = "tenant_daily"
     FULL_PLATFORM = "full_platform"
     MANUAL = "manual"
+    CUSTOMER_SELF = "customer_self"
 
 
 class BackupStatus(enum.Enum):
@@ -402,6 +403,194 @@ Index('idx_restore_log_status', RestoreLog.status)
 Index('idx_restore_log_initiated_by', RestoreLog.initiated_by)
 Index('idx_restore_log_started_at', RestoreLog.started_at)
 
+class CustomerBackupLog(BaseModel):
+    """
+    Customer self-backup operation log
+    """
+    __tablename__ = "customer_backup_logs"
+    
+    # Tenant Information
+    tenant_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("tenants.id"),
+        nullable=False,
+        comment="Tenant ID"
+    )
+    
+    # User Information
+    initiated_by = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("users.id"),
+        nullable=False,
+        comment="User who initiated the backup"
+    )
+    
+    # Backup Details
+    backup_name = Column(
+        String(255), 
+        nullable=False,
+        comment="Backup file name"
+    )
+    
+    status = Column(
+        Enum(BackupStatus), 
+        default=BackupStatus.PENDING,
+        nullable=False,
+        comment="Backup status"
+    )
+    
+    # File Information
+    local_file_path = Column(
+        String(500), 
+        nullable=True,
+        comment="Local temporary file path"
+    )
+    
+    file_size = Column(
+        Numeric(15, 0), 
+        nullable=True,
+        comment="Backup file size in bytes"
+    )
+    
+    compressed_size = Column(
+        Numeric(15, 0), 
+        nullable=True,
+        comment="Compressed file size in bytes"
+    )
+    
+    checksum = Column(
+        String(255), 
+        nullable=True,
+        comment="File checksum for integrity verification"
+    )
+    
+    # Download Information
+    download_token = Column(
+        String(255), 
+        nullable=True,
+        unique=True,
+        comment="Secure download token"
+    )
+    
+    download_expires_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Download link expiration time"
+    )
+    
+    downloaded_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="When the backup was downloaded"
+    )
+    
+    # Timing Information
+    started_at = Column(
+        DateTime(timezone=True),
+        default=func.now(),
+        nullable=False,
+        comment="Backup start time"
+    )
+    
+    completed_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Backup completion time"
+    )
+    
+    duration_seconds = Column(
+        Integer, 
+        nullable=True,
+        comment="Backup duration in seconds"
+    )
+    
+    # Error Information
+    error_message = Column(
+        Text, 
+        nullable=True,
+        comment="Error message if backup failed"
+    )
+    
+    # Metadata
+    backup_metadata = Column(
+        JSONB, 
+        nullable=True,
+        comment="Additional backup metadata"
+    )
+    
+    # Relationships
+    tenant = relationship("Tenant")
+    user = relationship("User")
+    
+    def __repr__(self):
+        return f"<CustomerBackupLog(id={self.id}, tenant_id={self.tenant_id}, status='{self.status.value}')>"
+    
+    def start_backup(self):
+        """Mark backup as started"""
+        self.status = BackupStatus.IN_PROGRESS
+        self.started_at = datetime.now(timezone.utc)
+    
+    def complete_backup(self, file_size: int = None, compressed_size: int = None, 
+                       checksum: str = None, download_token: str = None, 
+                       download_expires_at: datetime = None):
+        """Mark backup as completed"""
+        self.status = BackupStatus.COMPLETED
+        self.completed_at = datetime.now(timezone.utc)
+        
+        if self.started_at:
+            delta = self.completed_at - self.started_at
+            self.duration_seconds = int(delta.total_seconds())
+        
+        if file_size:
+            self.file_size = file_size
+        
+        if compressed_size:
+            self.compressed_size = compressed_size
+        
+        if checksum:
+            self.checksum = checksum
+        
+        if download_token:
+            self.download_token = download_token
+        
+        if download_expires_at:
+            self.download_expires_at = download_expires_at
+    
+    def fail_backup(self, error_message: str):
+        """Mark backup as failed"""
+        self.status = BackupStatus.FAILED
+        self.error_message = error_message
+        self.completed_at = datetime.now(timezone.utc)
+        
+        if self.started_at:
+            delta = self.completed_at - self.started_at
+            self.duration_seconds = int(delta.total_seconds())
+    
+    def mark_downloaded(self):
+        """Mark backup as downloaded"""
+        self.downloaded_at = datetime.now(timezone.utc)
+    
+    @property
+    def is_download_expired(self) -> bool:
+        """Check if download link has expired"""
+        if not self.download_expires_at:
+            return True
+        return datetime.now(timezone.utc) > self.download_expires_at
+    
+    @property
+    def is_successful(self) -> bool:
+        """Check if backup was successful"""
+        return self.status == BackupStatus.COMPLETED
+
+
 Index('idx_storage_location_provider', StorageLocation.provider)
 Index('idx_storage_location_active', StorageLocation.is_active)
 Index('idx_storage_location_primary', StorageLocation.is_primary)
+
+# Customer backup indexes
+Index('idx_customer_backup_tenant', CustomerBackupLog.tenant_id)
+Index('idx_customer_backup_user', CustomerBackupLog.initiated_by)
+Index('idx_customer_backup_status', CustomerBackupLog.status)
+Index('idx_customer_backup_started_at', CustomerBackupLog.started_at)
+Index('idx_customer_backup_download_token', CustomerBackupLog.download_token)
+Index('idx_customer_backup_expires_at', CustomerBackupLog.download_expires_at)

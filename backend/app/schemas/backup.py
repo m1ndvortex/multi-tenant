@@ -13,6 +13,7 @@ class BackupTypeEnum(str, Enum):
     TENANT_DAILY = "tenant_daily"
     FULL_PLATFORM = "full_platform"
     MANUAL = "manual"
+    CUSTOMER_SELF = "customer_self"
 
 
 class BackupStatusEnum(str, Enum):

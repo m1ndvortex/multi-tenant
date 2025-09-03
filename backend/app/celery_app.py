@@ -13,7 +13,10 @@ celery_app = Celery(
     "hesaabplus",
     broker=settings.celery_broker_url,
     backend=settings.celery_result_backend,
-    include=["app.tasks"]
+    include=[
+        "app.tasks",
+        "app.tasks.customer_backup_tasks"
+    ]
 )
 
 # Celery configuration
@@ -32,6 +35,8 @@ celery_app.conf.update(
         "app.tasks.backup_tenant_data": {"queue": "backup"},
         "app.tasks.full_platform_backup": {"queue": "backup"},
         "app.tasks.validate_backup_integrity_task": {"queue": "backup"},
+        "app.tasks.customer_backup_tasks.create_customer_backup_task": {"queue": "customer_backup"},
+        "app.tasks.customer_backup_tasks.cleanup_expired_customer_backups_task": {"queue": "maintenance"},
         "app.tasks.create_disaster_recovery_backup": {"queue": "disaster_recovery"},
         "app.tasks.verify_disaster_recovery_backup": {"queue": "disaster_recovery"},
         "app.tasks.automated_disaster_recovery_verification": {"queue": "disaster_recovery"},
@@ -94,6 +99,10 @@ celery_app.conf.update(
             "task": "app.tasks.periodic_restore_cleanup",
             "schedule": 60.0 * 60.0 * 24.0,  # Daily at 3 AM
             "options": {"eta": "03:00"}
+        },
+        "cleanup-expired-customer-backups": {
+            "task": "app.tasks.customer_backup_tasks.cleanup_expired_customer_backups_task",
+            "schedule": 60.0 * 60.0 * 6.0,  # Every 6 hours
         },
     },
 )
@@ -164,6 +173,17 @@ celery_app.conf.task_annotations = {
         "rate_limit": "50/m",
         "time_limit": 30,
         "retry_kwargs": {"max_retries": 3, "countdown": 60},
+    },
+    "app.tasks.customer_backup_tasks.create_customer_backup_task": {
+        "rate_limit": "10/m",
+        "time_limit": 300,  # 5 minutes
+        "soft_time_limit": 240,  # 4 minutes
+        "retry_kwargs": {"max_retries": 3, "countdown": 60},
+    },
+    "app.tasks.customer_backup_tasks.cleanup_expired_customer_backups_task": {
+        "rate_limit": "1/h",
+        "time_limit": 300,  # 5 minutes
+        "soft_time_limit": 240,  # 4 minutes
     },
 }
 
