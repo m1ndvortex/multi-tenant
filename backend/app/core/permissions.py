@@ -5,6 +5,7 @@ Implements granular access control and subscription-based limits
 
 from typing import Dict, List, Optional, Set
 from sqlalchemy.orm import Session
+from fastapi import HTTPException
 from ..models.user import User, UserRole, UserStatus
 from ..models.tenant import Tenant, SubscriptionType
 
@@ -354,6 +355,37 @@ class PermissionDecorator:
             return func(*args, **kwargs)
         
         return wrapper
+
+
+def require_permission(user: User, permission: str) -> None:
+    """
+    Require user to have specific permission, raise HTTPException if not
+    
+    Args:
+        user: User object
+        permission: Permission string in format "resource:action"
+        
+    Raises:
+        HTTPException: If user doesn't have required permission
+    """
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    if user.status != UserStatus.ACTIVE:
+        raise HTTPException(status_code=403, detail="User account is not active")
+    
+    # Parse permission string
+    if ":" not in permission:
+        raise HTTPException(status_code=500, detail="Invalid permission format")
+    
+    resource, action = permission.split(":", 1)
+    
+    # Check permission
+    if not check_resource_permission(user, resource, action):
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Insufficient permissions: {permission} required"
+        )
 
 
 def get_permission_summary(user: User) -> Dict[str, any]:

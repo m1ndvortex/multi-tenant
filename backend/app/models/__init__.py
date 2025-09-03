@@ -6,6 +6,7 @@ from .base import Base, TenantMixin, BaseModel
 from .tenant import Tenant
 from .user import User
 from .customer import Customer
+from .customer_interaction import CustomerInteraction, InteractionType
 from .product import Product, ProductCategory
 from .invoice import Invoice, InvoiceItem, InvoiceType, InvoiceStatus
 from .installment import Installment, InstallmentStatus, InstallmentType, InstallmentPlan
@@ -24,6 +25,8 @@ __all__ = [
     "Tenant",
     "User",
     "Customer",
+    "CustomerInteraction",
+    "InteractionType",
     "Product",
     "ProductCategory",
     "Invoice",

@@ -14,16 +14,16 @@ from .base import BaseModel, TenantMixin
 
 class CustomerStatus(enum.Enum):
     """Customer status enumeration"""
-    ACTIVE = "active"
-    INACTIVE = "inactive"
-    BLOCKED = "blocked"
+    ACTIVE = "ACTIVE"
+    INACTIVE = "INACTIVE"
+    BLOCKED = "BLOCKED"
 
 
 class CustomerType(enum.Enum):
     """Customer type enumeration"""
-    INDIVIDUAL = "individual"
-    BUSINESS = "business"
-    VIP = "vip"
+    INDIVIDUAL = "INDIVIDUAL"
+    BUSINESS = "BUSINESS"
+    VIP = "VIP"
 
 
 class Customer(BaseModel, TenantMixin):
@@ -205,6 +205,7 @@ class Customer(BaseModel, TenantMixin):
     # Relationships
     tenant = relationship("Tenant", back_populates="customers")
     invoices = relationship("Invoice", back_populates="customer", cascade="all, delete-orphan")
+    interactions = relationship("CustomerInteraction", back_populates="customer", cascade="all, delete-orphan", order_by="desc(CustomerInteraction.created_at)")
     
     def __repr__(self):
         return f"<Customer(id={self.id}, name='{self.name}', tenant_id={self.tenant_id})>"
