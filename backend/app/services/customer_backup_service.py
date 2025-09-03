@@ -140,10 +140,11 @@ class CustomerBackupService:
                 "invoices",
                 "invoice_items",
                 "installments",
-                "journal_entries",
-                "notifications",
-                "gold_prices",
-                "activity_logs"
+                "journal_entries"
+                # Note: Only including tables that exist in the current database
+                # "notifications",  # Table doesn't exist yet
+                # "gold_prices",    # Table doesn't exist yet
+                # "activity_logs"   # Table doesn't exist yet
             ]
             
             # Create comprehensive SQL export with tenant filtering
@@ -249,7 +250,7 @@ class CustomerBackupService:
             logger.error(f"Customer data export creation failed for tenant {tenant_id}: {e}")
             raise
     
-    def create_customer_backup(self, tenant_id: str, user_id: str) -> Dict:
+    def create_customer_backup(self, tenant_id: str, user_id: str, task_id: str = None) -> Dict:
         """Create customer self-backup for local download"""
         backup_log = None
         temp_files = []
@@ -278,7 +279,8 @@ class CustomerBackupService:
                 tenant_id=tenant_id,
                 initiated_by=user_id,
                 backup_name=backup_name,
-                status=BackupStatus.PENDING
+                status=BackupStatus.PENDING,
+                task_id=task_id
             )
             self.db.add(backup_log)
             self.db.commit()

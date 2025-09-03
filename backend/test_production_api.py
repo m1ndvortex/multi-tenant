@@ -14,8 +14,8 @@ def test_customer_backup_production():
     
     # Test login
     login_data = {
-        'email': 'testuser@testbackup.com',
-        'password': 'TestPassword123!'
+        'email': 'prodtest@example.com',
+        'password': 'ProdTest123!'
     }
     
     try:

@@ -52,7 +52,7 @@ def create_customer_backup_task(self, tenant_id: str, user_id: str):
                 pass
             
             # Create customer backup
-            result = backup_service.create_customer_backup(tenant_id, user_id)
+            result = backup_service.create_customer_backup(tenant_id, user_id, self.request.id)
             
             # Update progress
             try:

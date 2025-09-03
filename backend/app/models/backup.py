@@ -425,6 +425,13 @@ class CustomerBackupLog(BaseModel):
         comment="User who initiated the backup"
     )
     
+    # Task Information
+    task_id = Column(
+        String(255), 
+        nullable=True,
+        comment="Celery task ID for tracking backup progress"
+    )
+    
     # Backup Details
     backup_name = Column(
         String(255), 

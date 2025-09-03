@@ -35,8 +35,9 @@ celery_app.conf.update(
         "app.tasks.backup_tenant_data": {"queue": "backup"},
         "app.tasks.full_platform_backup": {"queue": "backup"},
         "app.tasks.validate_backup_integrity_task": {"queue": "backup"},
-        "app.tasks.customer_backup_tasks.create_customer_backup_task": {"queue": "customer_backup"},
-        "app.tasks.customer_backup_tasks.cleanup_expired_customer_backups_task": {"queue": "maintenance"},
+        # Customer backup tasks use default queue for now
+        # "app.tasks.customer_backup_tasks.create_customer_backup_task": {"queue": "customer_backup"},
+        # "app.tasks.customer_backup_tasks.cleanup_expired_customer_backups_task": {"queue": "maintenance"},
         "app.tasks.create_disaster_recovery_backup": {"queue": "disaster_recovery"},
         "app.tasks.verify_disaster_recovery_backup": {"queue": "disaster_recovery"},
         "app.tasks.automated_disaster_recovery_verification": {"queue": "disaster_recovery"},

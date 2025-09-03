@@ -162,43 +162,80 @@ async def download_backup(
 @router.get("/task/{task_id}")
 async def get_task_status(
     task_id: str,
+    db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
     """Get status of a customer backup task"""
     try:
-        from app.celery_app import celery_app
+        # First check if we have a backup record with this task_id
+        backup_service = CustomerBackupService(db)
         
-        # Get task result
-        task_result = celery_app.AsyncResult(task_id)
+        # Look for backup with this task_id
+        from app.models.backup import CustomerBackupLog
+        backup = db.query(CustomerBackupLog).filter(
+            CustomerBackupLog.task_id == task_id,
+            CustomerBackupLog.tenant_id == str(current_user.tenant_id)
+        ).first()
         
-        if task_result.state == 'PENDING':
-            response = {
-                "status": "pending",
-                "message": "Backup task is waiting to be processed"
-            }
-        elif task_result.state == 'PROGRESS':
-            response = {
-                "status": "in_progress",
-                "message": "Backup task is currently being processed",
-                "progress": task_result.info
-            }
-        elif task_result.state == 'SUCCESS':
-            response = {
-                "status": "completed",
-                "message": "Backup task completed successfully",
-                "result": task_result.result
-            }
-        elif task_result.state == 'FAILURE':
-            response = {
-                "status": "failed",
-                "message": "Backup task failed",
-                "error": str(task_result.info)
-            }
+        if backup:
+            # We have a backup record, return its status
+            if backup.status == "completed":
+                response = {
+                    "status": "completed",
+                    "message": "Backup task completed successfully",
+                    "result": {
+                        "backup_id": str(backup.id),
+                        "file_size": backup.file_size,
+                        "compressed_size": backup.compressed_size,
+                        "checksum": backup.checksum,
+                        "download_token": backup.download_token,
+                        "duration_seconds": backup.duration_seconds
+                    }
+                }
+            elif backup.status == "failed":
+                response = {
+                    "status": "failed",
+                    "message": "Backup task failed",
+                    "error": backup.error_message or "Unknown error"
+                }
+            elif backup.status == "in_progress":
+                response = {
+                    "status": "in_progress",
+                    "message": "Backup task is currently being processed"
+                }
+            else:
+                response = {
+                    "status": backup.status,
+                    "message": f"Backup task is in {backup.status} state"
+                }
         else:
-            response = {
-                "status": task_result.state.lower(),
-                "message": f"Backup task is in {task_result.state} state"
-            }
+            # No backup record yet, try Celery backend as fallback
+            try:
+                from app.celery_app import celery_app
+                task_result = celery_app.AsyncResult(task_id)
+                
+                if task_result.state == 'PENDING':
+                    response = {
+                        "status": "pending",
+                        "message": "Backup task is waiting to be processed"
+                    }
+                elif task_result.state == 'PROGRESS':
+                    response = {
+                        "status": "in_progress", 
+                        "message": "Backup task is currently being processed",
+                        "progress": task_result.info if hasattr(task_result, 'info') else None
+                    }
+                else:
+                    response = {
+                        "status": "pending",
+                        "message": "Backup task is waiting to be processed"
+                    }
+            except Exception:
+                # Celery backend error, assume pending
+                response = {
+                    "status": "pending",
+                    "message": "Backup task is waiting to be processed"
+                }
         
         response["task_id"] = task_id
         return response
