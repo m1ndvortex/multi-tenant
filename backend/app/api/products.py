@@ -25,7 +25,7 @@ from app.schemas.product import (
     ProductSearchRequest, ProductCategoryCreate, ProductCategoryUpdate,
     ProductCategoryResponse, StockAdjustmentRequest, StockReservationRequest,
     ProductStatsResponse, LowStockAlert, ImageUploadResponse,
-    ProductImageRequest
+    ProductImageRequest, BulkProductUpdateRequest
 )
 from app.services.product_service import ProductService
 from app.tasks.media_tasks import process_product_image
@@ -219,35 +219,7 @@ async def get_low_stock_alerts(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-# Bulk Operations (must be before /{product_id} route)
-
-@router.post("/bulk/update")
-async def bulk_update_products(
-    product_ids: List[uuid.UUID],
-    update_data: ProductUpdate,
-    current_user: User = Depends(get_current_user),
-    product_service: ProductService = Depends(get_product_service)
-):
-    """Bulk update multiple products"""
-    try:
-        updated_products = []
-        failed_updates = []
-        
-        for product_id in product_ids:
-            try:
-                product = product_service.update_product(current_user.tenant_id, product_id, update_data)
-                if product:
-                    updated_products.append(ProductResponse.from_orm(product))
-                else:
-                    failed_updates.append({"product_id": str(product_id), "error": "Product not found"})
-            except Exception as e:
-                failed_updates.append({"product_id": str(product_id), "error": str(e)})
-        
-        return {
-            "message": f"Updated {len(updated_products)} products",
-            "updated_products": updated_products,
-            "failed_updates": failed_updates
-        }
+# Product CRUD Endpoints (keeping individual product endpoints before product_id routes)
         
     except Exception as e:
         logger.error(f"Failed to bulk update products: {e}")
@@ -553,8 +525,7 @@ async def get_low_stock_alerts(
 
 @router.post("/bulk/update")
 async def bulk_update_products(
-    product_ids: List[uuid.UUID],
-    updates: ProductUpdate,
+    bulk_request: BulkProductUpdateRequest,
     current_user: User = Depends(get_current_user),
     product_service: ProductService = Depends(get_product_service)
 ):
@@ -563,9 +534,9 @@ async def bulk_update_products(
         updated_products = []
         failed_updates = []
         
-        for product_id in product_ids:
+        for product_id in bulk_request.product_ids:
             try:
-                product = product_service.update_product(current_user.tenant_id, product_id, update_data)
+                product = product_service.update_product(current_user.tenant_id, product_id, bulk_request.updates)
                 if product:
                     updated_products.append(ProductResponse.from_orm(product))
                 else:

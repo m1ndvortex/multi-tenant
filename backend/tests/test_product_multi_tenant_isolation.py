@@ -124,19 +124,28 @@ class TestProductMultiTenantIsolation:
     @pytest.fixture
     def auth_headers1(self, user1):
         """Create auth headers for user 1"""
-        token = create_access_token(data={"sub": str(user1.id)})
+        token = create_access_token(data={
+            "user_id": str(user1.id),
+            "tenant_id": str(user1.tenant_id)
+        })
         return {"Authorization": f"Bearer {token}"}
     
     @pytest.fixture
     def auth_headers2(self, user2):
         """Create auth headers for user 2"""
-        token = create_access_token(data={"sub": str(user2.id)})
+        token = create_access_token(data={
+            "user_id": str(user2.id),
+            "tenant_id": str(user2.tenant_id)
+        })
         return {"Authorization": f"Bearer {token}"}
     
     @pytest.fixture
     def auth_headers3(self, user3):
         """Create auth headers for user 3"""
-        token = create_access_token(data={"sub": str(user3.id)})
+        token = create_access_token(data={
+            "user_id": str(user3.id),
+            "tenant_id": str(user3.tenant_id)
+        })
         return {"Authorization": f"Bearer {token}"}
     
     def test_product_data_isolation_comprehensive(self, client: TestClient, auth_headers1, auth_headers2, auth_headers3):
@@ -301,7 +310,7 @@ class TestProductMultiTenantIsolation:
         
         response = client.post("/api/products/", json=duplicate_product, headers=auth_headers1)
         assert response.status_code == 400
-        assert "already exists" in response.json()["detail"]
+        assert "already exists" in response.json()["detail"]["message"]
     
     def test_category_isolation_comprehensive(self, client: TestClient, auth_headers1, auth_headers2, auth_headers3):
         """Test comprehensive category isolation between tenants"""

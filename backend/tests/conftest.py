@@ -32,7 +32,7 @@ def clean_database():
         # Get all table names
         tables = [
             'backup_logs', 'restore_logs', 'storage_locations',
-            'invoices', 'products', 'customers', 'users', 'tenants'
+            'invoices', 'products', 'product_categories', 'customers', 'users', 'tenants'
         ]
         
         # Disable foreign key checks temporarily

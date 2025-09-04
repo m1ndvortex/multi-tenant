@@ -607,6 +607,7 @@ class ProductService:
                 Product.tenant_id == tenant_id,
                 Product.track_inventory == True,
                 Product.is_service == False,
+                Product.status == ProductStatus.ACTIVE,
                 Product.is_active == True
             ).scalar()
             
