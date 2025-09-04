@@ -46,6 +46,11 @@ python-dotenv==1.0.0
 pytz==2023.3
 pendulum==2.1.2
 
+# QR Code and PDF Generation
+qrcode[pil]==7.4.2
+reportlab==4.0.7
+weasyprint==60.2
+
 # Development and Testing
 pytest==7.4.3
 pytest-asyncio==0.21.1

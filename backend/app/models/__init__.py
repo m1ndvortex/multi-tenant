@@ -17,6 +17,7 @@ from .accounting import (
 from .notification import NotificationTemplate, NotificationLog, NotificationStatus, NotificationQueue
 from .backup import BackupLog, BackupStatus, BackupType, RestoreLog, StorageLocation
 from .gold_price import GoldPrice, GoldPriceHistory
+from .invoice_access_log import InvoiceAccessLog
 
 __all__ = [
     "Base",
@@ -55,4 +56,5 @@ __all__ = [
     "StorageLocation",
     "GoldPrice",
     "GoldPriceHistory",
+    "InvoiceAccessLog",
 ]
