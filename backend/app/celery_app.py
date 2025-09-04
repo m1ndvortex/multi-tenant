@@ -48,6 +48,11 @@ celery_app.conf.update(
         "app.tasks.cleanup_restore_files_task": {"queue": "maintenance"},
         "app.tasks.send_email": {"queue": "notifications"},
         "app.tasks.send_sms": {"queue": "notifications"},
+        "app.tasks.send_invoice_notification": {"queue": "notifications"},
+        "app.tasks.send_payment_confirmation": {"queue": "notifications"},
+        "app.tasks.send_overdue_notices": {"queue": "notifications"},
+        "app.tasks.process_notification_queue": {"queue": "notifications"},
+        "app.tasks.send_bulk_sms_campaign": {"queue": "notifications"},
         "app.tasks.process_image": {"queue": "media"},
         "app.tasks.generate_report": {"queue": "reports"},
     },
@@ -95,6 +100,15 @@ celery_app.conf.update(
             "task": "app.tasks.send_installment_reminders",
             "schedule": 60.0 * 60.0 * 24.0,  # Daily at 9 AM
             "options": {"eta": "09:00"}
+        },
+        "send-overdue-notices": {
+            "task": "app.tasks.send_overdue_notices",
+            "schedule": 60.0 * 60.0 * 24.0,  # Daily at 10 AM
+            "options": {"eta": "10:00"}
+        },
+        "process-notification-queue": {
+            "task": "app.tasks.process_notification_queue",
+            "schedule": 60.0 * 5.0,  # Every 5 minutes
         },
         "cleanup-restore-files": {
             "task": "app.tasks.periodic_restore_cleanup",
@@ -174,6 +188,36 @@ celery_app.conf.task_annotations = {
         "rate_limit": "50/m",
         "time_limit": 30,
         "retry_kwargs": {"max_retries": 3, "countdown": 60},
+    },
+    "app.tasks.send_invoice_notification": {
+        "rate_limit": "100/m",
+        "time_limit": 60,
+        "retry_kwargs": {"max_retries": 3, "countdown": 60},
+    },
+    "app.tasks.send_payment_confirmation": {
+        "rate_limit": "100/m",
+        "time_limit": 60,
+        "retry_kwargs": {"max_retries": 3, "countdown": 60},
+    },
+    "app.tasks.send_installment_reminders": {
+        "rate_limit": "1/h",
+        "time_limit": 300,
+        "retry_kwargs": {"max_retries": 2, "countdown": 300},
+    },
+    "app.tasks.send_overdue_notices": {
+        "rate_limit": "1/h",
+        "time_limit": 300,
+        "retry_kwargs": {"max_retries": 2, "countdown": 300},
+    },
+    "app.tasks.process_notification_queue": {
+        "rate_limit": "12/h",
+        "time_limit": 120,
+        "retry_kwargs": {"max_retries": 2, "countdown": 120},
+    },
+    "app.tasks.send_bulk_sms_campaign": {
+        "rate_limit": "10/h",
+        "time_limit": 300,
+        "retry_kwargs": {"max_retries": 2, "countdown": 180},
     },
     "app.tasks.customer_backup_tasks.create_customer_backup_task": {
         "rate_limit": "10/m",
