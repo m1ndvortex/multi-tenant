@@ -467,3 +467,406 @@ Index('idx_transaction_tenant_date', Transaction.tenant_id, Transaction.transact
 Index('idx_transaction_tenant_type', Transaction.tenant_id, Transaction.transaction_type)
 Index('idx_transaction_customer', Transaction.customer_id)
 Index('idx_transaction_invoice', Transaction.invoice_id)
+
+
+class SupplierBill(BaseModel, TenantMixin):
+    """
+    Supplier bills for accounts payable
+    """
+    __tablename__ = "supplier_bills"
+    
+    # Bill Information
+    bill_number = Column(
+        String(50), 
+        nullable=False,
+        comment="Bill number from supplier"
+    )
+    
+    supplier_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("suppliers.id"),
+        nullable=False,
+        comment="Supplier ID"
+    )
+    
+    # Financial Information
+    subtotal = Column(
+        Numeric(15, 2), 
+        nullable=False,
+        default=0,
+        comment="Subtotal amount"
+    )
+    
+    tax_amount = Column(
+        Numeric(15, 2), 
+        nullable=False,
+        default=0,
+        comment="Tax amount"
+    )
+    
+    total_amount = Column(
+        Numeric(15, 2), 
+        nullable=False,
+        comment="Total bill amount"
+    )
+    
+    paid_amount = Column(
+        Numeric(15, 2), 
+        default=0,
+        nullable=False,
+        comment="Amount paid so far"
+    )
+    
+    # Dates
+    bill_date = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        comment="Bill date"
+    )
+    
+    due_date = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        comment="Payment due date"
+    )
+    
+    # Status
+    status = Column(
+        String(20), 
+        default="pending",
+        nullable=False,
+        comment="Bill status: pending, partial, paid, overdue"
+    )
+    
+    # Additional Information
+    description = Column(
+        Text, 
+        nullable=True,
+        comment="Bill description"
+    )
+    
+    reference_number = Column(
+        String(100), 
+        nullable=True,
+        comment="Internal reference number"
+    )
+    
+    notes = Column(
+        Text, 
+        nullable=True,
+        comment="Internal notes"
+    )
+    
+    # Relationships
+    tenant = relationship("Tenant")
+    supplier = relationship("Supplier", back_populates="bills")
+    payments = relationship("SupplierPayment", back_populates="bill")
+    
+    def __repr__(self):
+        return f"<SupplierBill(id={self.id}, number='{self.bill_number}', amount={self.total_amount})>"
+    
+    @property
+    def remaining_amount(self) -> Decimal:
+        """Calculate remaining amount to be paid"""
+        return self.total_amount - self.paid_amount
+    
+    @property
+    def is_overdue(self) -> bool:
+        """Check if bill is overdue"""
+        from datetime import datetime
+        return self.due_date < datetime.now() and self.remaining_amount > 0
+    
+    def update_status(self):
+        """Update bill status based on payments"""
+        if self.paid_amount >= self.total_amount:
+            self.status = "paid"
+        elif self.paid_amount > 0:
+            self.status = "partial"
+        elif self.is_overdue:
+            self.status = "overdue"
+        else:
+            self.status = "pending"
+
+
+class SupplierPayment(BaseModel, TenantMixin):
+    """
+    Payments made to suppliers
+    """
+    __tablename__ = "supplier_payments"
+    
+    # Payment Information
+    payment_number = Column(
+        String(50), 
+        nullable=False,
+        comment="Payment reference number"
+    )
+    
+    supplier_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("suppliers.id"),
+        nullable=False,
+        comment="Supplier ID"
+    )
+    
+    bill_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("supplier_bills.id"),
+        nullable=True,
+        comment="Related bill ID (if payment is for specific bill)"
+    )
+    
+    # Financial Information
+    amount = Column(
+        Numeric(15, 2), 
+        nullable=False,
+        comment="Payment amount"
+    )
+    
+    payment_method_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("payment_methods.id"),
+        nullable=True,
+        comment="Payment method used"
+    )
+    
+    # Dates
+    payment_date = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        comment="Payment date"
+    )
+    
+    # Reference Information
+    reference_number = Column(
+        String(100), 
+        nullable=True,
+        comment="Check number, transfer reference, etc."
+    )
+    
+    description = Column(
+        Text, 
+        nullable=True,
+        comment="Payment description"
+    )
+    
+    notes = Column(
+        Text, 
+        nullable=True,
+        comment="Internal notes"
+    )
+    
+    # Relationships
+    tenant = relationship("Tenant")
+    supplier = relationship("Supplier", back_populates="payments")
+    bill = relationship("SupplierBill", back_populates="payments")
+    payment_method = relationship("PaymentMethod")
+    
+    def __repr__(self):
+        return f"<SupplierPayment(id={self.id}, number='{self.payment_number}', amount={self.amount})>"
+
+
+class CustomerPayment(BaseModel, TenantMixin):
+    """
+    Payments received from customers for accounts receivable
+    """
+    __tablename__ = "customer_payments"
+    
+    # Payment Information
+    payment_number = Column(
+        String(50), 
+        nullable=False,
+        comment="Payment reference number"
+    )
+    
+    customer_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("customers.id"),
+        nullable=False,
+        comment="Customer ID"
+    )
+    
+    invoice_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("invoices.id"),
+        nullable=True,
+        comment="Related invoice ID (if payment is for specific invoice)"
+    )
+    
+    # Financial Information
+    amount = Column(
+        Numeric(15, 2), 
+        nullable=False,
+        comment="Payment amount"
+    )
+    
+    payment_method_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("payment_methods.id"),
+        nullable=True,
+        comment="Payment method used"
+    )
+    
+    # Dates
+    payment_date = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        comment="Payment date"
+    )
+    
+    # Reference Information
+    reference_number = Column(
+        String(100), 
+        nullable=True,
+        comment="Check number, transfer reference, etc."
+    )
+    
+    description = Column(
+        Text, 
+        nullable=True,
+        comment="Payment description"
+    )
+    
+    notes = Column(
+        Text, 
+        nullable=True,
+        comment="Internal notes"
+    )
+    
+    # Relationships
+    tenant = relationship("Tenant")
+    customer = relationship("Customer")
+    invoice = relationship("Invoice")
+    payment_method = relationship("PaymentMethod")
+    
+    def __repr__(self):
+        return f"<CustomerPayment(id={self.id}, number='{self.payment_number}', amount={self.amount})>"
+
+
+class PaymentMatching(BaseModel, TenantMixin):
+    """
+    Payment matching and reconciliation records
+    """
+    __tablename__ = "payment_matching"
+    
+    # Matching Information
+    match_type = Column(
+        String(20), 
+        nullable=False,
+        comment="Type: customer_payment, supplier_payment, bank_reconciliation"
+    )
+    
+    # Customer Payment Matching
+    customer_payment_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("customer_payments.id"),
+        nullable=True,
+        comment="Customer payment ID"
+    )
+    
+    invoice_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("invoices.id"),
+        nullable=True,
+        comment="Matched invoice ID"
+    )
+    
+    # Supplier Payment Matching
+    supplier_payment_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("supplier_payments.id"),
+        nullable=True,
+        comment="Supplier payment ID"
+    )
+    
+    supplier_bill_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("supplier_bills.id"),
+        nullable=True,
+        comment="Matched supplier bill ID"
+    )
+    
+    # Matching Details
+    matched_amount = Column(
+        Numeric(15, 2), 
+        nullable=False,
+        comment="Amount matched"
+    )
+    
+    match_date = Column(
+        DateTime(timezone=True),
+        default=func.now(),
+        nullable=False,
+        comment="Date when matching was performed"
+    )
+    
+    matched_by = Column(
+        UUID(as_uuid=True), 
+        nullable=True,
+        comment="User who performed the matching"
+    )
+    
+    # Status
+    is_automatic = Column(
+        Boolean, 
+        default=False,
+        nullable=False,
+        comment="Whether matching was automatic or manual"
+    )
+    
+    is_reversed = Column(
+        Boolean, 
+        default=False,
+        nullable=False,
+        comment="Whether matching has been reversed"
+    )
+    
+    reversed_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Date when matching was reversed"
+    )
+    
+    reversed_by = Column(
+        UUID(as_uuid=True), 
+        nullable=True,
+        comment="User who reversed the matching"
+    )
+    
+    # Additional Information
+    notes = Column(
+        Text, 
+        nullable=True,
+        comment="Matching notes"
+    )
+    
+    # Relationships
+    tenant = relationship("Tenant")
+    customer_payment = relationship("CustomerPayment")
+    invoice = relationship("Invoice")
+    supplier_payment = relationship("SupplierPayment")
+    supplier_bill = relationship("SupplierBill")
+    
+    def __repr__(self):
+        return f"<PaymentMatching(id={self.id}, type='{self.match_type}', amount={self.matched_amount})>"
+
+
+# Additional indexes for new models
+Index('idx_supplier_bill_tenant_number', SupplierBill.tenant_id, SupplierBill.bill_number, unique=True)
+Index('idx_supplier_bill_supplier', SupplierBill.supplier_id)
+Index('idx_supplier_bill_due_date', SupplierBill.due_date)
+Index('idx_supplier_bill_status', SupplierBill.status)
+
+Index('idx_supplier_payment_tenant_number', SupplierPayment.tenant_id, SupplierPayment.payment_number, unique=True)
+Index('idx_supplier_payment_supplier', SupplierPayment.supplier_id)
+Index('idx_supplier_payment_bill', SupplierPayment.bill_id)
+Index('idx_supplier_payment_date', SupplierPayment.payment_date)
+
+Index('idx_customer_payment_tenant_number', CustomerPayment.tenant_id, CustomerPayment.payment_number, unique=True)
+Index('idx_customer_payment_customer', CustomerPayment.customer_id)
+Index('idx_customer_payment_invoice', CustomerPayment.invoice_id)
+Index('idx_customer_payment_date', CustomerPayment.payment_date)
+
+Index('idx_payment_matching_tenant_type', PaymentMatching.tenant_id, PaymentMatching.match_type)
+Index('idx_payment_matching_customer_payment', PaymentMatching.customer_payment_id)
+Index('idx_payment_matching_supplier_payment', PaymentMatching.supplier_payment_id)
+Index('idx_payment_matching_date', PaymentMatching.match_date)

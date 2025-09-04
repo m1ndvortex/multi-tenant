@@ -10,9 +10,11 @@ from .customer_interaction import CustomerInteraction, InteractionType
 from .product import Product, ProductCategory
 from .invoice import Invoice, InvoiceItem, InvoiceType, InvoiceStatus
 from .installment import Installment, InstallmentStatus, InstallmentType, InstallmentPlan
+from .supplier import Supplier
 from .accounting import (
     Account, AccountType, JournalEntry, JournalEntryLine,
-    PaymentMethod, Transaction, TransactionType
+    PaymentMethod, Transaction, TransactionType,
+    SupplierBill, SupplierPayment, CustomerPayment, PaymentMatching
 )
 from .notification import NotificationTemplate, NotificationLog, NotificationStatus, NotificationQueue
 from .backup import BackupLog, BackupStatus, BackupType, RestoreLog, StorageLocation
@@ -38,6 +40,7 @@ __all__ = [
     "InstallmentStatus",
     "InstallmentType",
     "InstallmentPlan",
+    "Supplier",
     "Account",
     "AccountType",
     "JournalEntry",
@@ -45,6 +48,10 @@ __all__ = [
     "PaymentMethod",
     "Transaction",
     "TransactionType",
+    "SupplierBill",
+    "SupplierPayment",
+    "CustomerPayment",
+    "PaymentMatching",
     "NotificationTemplate",
     "NotificationLog",
     "NotificationStatus",

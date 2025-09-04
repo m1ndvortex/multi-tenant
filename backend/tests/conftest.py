@@ -75,7 +75,9 @@ def clean_database():
     try:
         # Get all table names
         tables = [
-            'backup_logs', 'restore_logs', 'storage_locations',
+            'payment_matching', 'customer_payments', 'supplier_payments', 'supplier_bills',
+            'suppliers', 'journal_entry_lines', 'journal_entries', 'accounts', 'payment_methods',
+            'transactions', 'backup_logs', 'restore_logs', 'storage_locations',
             'invoices', 'products', 'product_categories', 'customers', 'users', 'tenants'
         ]
         
@@ -108,6 +110,71 @@ def db_session():
         yield db
     finally:
         db.close()
+
+
+@pytest.fixture
+def test_tenant(db_session):
+    """Create a test tenant"""
+    from app.models.tenant import Tenant, SubscriptionType, TenantStatus
+    from datetime import datetime, timedelta
+    import uuid
+    
+    # Use unique domain to avoid conflicts
+    unique_id = str(uuid.uuid4())[:8]
+    
+    tenant = Tenant(
+        name=f"Test Tenant {unique_id}",
+        domain=f"test-{unique_id}.example.com",
+        email=f"test-{unique_id}@example.com",
+        subscription_type=SubscriptionType.PRO,
+        subscription_starts_at=datetime.utcnow(),
+        subscription_expires_at=datetime.utcnow() + timedelta(days=365),
+        status=TenantStatus.ACTIVE
+    )
+    db_session.add(tenant)
+    db_session.commit()
+    db_session.refresh(tenant)
+    return tenant
+
+
+@pytest.fixture
+def test_customer(db_session, test_tenant):
+    """Create a test customer"""
+    from app.models.customer import Customer
+    
+    customer = Customer(
+        tenant_id=test_tenant.id,
+        name="Test Customer",
+        email="customer@test.com",
+        phone="+1234567890",
+        address="123 Test Street",
+        city="Test City",
+        is_active=True
+    )
+    db_session.add(customer)
+    db_session.commit()
+    db_session.refresh(customer)
+    return customer
+
+
+@pytest.fixture
+def auth_headers(test_tenant):
+    """Create authentication headers for testing"""
+    from app.core.security import create_access_token
+    from datetime import timedelta
+    
+    # Create a mock user token
+    token_data = {
+        "sub": "test@example.com",
+        "tenant_id": str(test_tenant.id),
+        "role": "admin"
+    }
+    token = create_access_token(
+        data=token_data,
+        expires_delta=timedelta(hours=1)
+    )
+    
+    return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture

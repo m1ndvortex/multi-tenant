@@ -38,6 +38,8 @@ from app.api.invoices import router as invoices_router
 from app.api.installments import router as installments_router
 from app.api.gold_installments import router as gold_installments_router
 from app.api.invoice_sharing import router as invoice_sharing_router
+from app.api.accounting import router as accounting_router
+from app.api.receivables_payables import router as receivables_payables_router
 
 # Configure logging
 import os
@@ -190,6 +192,8 @@ app.include_router(invoices_router)
 app.include_router(installments_router, prefix="/api")
 app.include_router(gold_installments_router, prefix="/api/gold-installments")
 app.include_router(invoice_sharing_router, prefix="/api")
+app.include_router(accounting_router)
+app.include_router(receivables_payables_router)
 
 # Root endpoint
 @app.get("/")

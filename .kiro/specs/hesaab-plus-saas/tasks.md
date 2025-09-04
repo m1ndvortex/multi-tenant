@@ -329,7 +329,7 @@
   - Write unit tests for general installment system
   - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5, 14.6, 14.7_
 
-- [-] 24. Implement Gold Installment System Backend
+- [x] 24. Implement Gold Installment System Backend
 
 
 
@@ -343,7 +343,12 @@
   - Write unit tests for gold installment system with price fluctuation scenarios
   - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.5, 16.6, 16.7, 16.8_
 
-- [ ] 25. Implement QR Code and Invoice Sharing Backend
+- [x] 25. Implement QR Code and Invoice Sharing Backend
+
+
+
+
+
   - Create QR code generation for invoices with secure tokens
   - Implement public invoice viewing endpoints without authentication
   - Create PDF generation with embedded QR codes using Celery
@@ -353,7 +358,10 @@
 
 ## Accounting System Backend
 
-- [ ] 26. Implement Chart of Accounts and General Ledger Backend
+- [x] 26. Implement Chart of Accounts and General Ledger Backend
+
+
+
   - Create chart of accounts management with hierarchical structure
   - Implement journal entry creation and posting system
   - Create automated journal entry generation for financial transactions
@@ -361,12 +369,19 @@
   - Write unit tests for accounting system with double-entry validation
   - _Requirements: 18.1, 18.2, 18.3, 18.4, 18.5, 18.6, 18.7, 18.8, 18.9_
 
-- [ ] 27. Implement Accounts Receivable and Payable Backend
-  - Create accounts receivable tracking for customer debts and payments
-  - Implement accounts payable management for supplier bills
-  - Create aging reports and overdue payment tracking
-  - Implement payment matching and reconciliation
-  - Write unit tests for receivables and payables management
+- [x] 27. Implement Accounts Receivable and Payable Backend ✅
+
+
+
+
+  - ✅ Create accounts receivable tracking for customer debts and payments
+  - ✅ Implement accounts payable management for supplier bills
+  - ✅ Create aging reports and overdue payment tracking
+  - ✅ Implement payment matching and reconciliation
+  - ✅ Write unit tests for receivables and payables management
+  - ✅ Comprehensive API endpoints with real database operations
+  - ✅ Multi-tenant isolation testing with production-ready scenarios
+  - ✅ Real-time aging calculations and overdue payment detection
   - _Requirements: 18.2, 18.3, 18.4_
 
 - [ ] 28. Implement Bank Reconciliation Backend
