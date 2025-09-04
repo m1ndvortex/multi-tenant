@@ -36,6 +36,7 @@ from app.api.customers import router as customers_router
 from app.api.products import router as products_router
 from app.api.invoices import router as invoices_router
 from app.api.installments import router as installments_router
+from app.api.gold_installments import router as gold_installments_router
 
 # Configure logging
 import os
@@ -186,6 +187,7 @@ app.include_router(customers_router)
 app.include_router(products_router)
 app.include_router(invoices_router)
 app.include_router(installments_router, prefix="/api")
+app.include_router(gold_installments_router, prefix="/api/gold-installments")
 
 # Root endpoint
 @app.get("/")

@@ -152,7 +152,13 @@ class TestProductImageProcessing:
             
             assert response.status_code == 400
             response_data = response.json()
-            assert "Unsupported file type" in response_data.get("message", response_data.get("detail", ""))
+            # Handle nested error structure
+            error_message = ""
+            if "detail" in response_data and isinstance(response_data["detail"], dict):
+                error_message = response_data["detail"].get("message", response_data["detail"].get("detail", ""))
+            else:
+                error_message = response_data.get("message", response_data.get("detail", ""))
+            assert "Unsupported file type" in error_message
             
         finally:
             os.unlink(temp_path)
@@ -180,7 +186,13 @@ class TestProductImageProcessing:
             
             assert response.status_code == 400
             response_data = response.json()
-            assert "too large" in response_data.get("message", response_data.get("detail", "")).lower()
+            # Handle nested error structure  
+            error_message = ""
+            if "detail" in response_data and isinstance(response_data["detail"], dict):
+                error_message = response_data["detail"].get("message", response_data["detail"].get("detail", ""))
+            else:
+                error_message = response_data.get("message", response_data.get("detail", ""))
+            assert "too large" in error_message.lower()
             
         finally:
             if os.path.exists(large_file_path):
@@ -203,7 +215,13 @@ class TestProductImageProcessing:
             
             assert response.status_code == 404
             response_data = response.json()
-            assert "Product not found" in response_data.get("message", response_data.get("detail", ""))
+            # Handle nested error structure
+            error_message = ""
+            if "detail" in response_data and isinstance(response_data["detail"], dict):
+                error_message = response_data["detail"].get("message", response_data["detail"].get("detail", ""))
+            else:
+                error_message = response_data.get("message", response_data.get("detail", ""))
+            assert "Product not found" in error_message
         finally:
             os.unlink(image_path)
     
@@ -339,7 +357,13 @@ class TestProductImageProcessing:
         
         assert response.status_code == 400
         response_data = response.json()
-        assert "not found" in response_data.get("message", response_data.get("detail", "")).lower()
+        # Handle nested error structure
+        error_message = ""
+        if "detail" in response_data and isinstance(response_data["detail"], dict):
+            error_message = response_data["detail"].get("message", response_data["detail"].get("detail", ""))
+        else:
+            error_message = response_data.get("message", response_data.get("detail", ""))
+        assert "not found" in error_message.lower()
     
     def test_multiple_image_formats(self, client: TestClient, auth_headers, test_product):
         """Test uploading different image formats"""
