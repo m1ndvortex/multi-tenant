@@ -15,18 +15,18 @@ from .base import BaseModel, TenantMixin
 
 class InvoiceType(enum.Enum):
     """Invoice type enumeration"""
-    GENERAL = "general"  # فاکتور عمومی
-    GOLD = "gold"       # فاکتور طلا
+    GENERAL = "GENERAL"  # فاکتور عمومی
+    GOLD = "GOLD"       # فاکتور طلا
 
 
 class InvoiceStatus(enum.Enum):
     """Invoice status enumeration"""
-    DRAFT = "draft"
-    SENT = "sent"
-    PAID = "paid"
-    PARTIALLY_PAID = "partially_paid"
-    OVERDUE = "overdue"
-    CANCELLED = "cancelled"
+    DRAFT = "DRAFT"
+    SENT = "SENT"
+    PAID = "PAID"
+    PARTIALLY_PAID = "PARTIALLY_PAID"
+    OVERDUE = "OVERDUE"
+    CANCELLED = "CANCELLED"
 
 
 class PaymentStatus(enum.Enum):
