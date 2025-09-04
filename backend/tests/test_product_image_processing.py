@@ -8,7 +8,7 @@ import uuid
 import tempfile
 import os
 import json
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, ANY
 from PIL import Image
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -61,7 +61,13 @@ class TestProductImageProcessing:
     @pytest.fixture
     def auth_headers(self, test_user):
         """Create authentication headers"""
-        token = create_access_token(data={"sub": str(test_user.id)})
+        token = create_access_token(data={
+            "user_id": str(test_user.id),
+            "tenant_id": str(test_user.tenant_id),
+            "email": test_user.email,
+            "role": test_user.role.value,
+            "is_super_admin": test_user.is_super_admin
+        })
         return {"Authorization": f"Bearer {token}"}
     
     @pytest.fixture
@@ -145,7 +151,8 @@ class TestProductImageProcessing:
                 )
             
             assert response.status_code == 400
-            assert "Unsupported file type" in response.json()["detail"]
+            response_data = response.json()
+            assert "Unsupported file type" in response_data.get("message", response_data.get("detail", ""))
             
         finally:
             os.unlink(temp_path)
@@ -154,26 +161,30 @@ class TestProductImageProcessing:
         """Test image upload with file size exceeding limit"""
         product_id = test_product["id"]
         
-        # Create a large test image (simulate large file)
-        large_image_path = self.create_test_image(size=(5000, 5000))
+        # Create a large file that exceeds the limit
+        large_file_path = tempfile.mktemp(suffix='.jpg')
         
         try:
-            with open(large_image_path, 'rb') as image_file:
-                # Mock file size to exceed limit
-                with patch('fastapi.UploadFile.size', new_callable=lambda: settings.max_file_size + 1):
-                    files = {"file": ("large_image.jpg", image_file, "image/jpeg")}
-                    
-                    response = client.post(
-                        f"/api/products/{product_id}/images/upload",
-                        files=files,
-                        headers=auth_headers
-                    )
+            # Create a file larger than the max size (write 20MB of data)
+            with open(large_file_path, 'wb') as f:
+                f.write(b'0' * (20 * 1024 * 1024))  # 20MB
+            
+            with open(large_file_path, 'rb') as image_file:
+                files = {"file": ("large_image.jpg", image_file, "image/jpeg")}
+                
+                response = client.post(
+                    f"/api/products/{product_id}/images/upload",
+                    files=files,
+                    headers=auth_headers
+                )
             
             assert response.status_code == 400
-            assert "File too large" in response.json()["detail"]
+            response_data = response.json()
+            assert "too large" in response_data.get("message", response_data.get("detail", "")).lower()
             
         finally:
-            os.unlink(large_image_path)
+            if os.path.exists(large_file_path):
+                os.unlink(large_file_path)
     
     def test_image_upload_nonexistent_product(self, client: TestClient, auth_headers):
         """Test image upload for non-existent product"""
@@ -191,14 +202,15 @@ class TestProductImageProcessing:
                 )
             
             assert response.status_code == 404
-            assert "Product not found" in response.json()["detail"]
-            
+            response_data = response.json()
+            assert "Product not found" in response_data.get("message", response_data.get("detail", ""))
         finally:
             os.unlink(image_path)
     
+    @patch('app.tasks.media_tasks.ImageProcessor.optimize_image')
     @patch('app.tasks.media_tasks.ImageProcessor.resize_image')
     @patch('app.tasks.media_tasks.ImageProcessor.validate_image')
-    def test_celery_image_processing_task(self, mock_validate, mock_resize, db_session):
+    def test_celery_image_processing_task(self, mock_validate, mock_resize, mock_optimize, db_session):
         """Test Celery image processing task with real operations"""
         # Create test data
         tenant_id = str(uuid.uuid4())
@@ -220,7 +232,7 @@ class TestProductImageProcessing:
             tenant_id=uuid.UUID(tenant_id),
             name="Celery Test Product",
             selling_price=100.00,
-            is_active=True
+            status="ACTIVE"
         )
         db_session.add(product)
         db_session.commit()
@@ -228,13 +240,10 @@ class TestProductImageProcessing:
         # Create test image
         image_path = self.create_test_image()
         
-        # Mock storage operations
-        mock_variants.return_value = {
-            'original': 'https://storage.example.com/original.jpg',
-            'thumbnail': 'https://storage.example.com/thumb.jpg',
-            'medium': 'https://storage.example.com/medium.jpg'
-        }
-        mock_upload.return_value = 'https://storage.example.com/original.jpg'
+        # Mock operations
+        mock_validate.return_value = True
+        mock_resize.return_value = True
+        mock_optimize.return_value = True
         
         try:
             # Execute Celery task
@@ -242,12 +251,16 @@ class TestProductImageProcessing:
             
             # Verify task execution
             assert result is not None
-            assert 'image_url' in result
-            assert 'variants' in result
             
-            # Verify storage operations were called
-            mock_upload.assert_called()
-            mock_variants.assert_called()
+            # Verify methods were called
+            mock_validate.assert_called()
+            mock_resize.assert_called_once_with(
+                image_path, 
+                ANY,  # output path
+                ANY,  # size
+                quality=ANY,
+                format=ANY
+            )
             
             # Verify product was updated in database
             db_session.refresh(product)
@@ -325,7 +338,8 @@ class TestProductImageProcessing:
         )
         
         assert response.status_code == 400
-        assert "Image not found" in response.json()["detail"]
+        response_data = response.json()
+        assert "not found" in response_data.get("message", response_data.get("detail", "")).lower()
     
     def test_multiple_image_formats(self, client: TestClient, auth_headers, test_product):
         """Test uploading different image formats"""

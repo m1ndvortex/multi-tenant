@@ -4,6 +4,7 @@ Product and inventory management service
 
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_, or_, func, desc, asc
+from sqlalchemy.orm.attributes import flag_modified
 from typing import List, Optional, Dict, Any, Tuple
 from decimal import Decimal
 import uuid
@@ -682,7 +683,7 @@ class ProductService:
     
     # Image Management
     
-    def add_product_image(self, tenant_id: uuid.UUID, product_id: uuid.UUID, image_url: str) -> Product:
+    def add_product_image(self, tenant_id: uuid.UUID, product_id: uuid.UUID, image_url: str, commit: bool = True) -> Product:
         """Add an image to a product"""
         try:
             product = self.get_product(tenant_id, product_id)
@@ -693,16 +694,60 @@ class ProductService:
                 product.images = []
             
             if image_url not in product.images:
-                product.images.append(image_url)
-                self.db.commit()
-                self.db.refresh(product)
+                # Create a new list to trigger SQLAlchemy JSONB update
+                new_images = list(product.images) if product.images else []
+                new_images.append(image_url)
+                product.images = new_images
+                
+                # Mark the field as modified for SQLAlchemy
+                flag_modified(product, "images")
+                
+                if commit:
+                    self.db.commit()
+                    self.db.refresh(product)
             
             logger.info(f"Added image to product {product_id}")
             return product
             
         except Exception as e:
-            self.db.rollback()
+            if commit:
+                self.db.rollback()
             logger.error(f"Failed to add image to product {product_id}: {e}")
+            raise
+    
+    def add_product_images(self, tenant_id: uuid.UUID, product_id: uuid.UUID, image_urls: List[str]) -> Product:
+        """Add multiple images to a product"""
+        try:
+            product = self.get_product(tenant_id, product_id)
+            if not product:
+                raise NotFoundError("Product not found")
+            
+            if not product.images:
+                product.images = []
+            
+            # Create a new list to trigger SQLAlchemy JSONB update
+            new_images = list(product.images) if product.images else []
+            
+            # Add each unique URL
+            for image_url in image_urls:
+                if image_url not in new_images:
+                    new_images.append(image_url)
+            
+            # Update the product only once
+            product.images = new_images
+            
+            # Mark the field as modified for SQLAlchemy
+            flag_modified(product, "images")
+            
+            self.db.commit()
+            self.db.refresh(product)
+            
+            logger.info(f"Added {len(image_urls)} images to product {product_id}")
+            return product
+            
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"Failed to add images to product {product_id}: {e}")
             raise
     
     def remove_product_image(self, tenant_id: uuid.UUID, product_id: uuid.UUID, image_url: str) -> Product:
@@ -712,10 +757,20 @@ class ProductService:
             if not product:
                 raise NotFoundError("Product not found")
             
-            if product.images and image_url in product.images:
-                product.images.remove(image_url)
-                self.db.commit()
-                self.db.refresh(product)
+            # Check if image exists before attempting to remove
+            if not product.images or image_url not in product.images:
+                raise ValidationError(f"Image URL '{image_url}' not found in product images")
+            
+            # Create a new list to trigger SQLAlchemy JSONB update
+            new_images = list(product.images)
+            new_images.remove(image_url)
+            product.images = new_images
+            
+            # Mark the field as modified for SQLAlchemy
+            flag_modified(product, "images")
+            
+            self.db.commit()
+            self.db.refresh(product)
             
             logger.info(f"Removed image from product {product_id}")
             return product

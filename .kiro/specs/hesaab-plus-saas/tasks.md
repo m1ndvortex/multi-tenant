@@ -299,7 +299,12 @@
 
 ## Invoice System Backend
 
-- [ ] 22. Implement Dual Invoice System Backend
+- [x] 22. Implement Dual Invoice System Backend
+
+
+
+
+
   - Create invoice models supporting both General and Gold invoice types
   - Implement invoice CRUD operations with type-specific validation
   - Create invoice item management with gold-specific fields (weight, labor fee, profit, VAT)
@@ -307,7 +312,16 @@
   - Write unit tests for dual invoice system with comprehensive scenarios
   - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5, 12.6, 12.7_
 
-- [ ] 23. Implement General Installment System Backend
+- [x] 23. Implement General Installment System Backend
+
+
+
+
+
+
+
+
+
   - Create general installment plan creation and management
   - Implement payment tracking against currency balance
   - Create installment schedule generation and due date management
@@ -315,7 +329,10 @@
   - Write unit tests for general installment system
   - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5, 14.6, 14.7_
 
-- [ ] 24. Implement Gold Installment System Backend
+- [-] 24. Implement Gold Installment System Backend
+
+
+
   - Create gold installment system with weight-based debt tracking
   - Implement daily gold price management and historical tracking
   - Create payment calculation based on gold price at payment date

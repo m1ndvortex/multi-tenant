@@ -457,13 +457,11 @@ async def add_product_images(
 ):
     """Add image URLs to a product"""
     try:
-        product = product_service.get_product(current_user.tenant_id, product_id)
-        if not product:
-            raise NotFoundError("Product not found")
-        
-        # Add each image URL
-        for image_url in image_request.image_urls:
-            product = product_service.add_product_image(current_user.tenant_id, product_id, image_url)
+        product = product_service.add_product_images(
+            current_user.tenant_id, 
+            product_id, 
+            image_request.image_urls
+        )
         
         return ProductResponse.from_orm(product)
     except (ValidationError, NotFoundError) as e:

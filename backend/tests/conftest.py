@@ -16,6 +16,50 @@ import os
 TestingSessionLocal = SessionLocal
 
 
+class TestDatabase:
+    """Test database helper class"""
+    
+    def __init__(self):
+        self.session = None
+    
+    def get_session(self):
+        """Get a test database session"""
+        if not self.session:
+            self.session = TestingSessionLocal()
+        return self.session
+    
+    def cleanup(self):
+        """Clean up test data"""
+        if self.session:
+            try:
+                # Clean up test data
+                tables = [
+                    'installments', 'invoice_items', 'invoices', 
+                    'products', 'customers', 'users', 'tenants'
+                ]
+                
+                # Disable foreign key checks temporarily
+                self.session.execute(text("SET session_replication_role = replica;"))
+                
+                # Truncate tables in reverse order to handle dependencies
+                for table in reversed(tables):
+                    try:
+                        self.session.execute(text(f"TRUNCATE TABLE {table} CASCADE;"))
+                    except Exception:
+                        pass  # Table might not exist
+                
+                # Re-enable foreign key checks
+                self.session.execute(text("SET session_replication_role = DEFAULT;"))
+                
+                self.session.commit()
+            except Exception as e:
+                self.session.rollback()
+                print(f"Error cleaning test database: {e}")
+            finally:
+                self.session.close()
+                self.session = None
+
+
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_database():
     """Setup test database schema - tables should already exist in Docker"""
