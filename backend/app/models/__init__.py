@@ -20,6 +20,11 @@ from .notification import NotificationTemplate, NotificationLog, NotificationSta
 from .backup import BackupLog, BackupStatus, BackupType, RestoreLog, StorageLocation
 from .gold_price import GoldPrice, GoldPriceHistory
 from .invoice_access_log import InvoiceAccessLog
+from .marketing import (
+    MarketingCampaign, CampaignRecipient, CustomerSegment, 
+    SegmentCustomer, CommunicationPreference,
+    CampaignStatus, CampaignType, SegmentationType
+)
 
 __all__ = [
     "Base",
@@ -64,4 +69,12 @@ __all__ = [
     "GoldPrice",
     "GoldPriceHistory",
     "InvoiceAccessLog",
+    "MarketingCampaign",
+    "CampaignRecipient",
+    "CustomerSegment",
+    "SegmentCustomer",
+    "CommunicationPreference",
+    "CampaignStatus",
+    "CampaignType",
+    "SegmentationType",
 ]

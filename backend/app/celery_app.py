@@ -15,7 +15,8 @@ celery_app = Celery(
     backend=settings.celery_result_backend,
     include=[
         "app.tasks",
-        "app.tasks.customer_backup_tasks"
+        "app.tasks.customer_backup_tasks",
+        "app.tasks.marketing_tasks"
     ]
 )
 
@@ -55,6 +56,10 @@ celery_app.conf.update(
         "app.tasks.send_bulk_sms_campaign": {"queue": "notifications"},
         "app.tasks.process_image": {"queue": "media"},
         "app.tasks.generate_report": {"queue": "reports"},
+        "app.tasks.marketing_tasks.process_marketing_campaign": {"queue": "marketing"},
+        "app.tasks.marketing_tasks.send_bulk_sms": {"queue": "marketing"},
+        "app.tasks.marketing_tasks.refresh_dynamic_segments": {"queue": "marketing"},
+        "app.tasks.marketing_tasks.process_scheduled_campaigns": {"queue": "marketing"},
     },
     
     # Task execution
@@ -118,6 +123,15 @@ celery_app.conf.update(
         "cleanup-expired-customer-backups": {
             "task": "app.tasks.customer_backup_tasks.cleanup_expired_customer_backups_task",
             "schedule": 60.0 * 60.0 * 6.0,  # Every 6 hours
+        },
+        "daily-marketing-maintenance": {
+            "task": "app.tasks.marketing_tasks.daily_marketing_maintenance",
+            "schedule": 60.0 * 60.0 * 24.0,  # Daily at 4 AM
+            "options": {"eta": "04:00"}
+        },
+        "hourly-campaign-monitoring": {
+            "task": "app.tasks.marketing_tasks.hourly_campaign_monitoring",
+            "schedule": 60.0 * 60.0,  # Hourly
         },
     },
 )
@@ -229,6 +243,28 @@ celery_app.conf.task_annotations = {
         "rate_limit": "1/h",
         "time_limit": 300,  # 5 minutes
         "soft_time_limit": 240,  # 4 minutes
+    },
+    "app.tasks.marketing_tasks.process_marketing_campaign": {
+        "rate_limit": "10/m",
+        "time_limit": 600,  # 10 minutes
+        "soft_time_limit": 540,  # 9 minutes
+        "retry_kwargs": {"max_retries": 3, "countdown": 60},
+    },
+    "app.tasks.marketing_tasks.send_bulk_sms": {
+        "rate_limit": "20/m",
+        "time_limit": 300,  # 5 minutes
+        "soft_time_limit": 240,  # 4 minutes
+        "retry_kwargs": {"max_retries": 3, "countdown": 60},
+    },
+    "app.tasks.marketing_tasks.refresh_dynamic_segments": {
+        "rate_limit": "1/h",
+        "time_limit": 300,  # 5 minutes
+        "soft_time_limit": 240,  # 4 minutes
+    },
+    "app.tasks.marketing_tasks.process_scheduled_campaigns": {
+        "rate_limit": "12/h",
+        "time_limit": 180,  # 3 minutes
+        "soft_time_limit": 150,  # 2.5 minutes
     },
 }
 
