@@ -79,7 +79,8 @@ def clean_database():
             'payment_matching', 'customer_payments', 'supplier_payments', 'supplier_bills',
             'suppliers', 'journal_entry_lines', 'journal_entries', 'accounts', 'payment_methods',
             'transactions', 'backup_logs', 'restore_logs', 'storage_locations',
-            'invoices', 'products', 'product_categories', 'customers', 'users', 'tenants'
+            'installments', 'invoice_items', 'invoices', 'products', 'product_categories', 
+            'customers', 'users', 'tenants'
         ]
         
         # Disable foreign key checks temporarily
