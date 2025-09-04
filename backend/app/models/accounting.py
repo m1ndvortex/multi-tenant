@@ -850,6 +850,602 @@ class PaymentMatching(BaseModel, TenantMixin):
         return f"<PaymentMatching(id={self.id}, type='{self.match_type}', amount={self.matched_amount})>"
 
 
+class BankAccount(BaseModel, TenantMixin):
+    """
+    Bank accounts for reconciliation
+    """
+    __tablename__ = "bank_accounts"
+    
+    # Account Information
+    account_name = Column(
+        String(255), 
+        nullable=False,
+        comment="Bank account name"
+    )
+    
+    account_number = Column(
+        String(50), 
+        nullable=False,
+        comment="Bank account number"
+    )
+    
+    bank_name = Column(
+        String(255), 
+        nullable=False,
+        comment="Bank name"
+    )
+    
+    branch_name = Column(
+        String(255), 
+        nullable=True,
+        comment="Bank branch name"
+    )
+    
+    account_type = Column(
+        String(50), 
+        default="checking",
+        nullable=False,
+        comment="Account type: checking, savings, etc."
+    )
+    
+    # Balance Information
+    current_balance = Column(
+        Numeric(15, 2), 
+        default=0,
+        nullable=False,
+        comment="Current book balance"
+    )
+    
+    bank_balance = Column(
+        Numeric(15, 2), 
+        default=0,
+        nullable=False,
+        comment="Current bank balance from last statement"
+    )
+    
+    unreconciled_difference = Column(
+        Numeric(15, 2), 
+        default=0,
+        nullable=False,
+        comment="Difference between book and bank balance"
+    )
+    
+    # Reconciliation Information
+    last_reconciled_date = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Last reconciliation date"
+    )
+    
+    last_reconciled_balance = Column(
+        Numeric(15, 2), 
+        nullable=True,
+        comment="Balance at last reconciliation"
+    )
+    
+    # Account Settings
+    currency = Column(
+        String(3), 
+        default="IRR",
+        nullable=False,
+        comment="Account currency code"
+    )
+    
+    is_active = Column(
+        Boolean, 
+        default=True,
+        nullable=False,
+        comment="Whether account is active"
+    )
+    
+    # Additional Information
+    description = Column(
+        Text, 
+        nullable=True,
+        comment="Account description"
+    )
+    
+    # Relationships
+    tenant = relationship("Tenant")
+    statements = relationship("BankStatement", back_populates="bank_account", cascade="all, delete-orphan")
+    transactions = relationship("BankTransaction", back_populates="bank_account", cascade="all, delete-orphan")
+    reconciliations = relationship("BankReconciliation", back_populates="bank_account", cascade="all, delete-orphan")
+    
+    def __repr__(self):
+        return f"<BankAccount(id={self.id}, name='{self.account_name}', number='{self.account_number}')>"
+    
+    def update_reconciliation_status(self):
+        """Update reconciliation difference"""
+        self.unreconciled_difference = self.current_balance - self.bank_balance
+
+
+class BankStatement(BaseModel):
+    """
+    Bank statements imported from files
+    """
+    __tablename__ = "bank_statements"
+    
+    bank_account_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("bank_accounts.id"),
+        nullable=False,
+        comment="Bank account ID"
+    )
+    
+    # Statement Information
+    statement_date = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        comment="Statement date"
+    )
+    
+    statement_number = Column(
+        String(100), 
+        nullable=True,
+        comment="Statement number from bank"
+    )
+    
+    opening_balance = Column(
+        Numeric(15, 2), 
+        nullable=False,
+        comment="Opening balance on statement"
+    )
+    
+    closing_balance = Column(
+        Numeric(15, 2), 
+        nullable=False,
+        comment="Closing balance on statement"
+    )
+    
+    # Import Information
+    import_date = Column(
+        DateTime(timezone=True),
+        default=func.now(),
+        nullable=False,
+        comment="Date when statement was imported"
+    )
+    
+    imported_by = Column(
+        UUID(as_uuid=True), 
+        nullable=True,
+        comment="User who imported the statement"
+    )
+    
+    file_name = Column(
+        String(255), 
+        nullable=True,
+        comment="Original file name"
+    )
+    
+    file_format = Column(
+        String(20), 
+        nullable=True,
+        comment="File format: csv, excel, etc."
+    )
+    
+    # Processing Status
+    total_transactions = Column(
+        Integer, 
+        default=0,
+        nullable=False,
+        comment="Total number of transactions in statement"
+    )
+    
+    processed_transactions = Column(
+        Integer, 
+        default=0,
+        nullable=False,
+        comment="Number of successfully processed transactions"
+    )
+    
+    failed_transactions = Column(
+        Integer, 
+        default=0,
+        nullable=False,
+        comment="Number of failed transactions"
+    )
+    
+    processing_errors = Column(
+        Text, 
+        nullable=True,
+        comment="Processing error details"
+    )
+    
+    # Relationships
+    bank_account = relationship("BankAccount", back_populates="statements")
+    transactions = relationship("BankTransaction", back_populates="statement", cascade="all, delete-orphan")
+    
+    def __repr__(self):
+        return f"<BankStatement(id={self.id}, date='{self.statement_date}', balance={self.closing_balance})>"
+
+
+class BankTransaction(BaseModel, TenantMixin):
+    """
+    Individual bank transactions from statements
+    """
+    __tablename__ = "bank_transactions"
+    
+    bank_account_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("bank_accounts.id"),
+        nullable=False,
+        comment="Bank account ID"
+    )
+    
+    statement_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("bank_statements.id"),
+        nullable=True,
+        comment="Bank statement ID (if imported from statement)"
+    )
+    
+    # Transaction Information
+    transaction_date = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        comment="Transaction date"
+    )
+    
+    value_date = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Value date (when funds are available)"
+    )
+    
+    description = Column(
+        Text, 
+        nullable=False,
+        comment="Transaction description from bank"
+    )
+    
+    reference_number = Column(
+        String(100), 
+        nullable=True,
+        comment="Bank reference number"
+    )
+    
+    # Financial Information
+    debit_amount = Column(
+        Numeric(15, 2), 
+        default=0,
+        nullable=False,
+        comment="Debit amount (money out)"
+    )
+    
+    credit_amount = Column(
+        Numeric(15, 2), 
+        default=0,
+        nullable=False,
+        comment="Credit amount (money in)"
+    )
+    
+    balance_after = Column(
+        Numeric(15, 2), 
+        nullable=True,
+        comment="Account balance after transaction"
+    )
+    
+    # Matching Information
+    is_matched = Column(
+        Boolean, 
+        default=False,
+        nullable=False,
+        comment="Whether transaction is matched with book transaction"
+    )
+    
+    matched_transaction_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("transactions.id"),
+        nullable=True,
+        comment="Matched book transaction ID"
+    )
+    
+    matched_date = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Date when matching was performed"
+    )
+    
+    matched_by = Column(
+        UUID(as_uuid=True), 
+        nullable=True,
+        comment="User who performed the matching"
+    )
+    
+    match_confidence = Column(
+        Numeric(3, 2), 
+        nullable=True,
+        comment="Matching confidence score (0.0 to 1.0)"
+    )
+    
+    # Additional Information
+    transaction_type = Column(
+        String(50), 
+        nullable=True,
+        comment="Transaction type from bank"
+    )
+    
+    counterparty = Column(
+        String(255), 
+        nullable=True,
+        comment="Counterparty name"
+    )
+    
+    notes = Column(
+        Text, 
+        nullable=True,
+        comment="Manual notes"
+    )
+    
+    # Relationships
+    tenant = relationship("Tenant")
+    bank_account = relationship("BankAccount", back_populates="transactions")
+    statement = relationship("BankStatement", back_populates="transactions")
+    matched_transaction = relationship("Transaction")
+    
+    def __repr__(self):
+        return f"<BankTransaction(id={self.id}, date='{self.transaction_date}', amount={self.debit_amount or self.credit_amount})>"
+    
+    @property
+    def amount(self) -> Decimal:
+        """Get transaction amount (positive for credit, negative for debit)"""
+        return self.credit_amount - self.debit_amount
+    
+    @property
+    def absolute_amount(self) -> Decimal:
+        """Get absolute transaction amount"""
+        return self.credit_amount or self.debit_amount
+
+
+class BankReconciliation(BaseModel, TenantMixin):
+    """
+    Bank reconciliation records
+    """
+    __tablename__ = "bank_reconciliations"
+    
+    bank_account_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("bank_accounts.id"),
+        nullable=False,
+        comment="Bank account ID"
+    )
+    
+    # Reconciliation Information
+    reconciliation_date = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        comment="Reconciliation date"
+    )
+    
+    statement_date = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        comment="Bank statement date being reconciled"
+    )
+    
+    # Balance Information
+    book_balance = Column(
+        Numeric(15, 2), 
+        nullable=False,
+        comment="Book balance at reconciliation date"
+    )
+    
+    bank_balance = Column(
+        Numeric(15, 2), 
+        nullable=False,
+        comment="Bank balance from statement"
+    )
+    
+    # Adjustments
+    outstanding_deposits = Column(
+        Numeric(15, 2), 
+        default=0,
+        nullable=False,
+        comment="Outstanding deposits (in transit)"
+    )
+    
+    outstanding_checks = Column(
+        Numeric(15, 2), 
+        default=0,
+        nullable=False,
+        comment="Outstanding checks (not yet cleared)"
+    )
+    
+    bank_charges = Column(
+        Numeric(15, 2), 
+        default=0,
+        nullable=False,
+        comment="Bank charges not yet recorded in books"
+    )
+    
+    interest_earned = Column(
+        Numeric(15, 2), 
+        default=0,
+        nullable=False,
+        comment="Interest earned not yet recorded in books"
+    )
+    
+    other_adjustments = Column(
+        Numeric(15, 2), 
+        default=0,
+        nullable=False,
+        comment="Other adjustments"
+    )
+    
+    # Calculated Balances
+    adjusted_book_balance = Column(
+        Numeric(15, 2), 
+        nullable=False,
+        comment="Book balance after adjustments"
+    )
+    
+    adjusted_bank_balance = Column(
+        Numeric(15, 2), 
+        nullable=False,
+        comment="Bank balance after adjustments"
+    )
+    
+    # Status
+    is_balanced = Column(
+        Boolean, 
+        default=False,
+        nullable=False,
+        comment="Whether reconciliation is balanced"
+    )
+    
+    is_finalized = Column(
+        Boolean, 
+        default=False,
+        nullable=False,
+        comment="Whether reconciliation is finalized"
+    )
+    
+    finalized_date = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Date when reconciliation was finalized"
+    )
+    
+    finalized_by = Column(
+        UUID(as_uuid=True), 
+        nullable=True,
+        comment="User who finalized the reconciliation"
+    )
+    
+    # Additional Information
+    notes = Column(
+        Text, 
+        nullable=True,
+        comment="Reconciliation notes"
+    )
+    
+    created_by = Column(
+        UUID(as_uuid=True), 
+        nullable=True,
+        comment="User who created the reconciliation"
+    )
+    
+    # Relationships
+    tenant = relationship("Tenant")
+    bank_account = relationship("BankAccount", back_populates="reconciliations")
+    items = relationship("BankReconciliationItem", back_populates="reconciliation", cascade="all, delete-orphan")
+    
+    def __repr__(self):
+        return f"<BankReconciliation(id={self.id}, date='{self.reconciliation_date}', balanced={self.is_balanced})>"
+    
+    def calculate_adjusted_balances(self):
+        """Calculate adjusted balances"""
+        self.adjusted_book_balance = (
+            self.book_balance + 
+            self.interest_earned - 
+            self.bank_charges + 
+            self.other_adjustments
+        )
+        
+        self.adjusted_bank_balance = (
+            self.bank_balance + 
+            self.outstanding_deposits - 
+            self.outstanding_checks
+        )
+        
+        self.is_balanced = abs(self.adjusted_book_balance - self.adjusted_bank_balance) < Decimal('0.01')
+    
+    def finalize(self, user_id: UUID = None):
+        """Finalize the reconciliation"""
+        if not self.is_balanced:
+            raise ValueError("Cannot finalize unbalanced reconciliation")
+        
+        self.is_finalized = True
+        self.finalized_date = datetime.utcnow()
+        self.finalized_by = user_id
+        
+        # Update bank account reconciliation info
+        self.bank_account.last_reconciled_date = self.reconciliation_date
+        self.bank_account.last_reconciled_balance = self.adjusted_book_balance
+
+
+class BankReconciliationItem(BaseModel):
+    """
+    Individual items in bank reconciliation
+    """
+    __tablename__ = "bank_reconciliation_items"
+    
+    reconciliation_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("bank_reconciliations.id"),
+        nullable=False,
+        comment="Bank reconciliation ID"
+    )
+    
+    # Item Information
+    item_type = Column(
+        String(50), 
+        nullable=False,
+        comment="Type: outstanding_deposit, outstanding_check, bank_charge, interest, adjustment"
+    )
+    
+    description = Column(
+        Text, 
+        nullable=False,
+        comment="Item description"
+    )
+    
+    amount = Column(
+        Numeric(15, 2), 
+        nullable=False,
+        comment="Item amount"
+    )
+    
+    # Reference Information
+    reference_number = Column(
+        String(100), 
+        nullable=True,
+        comment="Check number, deposit slip, etc."
+    )
+    
+    reference_date = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Date of referenced transaction"
+    )
+    
+    transaction_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("transactions.id"),
+        nullable=True,
+        comment="Related book transaction ID"
+    )
+    
+    bank_transaction_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("bank_transactions.id"),
+        nullable=True,
+        comment="Related bank transaction ID"
+    )
+    
+    # Status
+    is_cleared = Column(
+        Boolean, 
+        default=False,
+        nullable=False,
+        comment="Whether item has cleared the bank"
+    )
+    
+    cleared_date = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Date when item cleared"
+    )
+    
+    # Relationships
+    reconciliation = relationship("BankReconciliation", back_populates="items")
+    transaction = relationship("Transaction")
+    bank_transaction = relationship("BankTransaction")
+    
+    def __repr__(self):
+        return f"<BankReconciliationItem(id={self.id}, type='{self.item_type}', amount={self.amount})>"
+
+
 # Additional indexes for new models
 Index('idx_supplier_bill_tenant_number', SupplierBill.tenant_id, SupplierBill.bill_number, unique=True)
 Index('idx_supplier_bill_supplier', SupplierBill.supplier_id)
@@ -870,3 +1466,23 @@ Index('idx_payment_matching_tenant_type', PaymentMatching.tenant_id, PaymentMatc
 Index('idx_payment_matching_customer_payment', PaymentMatching.customer_payment_id)
 Index('idx_payment_matching_supplier_payment', PaymentMatching.supplier_payment_id)
 Index('idx_payment_matching_date', PaymentMatching.match_date)
+
+# Bank reconciliation indexes
+Index('idx_bank_account_tenant_number', BankAccount.tenant_id, BankAccount.account_number, unique=True)
+Index('idx_bank_account_tenant_active', BankAccount.tenant_id, BankAccount.is_active)
+
+Index('idx_bank_statement_account', BankStatement.bank_account_id)
+Index('idx_bank_statement_date', BankStatement.statement_date)
+
+Index('idx_bank_transaction_tenant_account', BankTransaction.tenant_id, BankTransaction.bank_account_id)
+Index('idx_bank_transaction_date', BankTransaction.transaction_date)
+Index('idx_bank_transaction_matched', BankTransaction.is_matched)
+Index('idx_bank_transaction_statement', BankTransaction.statement_id)
+
+Index('idx_bank_reconciliation_tenant_account', BankReconciliation.tenant_id, BankReconciliation.bank_account_id)
+Index('idx_bank_reconciliation_date', BankReconciliation.reconciliation_date)
+Index('idx_bank_reconciliation_finalized', BankReconciliation.is_finalized)
+
+Index('idx_bank_reconciliation_item_reconciliation', BankReconciliationItem.reconciliation_id)
+Index('idx_bank_reconciliation_item_type', BankReconciliationItem.item_type)
+Index('idx_bank_reconciliation_item_cleared', BankReconciliationItem.is_cleared)

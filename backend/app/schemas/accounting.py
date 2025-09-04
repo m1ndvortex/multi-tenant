@@ -9,6 +9,17 @@ from datetime import datetime
 from uuid import UUID
 from enum import Enum
 
+# Import bank reconciliation schemas
+from .bank_reconciliation import (
+    BankAccountBase, BankAccountCreate, BankAccountUpdate, BankAccountResponse,
+    BankStatementImportRequest, BankStatementImportResponse, BankStatementResponse,
+    BankTransactionBase, BankTransactionCreate, BankTransactionUpdate, BankTransactionResponse,
+    BankTransactionMatch, TransactionMatchSuggestion, TransactionMatchingFilter,
+    TransactionMatchingResponse, BankReconciliationCreate, BankReconciliationUpdate,
+    BankReconciliationResponse, ReconciliationSummary, ReconciliationReport,
+    AutoMatchResult
+)
+
 
 class AccountTypeEnum(str, Enum):
     """Account type enumeration"""
