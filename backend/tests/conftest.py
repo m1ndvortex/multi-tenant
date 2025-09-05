@@ -160,16 +160,58 @@ def test_customer(db_session, test_tenant):
 
 
 @pytest.fixture
-def auth_headers(test_tenant):
+def test_user(db_session, test_tenant):
+    """Create a test user"""
+    from app.models.user import User, UserRole, UserStatus
+    from app.core.auth import get_password_hash
+    
+    user = User(
+        tenant_id=test_tenant.id,
+        email="test@example.com",
+        password_hash=get_password_hash("testpassword"),
+        full_name="Test User",
+        role=UserRole.ADMIN,
+        status=UserStatus.ACTIVE,
+        is_active=True
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
+
+
+@pytest.fixture
+def auth_headers(test_user):
     """Create authentication headers for testing"""
-    from app.core.security import create_access_token
+    from app.core.auth import create_access_token
     from datetime import timedelta
     
     # Create a mock user token
     token_data = {
-        "sub": "test@example.com",
-        "tenant_id": str(test_tenant.id),
-        "role": "admin"
+        "sub": test_user.email,
+        "user_id": str(test_user.id),
+        "tenant_id": str(test_user.tenant_id),
+        "role": test_user.role.value
+    }
+    token = create_access_token(
+        data=token_data,
+        expires_delta=timedelta(hours=1)
+    )
+    
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+def super_admin_headers():
+    """Create super admin authentication headers for testing"""
+    from app.core.auth import create_access_token
+    from datetime import timedelta
+    
+    # Create a mock super admin token
+    token_data = {
+        "sub": "admin@hesaabplus.com",
+        "user_id": "super-admin-id",
+        "role": "super_admin"
     }
     token = create_access_token(
         data=token_data,

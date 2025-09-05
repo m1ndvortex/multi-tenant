@@ -17,7 +17,11 @@ from .accounting import (
     SupplierBill, SupplierPayment, CustomerPayment, PaymentMatching
 )
 from .notification import NotificationTemplate, NotificationLog, NotificationStatus, NotificationQueue
-from .backup import BackupLog, BackupStatus, BackupType, RestoreLog, StorageLocation
+from .backup import (
+    BackupLog, BackupStatus, BackupType, RestoreLog, StorageLocation, 
+    CustomerBackupLog, DataExportLog, ExportSchedule, ExportFormat, 
+    ExportType, ExportStatus
+)
 from .gold_price import GoldPrice, GoldPriceHistory
 from .invoice_access_log import InvoiceAccessLog
 from .marketing import (
@@ -66,6 +70,12 @@ __all__ = [
     "BackupType",
     "RestoreLog",
     "StorageLocation",
+    "CustomerBackupLog",
+    "DataExportLog",
+    "ExportSchedule",
+    "ExportFormat",
+    "ExportType",
+    "ExportStatus",
     "GoldPrice",
     "GoldPriceHistory",
     "InvoiceAccessLog",

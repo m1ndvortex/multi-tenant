@@ -601,3 +601,397 @@ Index('idx_customer_backup_status', CustomerBackupLog.status)
 Index('idx_customer_backup_started_at', CustomerBackupLog.started_at)
 Index('idx_customer_backup_download_token', CustomerBackupLog.download_token)
 Index('idx_customer_backup_expires_at', CustomerBackupLog.download_expires_at)
+
+
+class ExportFormat(enum.Enum):
+    """Export format enumeration"""
+    CSV = "csv"
+    JSON = "json"
+
+
+class ExportType(enum.Enum):
+    """Export type enumeration"""
+    MANUAL = "manual"
+    SCHEDULED = "scheduled"
+    AUTOMATED = "automated"
+
+
+class ExportStatus(enum.Enum):
+    """Export status enumeration"""
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class DataExportLog(BaseModel):
+    """
+    Data export operation log for CSV/JSON exports
+    """
+    __tablename__ = "data_export_logs"
+    
+    # Tenant Information
+    tenant_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("tenants.id"),
+        nullable=False,
+        comment="Tenant ID"
+    )
+    
+    # User Information
+    initiated_by = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("users.id"),
+        nullable=False,
+        comment="User who initiated the export"
+    )
+    
+    # Task Information
+    task_id = Column(
+        String(255), 
+        nullable=True,
+        comment="Celery task ID for tracking export progress"
+    )
+    
+    # Export Details
+    export_name = Column(
+        String(255), 
+        nullable=False,
+        comment="Export file name"
+    )
+    
+    export_format = Column(
+        Enum(ExportFormat), 
+        nullable=False,
+        comment="Export format (CSV or JSON)"
+    )
+    
+    export_type = Column(
+        Enum(ExportType), 
+        nullable=False,
+        comment="Export type (manual, scheduled, automated)"
+    )
+    
+    status = Column(
+        Enum(ExportStatus), 
+        default=ExportStatus.PENDING,
+        nullable=False,
+        comment="Export status"
+    )
+    
+    # Export Configuration
+    exported_tables = Column(
+        JSONB, 
+        nullable=True,
+        comment="List of tables included in export"
+    )
+    
+    total_records = Column(
+        Integer, 
+        default=0,
+        nullable=False,
+        comment="Total number of records exported"
+    )
+    
+    # File Information
+    local_file_path = Column(
+        String(500), 
+        nullable=True,
+        comment="Local temporary file path"
+    )
+    
+    file_size = Column(
+        Numeric(15, 0), 
+        nullable=True,
+        comment="Export file size in bytes"
+    )
+    
+    compressed_size = Column(
+        Numeric(15, 0), 
+        nullable=True,
+        comment="Compressed file size in bytes"
+    )
+    
+    checksum = Column(
+        String(255), 
+        nullable=True,
+        comment="File checksum for integrity verification"
+    )
+    
+    # Download Information
+    download_token = Column(
+        String(255), 
+        nullable=True,
+        unique=True,
+        comment="Secure download token"
+    )
+    
+    download_expires_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Download link expiration time"
+    )
+    
+    downloaded_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="When the export was downloaded"
+    )
+    
+    # Timing Information
+    started_at = Column(
+        DateTime(timezone=True),
+        default=func.now(),
+        nullable=False,
+        comment="Export start time"
+    )
+    
+    completed_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Export completion time"
+    )
+    
+    duration_seconds = Column(
+        Integer, 
+        nullable=True,
+        comment="Export duration in seconds"
+    )
+    
+    # Error Information
+    error_message = Column(
+        Text, 
+        nullable=True,
+        comment="Error message if export failed"
+    )
+    
+    # Metadata
+    export_metadata = Column(
+        JSONB, 
+        nullable=True,
+        comment="Additional export metadata"
+    )
+    
+    # Relationships
+    tenant = relationship("Tenant")
+    user = relationship("User")
+    
+    def __repr__(self):
+        return f"<DataExportLog(id={self.id}, tenant_id={self.tenant_id}, format='{self.export_format.value}', status='{self.status.value}')>"
+    
+    def start_export(self):
+        """Mark export as started"""
+        self.status = ExportStatus.IN_PROGRESS
+        self.started_at = datetime.now(timezone.utc)
+    
+    def complete_export(self, file_size: int = None, compressed_size: int = None, 
+                       checksum: str = None, download_token: str = None, 
+                       download_expires_at: datetime = None, exported_tables: list = None,
+                       total_records: int = None):
+        """Mark export as completed"""
+        self.status = ExportStatus.COMPLETED
+        self.completed_at = datetime.now(timezone.utc)
+        
+        if self.started_at:
+            delta = self.completed_at - self.started_at
+            self.duration_seconds = int(delta.total_seconds())
+        
+        if file_size:
+            self.file_size = file_size
+        
+        if compressed_size:
+            self.compressed_size = compressed_size
+        
+        if checksum:
+            self.checksum = checksum
+        
+        if download_token:
+            self.download_token = download_token
+        
+        if download_expires_at:
+            self.download_expires_at = download_expires_at
+        
+        if exported_tables:
+            self.exported_tables = exported_tables
+        
+        if total_records is not None:
+            self.total_records = total_records
+    
+    def fail_export(self, error_message: str):
+        """Mark export as failed"""
+        self.status = ExportStatus.FAILED
+        self.error_message = error_message
+        self.completed_at = datetime.now(timezone.utc)
+        
+        if self.started_at:
+            delta = self.completed_at - self.started_at
+            self.duration_seconds = int(delta.total_seconds())
+    
+    def mark_downloaded(self):
+        """Mark export as downloaded"""
+        self.downloaded_at = datetime.now(timezone.utc)
+    
+    @property
+    def is_download_expired(self) -> bool:
+        """Check if download link has expired"""
+        if not self.download_expires_at:
+            return True
+        return datetime.now(timezone.utc) > self.download_expires_at
+    
+    @property
+    def is_successful(self) -> bool:
+        """Check if export was successful"""
+        return self.status == ExportStatus.COMPLETED
+    
+    @property
+    def compression_ratio(self) -> float:
+        """Calculate compression ratio"""
+        if self.file_size and self.compressed_size:
+            return (1 - (self.compressed_size / self.file_size)) * 100
+        return 0.0
+
+
+class ExportSchedule(BaseModel):
+    """
+    Scheduled export configuration
+    """
+    __tablename__ = "export_schedules"
+    
+    # Tenant Information
+    tenant_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("tenants.id"),
+        nullable=False,
+        comment="Tenant ID"
+    )
+    
+    # Schedule Configuration
+    name = Column(
+        String(255), 
+        nullable=False,
+        comment="Schedule name"
+    )
+    
+    description = Column(
+        Text, 
+        nullable=True,
+        comment="Schedule description"
+    )
+    
+    export_format = Column(
+        Enum(ExportFormat), 
+        nullable=False,
+        comment="Export format (CSV or JSON)"
+    )
+    
+    # Tables to Export
+    tables_to_export = Column(
+        JSONB, 
+        nullable=False,
+        comment="List of tables to include in export"
+    )
+    
+    # Schedule Configuration
+    cron_expression = Column(
+        String(100), 
+        nullable=False,
+        comment="Cron expression for schedule"
+    )
+    
+    timezone = Column(
+        String(50), 
+        default="UTC",
+        nullable=False,
+        comment="Timezone for schedule"
+    )
+    
+    # Status
+    is_active = Column(
+        Boolean, 
+        default=True,
+        nullable=False,
+        comment="Whether schedule is active"
+    )
+    
+    # Execution Information
+    last_run_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Last execution time"
+    )
+    
+    next_run_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Next scheduled execution time"
+    )
+    
+    last_export_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("data_export_logs.id"),
+        nullable=True,
+        comment="Last export log ID"
+    )
+    
+    # Statistics
+    total_runs = Column(
+        Integer, 
+        default=0,
+        nullable=False,
+        comment="Total number of executions"
+    )
+    
+    successful_runs = Column(
+        Integer, 
+        default=0,
+        nullable=False,
+        comment="Number of successful executions"
+    )
+    
+    failed_runs = Column(
+        Integer, 
+        default=0,
+        nullable=False,
+        comment="Number of failed executions"
+    )
+    
+    # Relationships
+    tenant = relationship("Tenant")
+    last_export = relationship("DataExportLog")
+    
+    def __repr__(self):
+        return f"<ExportSchedule(id={self.id}, tenant_id={self.tenant_id}, name='{self.name}', active={self.is_active})>"
+    
+    def update_execution_stats(self, success: bool):
+        """Update execution statistics"""
+        self.total_runs += 1
+        self.last_run_at = datetime.now(timezone.utc)
+        
+        if success:
+            self.successful_runs += 1
+        else:
+            self.failed_runs += 1
+    
+    @property
+    def success_rate(self) -> float:
+        """Calculate success rate percentage"""
+        if self.total_runs == 0:
+            return 0.0
+        return (self.successful_runs / self.total_runs) * 100
+
+
+# Data export indexes
+Index('idx_data_export_tenant', DataExportLog.tenant_id)
+Index('idx_data_export_user', DataExportLog.initiated_by)
+Index('idx_data_export_status', DataExportLog.status)
+Index('idx_data_export_format', DataExportLog.export_format)
+Index('idx_data_export_type', DataExportLog.export_type)
+Index('idx_data_export_started_at', DataExportLog.started_at)
+Index('idx_data_export_download_token', DataExportLog.download_token)
+Index('idx_data_export_expires_at', DataExportLog.download_expires_at)
+
+# Export schedule indexes
+Index('idx_export_schedule_tenant', ExportSchedule.tenant_id)
+Index('idx_export_schedule_active', ExportSchedule.is_active)
+Index('idx_export_schedule_next_run', ExportSchedule.next_run_at)

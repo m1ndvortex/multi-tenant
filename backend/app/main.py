@@ -43,6 +43,7 @@ from app.api.receivables_payables import router as receivables_payables_router
 from app.api.reports import router as reports_router
 from app.api.business_intelligence import router as business_intelligence_router
 from app.api.notifications import router as notifications_router
+from app.api.data_export import router as data_export_router
 # from app.api.marketing import router as marketing_router
 
 # Configure logging
@@ -201,6 +202,7 @@ app.include_router(receivables_payables_router)
 app.include_router(reports_router)
 app.include_router(business_intelligence_router)
 app.include_router(notifications_router, prefix="/api/notifications")
+app.include_router(data_export_router)
 # app.include_router(marketing_router, prefix="/api")
 
 # Root endpoint
