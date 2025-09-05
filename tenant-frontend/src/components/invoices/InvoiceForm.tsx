@@ -488,8 +488,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
 
                     {/* Description */}
                     <div className="space-y-2">
-                      <Label>توضیحات *</Label>
+                      <Label htmlFor={`description-${index}`}>توضیحات *</Label>
                       <Input
+                        id={`description-${index}`}
                         {...register(`items.${index}.description`)}
                         placeholder="توضیحات آیتم"
                       />
@@ -502,8 +503,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
 
                     {/* Quantity */}
                     <div className="space-y-2">
-                      <Label>مقدار *</Label>
+                      <Label htmlFor={`quantity-${index}`}>مقدار *</Label>
                       <Input
+                        id={`quantity-${index}`}
                         type="number"
                         step="0.001"
                         {...register(`items.${index}.quantity`, { valueAsNumber: true })}
@@ -518,8 +520,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
 
                     {/* Unit Price */}
                     <div className="space-y-2">
-                      <Label>قیمت واحد *</Label>
+                      <Label htmlFor={`unit-price-${index}`}>قیمت واحد *</Label>
                       <Input
+                        id={`unit-price-${index}`}
                         type="number"
                         {...register(`items.${index}.unit_price`, { valueAsNumber: true })}
                         placeholder="قیمت واحد (ریال)"
@@ -558,8 +561,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
                     {watchedInvoiceType === 'GOLD' && (
                       <>
                         <div className="space-y-2">
-                          <Label>وزن (گرم)</Label>
+                          <Label htmlFor={`weight-${index}`}>وزن (گرم)</Label>
                           <Input
+                            id={`weight-${index}`}
                             type="number"
                             step="0.001"
                             {...register(`items.${index}.weight`, { valueAsNumber: true })}
@@ -568,8 +572,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
                         </div>
 
                         <div className="space-y-2">
-                          <Label>اجرت (ریال)</Label>
+                          <Label htmlFor={`labor-fee-${index}`}>اجرت (ریال)</Label>
                           <Input
+                            id={`labor-fee-${index}`}
                             type="number"
                             {...register(`items.${index}.labor_fee`, { valueAsNumber: true })}
                             placeholder="اجرت"
@@ -577,8 +582,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
                         </div>
 
                         <div className="space-y-2">
-                          <Label>سود (ریال)</Label>
+                          <Label htmlFor={`profit-${index}`}>سود (ریال)</Label>
                           <Input
+                            id={`profit-${index}`}
                             type="number"
                             {...register(`items.${index}.profit`, { valueAsNumber: true })}
                             placeholder="سود"
@@ -586,8 +592,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
                         </div>
 
                         <div className="space-y-2">
-                          <Label>مالیات (ریال)</Label>
+                          <Label htmlFor={`vat-amount-${index}`}>مالیات (ریال)</Label>
                           <Input
+                            id={`vat-amount-${index}`}
                             type="number"
                             {...register(`items.${index}.vat_amount`, { valueAsNumber: true })}
                             placeholder="مالیات"

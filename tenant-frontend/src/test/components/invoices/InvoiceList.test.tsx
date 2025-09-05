@@ -279,10 +279,10 @@ describe('InvoiceList', () => {
       const user = userEvent.setup();
       renderInvoiceList();
       
-      const typeSelect = screen.getByDisplayValue('همه انواع');
+      const typeSelect = screen.getByTestId('invoice-type-select');
       await user.click(typeSelect);
       
-      const goldOption = screen.getByText('طلا');
+      const goldOption = screen.getByRole('option', { name: 'طلا' });
       await user.click(goldOption);
       
       expect(mockHandlers.onSearch).toHaveBeenCalledWith(
@@ -297,10 +297,10 @@ describe('InvoiceList', () => {
       const user = userEvent.setup();
       renderInvoiceList();
       
-      const statusSelect = screen.getByDisplayValue('همه وضعیت‌ها');
+      const statusSelect = screen.getByTestId('status-select');
       await user.click(statusSelect);
       
-      const paidOption = screen.getByText('پرداخت شده');
+      const paidOption = screen.getByRole('option', { name: 'پرداخت شده' });
       await user.click(paidOption);
       
       expect(mockHandlers.onSearch).toHaveBeenCalledWith(
@@ -332,7 +332,7 @@ describe('InvoiceList', () => {
       expect(screen.getAllByText('مشتری')).toHaveLength(2); // 1 in table header + 1 in filter label
       expect(screen.getByText('نوع')).toBeInTheDocument();
       expect(screen.getByText('مبلغ')).toBeInTheDocument();
-      expect(screen.getByText('وضعیت')).toBeInTheDocument();
+      expect(screen.getAllByText('وضعیت')).toHaveLength(2); // 1 in table header + 1 in filter label
       expect(screen.getByText('تاریخ')).toBeInTheDocument();
       expect(screen.getByText('عملیات')).toBeInTheDocument();
     });
@@ -358,15 +358,15 @@ describe('InvoiceList', () => {
       renderInvoiceList();
       
       expect(screen.getAllByText('عمومی')).toHaveLength(3); // 2 in table + 1 in filter dropdown
-      expect(screen.getByText('طلا')).toBeInTheDocument();
+      expect(screen.getAllByText('طلا')).toHaveLength(2); // 1 in table + 1 in filter dropdown
     });
 
     it('should show correct status badges', () => {
       renderInvoiceList();
       
       expect(screen.getAllByText('ارسال شده')).toHaveLength(2); // 1 in table + 1 in filter dropdown
-      expect(screen.getByText('پرداخت شده')).toBeInTheDocument();
-      expect(screen.getByText('سررسید گذشته')).toBeInTheDocument();
+      expect(screen.getAllByText('پرداخت شده')).toHaveLength(2); // 1 in table + 1 in filter dropdown
+      expect(screen.getAllByText('سررسید گذشته')).toHaveLength(2); // 1 in table + 1 in filter dropdown
     });
 
     it('should show gold weight for gold invoices', () => {

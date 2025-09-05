@@ -153,14 +153,14 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
             <div className="space-y-2">
               <Label>نوع فاکتور</Label>
               <Select
-                value={searchParams.invoice_type || ''}
-                onValueChange={(value) => handleSearchChange('invoice_type', value || undefined)}
+                value={searchParams.invoice_type || 'all'}
+                onValueChange={(value) => handleSearchChange('invoice_type', value === 'all' ? undefined : value)}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="همه انواع" />
+                <SelectTrigger data-testid="invoice-type-select">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">همه انواع</SelectItem>
+                  <SelectItem value="all">همه انواع</SelectItem>
                   <SelectItem value="GENERAL">عمومی</SelectItem>
                   <SelectItem value="GOLD">طلا</SelectItem>
                 </SelectContent>
@@ -170,14 +170,14 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
             <div className="space-y-2">
               <Label>وضعیت</Label>
               <Select
-                value={searchParams.status || ''}
-                onValueChange={(value) => handleSearchChange('status', value || undefined)}
+                value={searchParams.status || 'all'}
+                onValueChange={(value) => handleSearchChange('status', value === 'all' ? undefined : value)}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="همه وضعیت‌ها" />
+                <SelectTrigger data-testid="status-select">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">همه وضعیت‌ها</SelectItem>
+                  <SelectItem value="all">همه وضعیت‌ها</SelectItem>
                   <SelectItem value="draft">پیش‌نویس</SelectItem>
                   <SelectItem value="sent">ارسال شده</SelectItem>
                   <SelectItem value="paid">پرداخت شده</SelectItem>
@@ -190,14 +190,14 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
             <div className="space-y-2">
               <Label>مشتری</Label>
               <Select
-                value={searchParams.customer_id || ''}
-                onValueChange={(value) => handleSearchChange('customer_id', value || undefined)}
+                value={searchParams.customer_id || 'all'}
+                onValueChange={(value) => handleSearchChange('customer_id', value === 'all' ? undefined : value)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="همه مشتریان" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">همه مشتریان</SelectItem>
+                  <SelectItem value="all">همه مشتریان</SelectItem>
                   {customers.map((customer) => (
                     <SelectItem key={customer.id} value={customer.id}>
                       {customer.name}
