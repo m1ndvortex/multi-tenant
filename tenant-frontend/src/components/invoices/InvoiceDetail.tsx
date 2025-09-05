@@ -23,10 +23,12 @@ import {
   Wrench,
   TrendingUp,
   Receipt,
-  CreditCard
+  CreditCard,
+  Share2
 } from 'lucide-react';
 import { Invoice } from '@/services/invoiceService';
 import InstallmentManagement from '@/components/installments/InstallmentManagement';
+import { InvoiceSharing } from './InvoiceSharing';
 
 interface InvoiceDetailProps {
   invoice: Invoice;
@@ -36,6 +38,7 @@ interface InvoiceDetailProps {
   onGenerateQR: () => void;
   onPrint: () => void;
   onBack: () => void;
+  onInvoiceUpdate?: (updatedInvoice: Partial<Invoice>) => void;
   isLoading?: boolean;
 }
 
@@ -47,9 +50,11 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
   onGenerateQR,
   onPrint,
   onBack,
+  onInvoiceUpdate,
   isLoading = false,
 }) => {
   const [showInstallments, setShowInstallments] = useState(false);
+  const [showSharing, setShowSharing] = useState(false);
   // Get status badge variant
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -103,6 +108,45 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
         invoice={invoice}
         onBack={() => setShowInstallments(false)}
       />
+    );
+  }
+
+  // Show sharing management if requested
+  if (showSharing) {
+    return (
+      <div className="space-y-6">
+        <Card variant="gradient-green">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-white flex items-center gap-2">
+                <Share2 className="h-6 w-6" />
+                مدیریت اشتراک‌گذاری فاکتور {invoice.invoice_number}
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowSharing(false)}
+                className="text-white hover:bg-white/20"
+              >
+                <ArrowLeft className="h-4 w-4 ml-2" />
+                بازگشت
+              </Button>
+            </div>
+          </CardHeader>
+        </Card>
+        
+        <InvoiceSharing
+          invoiceId={invoice.id}
+          invoiceNumber={invoice.invoice_number}
+          initialIsShareable={invoice.is_shareable}
+          initialQrToken={invoice.qr_code_token}
+          onSharingChange={(isShareable, qrToken) => {
+            if (onInvoiceUpdate) {
+              onInvoiceUpdate({ is_shareable: isShareable, qr_code_token: qrToken });
+            }
+          }}
+        />
+      </div>
     );
   }
 
@@ -172,11 +216,11 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={onGenerateQR}
+                onClick={() => setShowSharing(true)}
                 className="bg-white/10 border-white/20 text-white hover:bg-white/20"
               >
-                <QrCode className="h-4 w-4 ml-2" />
-                QR Code
+                <Share2 className="h-4 w-4 ml-2" />
+                اشتراک‌گذاری
               </Button>
               {(invoice.installment_type === 'GENERAL' || invoice.is_installment) && (
                 <Button
