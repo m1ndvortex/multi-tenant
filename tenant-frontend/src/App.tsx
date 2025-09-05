@@ -14,6 +14,7 @@ import Accounting from '@/pages/Accounting';
 import Reports from '@/pages/Reports';
 import Notifications from '@/pages/Notifications';
 import Settings from '@/pages/Settings';
+import Backup from '@/pages/Backup';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -43,6 +44,7 @@ function App() {
                   <Route path="/accounting/*" element={<Accounting />} />
                   <Route path="/reports" element={<Reports />} />
                   <Route path="/notifications" element={<Notifications />} />
+                  <Route path="/backup" element={<Backup />} />
                   <Route path="/settings/*" element={<Settings />} />
                 </Routes>
               </Layout>
