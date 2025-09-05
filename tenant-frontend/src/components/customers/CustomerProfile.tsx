@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, Edit, Trash2, Phone, Mail, MapPin, Calendar, 
-  CreditCard, AlertTriangle, MessageSquare, Plus, Filter,
+  CreditCard, AlertTriangle, MessageSquare, Plus,
   User, Building, Crown, TrendingUp, DollarSign, Package
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

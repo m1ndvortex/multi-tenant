@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Users, Filter, Send, MessageSquare, Mail, 
+  Users, Send, 
   Target, TrendingUp, Crown, AlertTriangle, Plus, X
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -118,11 +118,15 @@ const CustomerSegmentation: React.FC<CustomerSegmentationProps> = ({ onBack }) =
     try {
       const filters = { ...segment.filters };
       // Convert "all" values to undefined
-      if (filters.status === 'all') filters.status = undefined;
-      if (filters.customer_type === 'all') filters.customer_type = undefined;
+      const { status, customer_type, ...otherFilters } = filters;
+      const cleanFilters = {
+        ...otherFilters,
+        ...(status !== 'all' && { status }),
+        ...(customer_type !== 'all' && { customer_type })
+      };
       
       const response = await customerService.getCustomers({
-        ...filters,
+        ...cleanFilters,
         per_page: 100,
       });
       
@@ -152,11 +156,15 @@ const CustomerSegmentation: React.FC<CustomerSegmentationProps> = ({ onBack }) =
       // Test the filters to get customer count
       const filters = { ...segmentForm.filters };
       // Convert "all" values to undefined
-      if (filters.status === 'all') filters.status = undefined;
-      if (filters.customer_type === 'all') filters.customer_type = undefined;
+      const { status, customer_type, ...otherFilters } = filters;
+      const cleanFilters = {
+        ...otherFilters,
+        ...(status !== 'all' && { status }),
+        ...(customer_type !== 'all' && { customer_type })
+      };
       
       const response = await customerService.getCustomers({
-        ...filters,
+        ...cleanFilters,
         per_page: 100,
       });
 
