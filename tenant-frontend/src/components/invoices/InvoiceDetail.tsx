@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -22,9 +22,11 @@ import {
   Weight,
   Wrench,
   TrendingUp,
-  Receipt
+  Receipt,
+  CreditCard
 } from 'lucide-react';
 import { Invoice } from '@/services/invoiceService';
+import InstallmentManagement from '@/components/installments/InstallmentManagement';
 
 interface InvoiceDetailProps {
   invoice: Invoice;
@@ -47,6 +49,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
   onBack,
   isLoading = false,
 }) => {
+  const [showInstallments, setShowInstallments] = useState(false);
   // Get status badge variant
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -90,6 +93,16 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
           </CardContent>
         </Card>
       </div>
+    );
+  }
+
+  // Show installment management if requested
+  if (showInstallments) {
+    return (
+      <InstallmentManagement
+        invoice={invoice}
+        onBack={() => setShowInstallments(false)}
+      />
     );
   }
 
@@ -165,6 +178,17 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                 <QrCode className="h-4 w-4 ml-2" />
                 QR Code
               </Button>
+              {(invoice.installment_type === 'GENERAL' || invoice.is_installment) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowInstallments(true)}
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                >
+                  <CreditCard className="h-4 w-4 ml-2" />
+                  مدیریت اقساط
+                </Button>
+              )}
             </div>
           </div>
         </CardHeader>
