@@ -14,14 +14,19 @@ import {
   Calculator,
   TrendingUp,
   Users,
-  FileText
+  FileText,
+  Coins
 } from 'lucide-react';
 import { installmentService, InstallmentDetail, OutstandingBalance } from '@/services/installmentService';
 import { Invoice } from '@/services/invoiceService';
 import { useToast } from '@/hooks/use-toast';
 import InstallmentPlanSetup from './InstallmentPlanSetup';
+import GoldInstallmentPlanSetup from './GoldInstallmentPlanSetup';
 import InstallmentOverview from './InstallmentOverview';
+import GoldInstallmentOverview from './GoldInstallmentOverview';
 import PaymentRecording from './PaymentRecording';
+import GoldPaymentRecording from './GoldPaymentRecording';
+import GoldPriceManagement from './GoldPriceManagement';
 import OverdueAlerts from './OverdueAlerts';
 
 interface InstallmentManagementProps {
@@ -36,6 +41,10 @@ const InstallmentManagement: React.FC<InstallmentManagementProps> = ({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('overview');
+  const [currentGoldPrice, setCurrentGoldPrice] = useState<number>(0);
+
+  // Check if this is a gold invoice
+  const isGoldInvoice = invoice.invoice_type === 'GOLD';
 
   // Fetch installments for the invoice
   const { data: installments, isLoading: isLoadingInstallments } = useQuery({
@@ -127,6 +136,22 @@ const InstallmentManagement: React.FC<InstallmentManagementProps> = ({
   const hasInstallments = installments && installments.length > 0;
   const hasOverdueInstallments = installments?.some(inst => inst.is_overdue) || false;
 
+  // Load current gold price for gold invoices
+  React.useEffect(() => {
+    if (isGoldInvoice) {
+      loadCurrentGoldPrice();
+    }
+  }, [isGoldInvoice]);
+
+  const loadCurrentGoldPrice = async () => {
+    try {
+      const response = await installmentService.getCurrentGoldPrice();
+      setCurrentGoldPrice(response.price);
+    } catch (error) {
+      console.error('Failed to load gold price:', error);
+    }
+  };
+
   // Get status badge for installment status
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -155,7 +180,7 @@ const InstallmentManagement: React.FC<InstallmentManagementProps> = ({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <Card variant="gradient-green">
+      <Card variant={isGoldInvoice ? "gradient-purple" : "gradient-green"}>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -168,11 +193,19 @@ const InstallmentManagement: React.FC<InstallmentManagementProps> = ({
               </Button>
               <div>
                 <CardTitle className="text-white flex items-center gap-2">
-                  <CreditCard className="h-6 w-6" />
-                  مدیریت اقساط فاکتور {invoice.invoice_number}
+                  {isGoldInvoice ? <Coins className="h-6 w-6" /> : <CreditCard className="h-6 w-6" />}
+                  مدیریت اقساط {isGoldInvoice ? 'طلا' : ''} فاکتور {invoice.invoice_number}
                 </CardTitle>
                 <p className="text-white/80 mt-1">
-                  مشتری: {invoice.customer_name} | مبلغ کل: {invoice.total_amount.toLocaleString()} ریال
+                  مشتری: {invoice.customer_name} | 
+                  {isGoldInvoice ? (
+                    <>
+                      {' '}وزن کل: {invoice.total_gold_weight?.toFixed(3)} گرم |
+                      {' '}قیمت فروش: {invoice.gold_price_at_creation?.toLocaleString()} ریال/گرم
+                    </>
+                  ) : (
+                    <> مبلغ کل: {invoice.total_amount.toLocaleString()} ریال</>
+                  )}
                 </p>
               </div>
             </div>
@@ -266,25 +299,39 @@ const InstallmentManagement: React.FC<InstallmentManagementProps> = ({
       {/* Main Content */}
       {!hasInstallments ? (
         // Show installment plan setup if no installments exist
-        <InstallmentPlanSetup
-          invoice={invoice}
-          onCreatePlan={(planData) => createPlanMutation.mutate(planData)}
-          isLoading={createPlanMutation.isPending}
-        />
+        isGoldInvoice ? (
+          <GoldInstallmentPlanSetup
+            invoice={invoice}
+            onCreatePlan={(planData) => createPlanMutation.mutate(planData)}
+            isLoading={createPlanMutation.isPending}
+          />
+        ) : (
+          <InstallmentPlanSetup
+            invoice={invoice}
+            onCreatePlan={(planData) => createPlanMutation.mutate(planData)}
+            isLoading={createPlanMutation.isPending}
+          />
+        )
       ) : (
         // Show installment management tabs if installments exist
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <Card variant="filter">
             <CardContent className="pt-6">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className={`grid w-full ${isGoldInvoice ? 'grid-cols-5' : 'grid-cols-4'}`}>
                 <TabsTrigger value="overview" className="flex items-center gap-2">
                   <Calculator className="h-4 w-4" />
                   نمای کلی
                 </TabsTrigger>
                 <TabsTrigger value="payment" className="flex items-center gap-2">
-                  <CreditCard className="h-4 w-4" />
+                  {isGoldInvoice ? <Coins className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
                   ثبت پرداخت
                 </TabsTrigger>
+                {isGoldInvoice && (
+                  <TabsTrigger value="gold-price" className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4" />
+                    قیمت طلا
+                  </TabsTrigger>
+                )}
                 <TabsTrigger value="overdue" className="flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4" />
                   سررسید گذشته
@@ -303,20 +350,45 @@ const InstallmentManagement: React.FC<InstallmentManagementProps> = ({
           </Card>
 
           <TabsContent value="overview">
-            <InstallmentOverview
-              installments={installments || []}
-              outstandingBalance={outstandingBalance}
-              isLoading={isLoadingInstallments || isLoadingBalance}
-            />
+            {isGoldInvoice ? (
+              <GoldInstallmentOverview
+                installments={installments || []}
+                outstandingBalance={outstandingBalance}
+                currentGoldPrice={currentGoldPrice}
+                isLoading={isLoadingInstallments || isLoadingBalance}
+              />
+            ) : (
+              <InstallmentOverview
+                installments={installments || []}
+                outstandingBalance={outstandingBalance}
+                isLoading={isLoadingInstallments || isLoadingBalance}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="payment">
-            <PaymentRecording
-              installments={installments || []}
-              onRecordPayment={(paymentData) => recordPaymentMutation.mutate(paymentData)}
-              isLoading={recordPaymentMutation.isPending}
-            />
+            {isGoldInvoice ? (
+              <GoldPaymentRecording
+                installments={installments || []}
+                onRecordPayment={(paymentData) => recordPaymentMutation.mutate(paymentData)}
+                isLoading={recordPaymentMutation.isPending}
+              />
+            ) : (
+              <PaymentRecording
+                installments={installments || []}
+                onRecordPayment={(paymentData) => recordPaymentMutation.mutate(paymentData)}
+                isLoading={recordPaymentMutation.isPending}
+              />
+            )}
           </TabsContent>
+
+          {isGoldInvoice && (
+            <TabsContent value="gold-price">
+              <GoldPriceManagement
+                onPriceUpdate={(newPrice) => setCurrentGoldPrice(newPrice)}
+              />
+            </TabsContent>
+          )}
 
           <TabsContent value="overdue">
             <OverdueAlerts

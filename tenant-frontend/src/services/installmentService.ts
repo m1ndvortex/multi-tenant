@@ -19,6 +19,12 @@ export interface InstallmentDetail {
   is_overdue: boolean;
   days_overdue: number;
   is_fully_paid: boolean;
+  
+  // Gold-specific fields
+  gold_weight_due?: number;
+  gold_weight_paid?: number;
+  remaining_gold_weight?: number;
+  gold_price_at_payment?: number;
 }
 
 export interface InstallmentSummary {
@@ -54,6 +60,10 @@ export interface PaymentCreate {
   payment_method?: string;
   payment_reference?: string;
   notes?: string;
+  
+  // Gold-specific fields
+  gold_weight_paid?: number;
+  gold_price_at_payment?: number;
 }
 
 export interface OutstandingBalance {
@@ -72,8 +82,14 @@ export interface OutstandingBalance {
     amount_due: number;
     is_overdue: boolean;
     days_overdue: number;
+    gold_weight_due?: number;
   };
   is_fully_paid: boolean;
+  
+  // Gold-specific fields
+  total_gold_weight_due?: number;
+  total_gold_weight_paid?: number;
+  remaining_gold_weight?: number;
 }
 
 export interface PaymentHistory {
@@ -311,6 +327,53 @@ class InstallmentService {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.detail || 'Failed to process bulk payments');
+    }
+
+    return response.json();
+  }
+
+  // Gold Price Management
+  async getCurrentGoldPrice(): Promise<{ price: number; updated_at: string }> {
+    const response = await fetch(`${API_BASE_URL}/api/gold-price/current`, {
+      headers: this.getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch current gold price');
+    }
+
+    return response.json();
+  }
+
+  async updateGoldPrice(price: number): Promise<{ price: number; updated_at: string }> {
+    const response = await fetch(`${API_BASE_URL}/api/gold-price`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ price }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Failed to update gold price');
+    }
+
+    return response.json();
+  }
+
+  async getGoldPriceHistory(days?: number): Promise<Array<{
+    date: string;
+    price: number;
+    updated_by?: string;
+  }>> {
+    const params = new URLSearchParams();
+    if (days) params.append('days', days.toString());
+
+    const response = await fetch(`${API_BASE_URL}/api/gold-price/history?${params}`, {
+      headers: this.getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch gold price history');
     }
 
     return response.json();
