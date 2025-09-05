@@ -1,17 +1,8 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AccountingInterface } from '@/components/accounting/AccountingInterface';
 
 const Accounting: React.FC = () => {
-  return (
-    <Card variant="professional">
-      <CardHeader>
-        <CardTitle>حسابداری</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p>صفحه حسابداری در حال توسعه است...</p>
-      </CardContent>
-    </Card>
-  );
+  return <AccountingInterface />;
 };
 
 export default Accounting;
