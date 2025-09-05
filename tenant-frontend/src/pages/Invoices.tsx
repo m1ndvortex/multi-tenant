@@ -1,18 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import InvoiceList from '@/components/invoices/InvoiceList';
 import InvoiceForm from '@/components/invoices/InvoiceForm';
+import InvoiceDetail from '@/components/invoices/InvoiceDetail';
+import InvoiceEdit from '@/components/invoices/InvoiceEdit';
 import { 
   Invoice, 
   InvoiceCreate, 
+  InvoiceUpdate,
   InvoiceSearchParams, 
   invoiceService 
 } from '@/services/invoiceService';
 import { customerService } from '@/services/customerService';
 import { productService } from '@/services/productService';
 import { useToast } from '@/hooks/use-toast';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 
@@ -57,6 +60,28 @@ const Invoices: React.FC = () => {
     onError: (error: Error) => {
       toast({
         title: 'خطا در ایجاد فاکتور',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Update invoice mutation
+  const updateInvoiceMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: InvoiceUpdate }) => 
+      invoiceService.updateInvoice(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['invoice'] });
+      toast({
+        title: 'موفقیت',
+        description: 'فاکتور با موفقیت به‌روزرسانی شد',
+      });
+      navigate('/invoices');
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'خطا در به‌روزرسانی فاکتور',
         description: error.message,
         variant: 'destructive',
       });
@@ -114,6 +139,10 @@ const Invoices: React.FC = () => {
     await createInvoiceMutation.mutateAsync(data);
   };
 
+  const handleUpdateInvoice = async (id: string, data: InvoiceUpdate) => {
+    await updateInvoiceMutation.mutateAsync({ id, data });
+  };
+
   const handleView = (invoice: Invoice) => {
     navigate(`/invoices/${invoice.id}`);
   };
@@ -154,7 +183,7 @@ const Invoices: React.FC = () => {
 
   const handleGenerateQR = async (invoice: Invoice) => {
     try {
-      const result = await invoiceService.generateQRCode(invoice.id);
+      await invoiceService.generateQRCode(invoice.id);
       toast({
         title: 'موفقیت',
         description: 'QR Code با موفقیت ایجاد شد',
@@ -171,6 +200,66 @@ const Invoices: React.FC = () => {
 
   const handleCreateNew = () => {
     navigate('/invoices/new');
+  };
+
+  // Invoice Detail Page Component
+  const InvoiceDetailPage: React.FC = () => {
+    const { id } = useParams<{ id: string }>();
+    
+    const { data: invoice, isLoading } = useQuery({
+      queryKey: ['invoice', id],
+      queryFn: () => invoiceService.getInvoice(id!),
+      enabled: !!id,
+    });
+
+    if (isLoading) {
+      return (
+        <Card variant="professional">
+          <CardHeader>
+            <CardTitle>در حال بارگیری...</CardTitle>
+          </CardHeader>
+        </Card>
+      );
+    }
+
+    if (!invoice) return null;
+
+    return (
+      <InvoiceDetail
+        invoice={invoice}
+        onEdit={() => navigate(`/invoices/${id}/edit`)}
+        onSend={() => handleSend(invoice)}
+        onDownloadPDF={() => handleDownloadPDF(invoice)}
+        onGenerateQR={() => handleGenerateQR(invoice)}
+        onPrint={() => window.print()}
+        onBack={() => navigate('/invoices')}
+        isLoading={false}
+      />
+    );
+  };
+
+  // Invoice Edit Page Component
+  const InvoiceEditPage: React.FC = () => {
+    const { id } = useParams<{ id: string }>();
+    
+    const { data: invoice, isLoading } = useQuery({
+      queryKey: ['invoice', id],
+      queryFn: () => invoiceService.getInvoice(id!),
+      enabled: !!id,
+    });
+
+    if (!invoice) return null;
+
+    return (
+      <InvoiceEdit
+        invoice={invoice}
+        customers={customersData?.customers || []}
+        products={productsData?.products || []}
+        onSave={(data) => handleUpdateInvoice(id!, data)}
+        onCancel={() => navigate(`/invoices/${id}`)}
+        isLoading={updateInvoiceMutation.isPending}
+      />
+    );
   };
 
   return (
@@ -227,32 +316,8 @@ const Invoices: React.FC = () => {
           </div>
         }
       />
-      <Route
-        path="/:id"
-        element={
-          <Card variant="professional">
-            <CardHeader>
-              <CardTitle>مشاهده فاکتور</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>صفحه مشاهده فاکتور در حال توسعه است...</p>
-            </CardContent>
-          </Card>
-        }
-      />
-      <Route
-        path="/:id/edit"
-        element={
-          <Card variant="professional">
-            <CardHeader>
-              <CardTitle>ویرایش فاکتور</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>صفحه ویرایش فاکتور در حال توسعه است...</p>
-            </CardContent>
-          </Card>
-        }
-      />
+      <Route path="/:id" element={<InvoiceDetailPage />} />
+      <Route path="/:id/edit" element={<InvoiceEditPage />} />
     </Routes>
   );
 };

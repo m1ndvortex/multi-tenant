@@ -18,8 +18,7 @@ import {
   QrCode,
   Package,
   Coins,
-  Calendar,
-  DollarSign
+  Calculator
 } from 'lucide-react';
 import { Invoice, InvoiceSearchParams } from '@/services/invoiceService';
 import { Customer } from '@/services/customerService';
@@ -423,3 +422,5 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
     </div>
   );
 };
+
+export default InvoiceList;
