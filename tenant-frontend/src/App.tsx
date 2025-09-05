@@ -32,21 +32,19 @@ function App() {
         <AuthProvider>
           <TenantProvider>
             <Router>
-              <div className="min-h-screen bg-gradient-to-br from-green-50/30 to-white" dir="rtl">
-                <ImpersonationBanner />
-                <Layout>
-                  <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/invoices/*" element={<Invoices />} />
-                    <Route path="/customers/*" element={<Customers />} />
-                    <Route path="/products/*" element={<Products />} />
-                    <Route path="/accounting/*" element={<Accounting />} />
-                    <Route path="/reports" element={<Reports />} />
-                    <Route path="/settings/*" element={<Settings />} />
-                  </Routes>
-                </Layout>
-                <Toaster />
-              </div>
+              <ImpersonationBanner />
+              <Layout>
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/invoices/*" element={<Invoices />} />
+                  <Route path="/customers/*" element={<Customers />} />
+                  <Route path="/products/*" element={<Products />} />
+                  <Route path="/accounting/*" element={<Accounting />} />
+                  <Route path="/reports" element={<Reports />} />
+                  <Route path="/settings/*" element={<Settings />} />
+                </Routes>
+              </Layout>
+              <Toaster />
             </Router>
           </TenantProvider>
         </AuthProvider>

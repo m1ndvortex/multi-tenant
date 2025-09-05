@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, LogOut, Clock, User, Shield } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import { faIR } from 'date-fns/locale';
+import { AlertTriangle, LogOut, Clock, User } from 'lucide-react';
 
 interface ImpersonationBannerProps {
   onEndImpersonation?: () => void;
