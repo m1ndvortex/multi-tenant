@@ -516,7 +516,12 @@
 
 ## Invoice System Frontend
 
-- [ ] 37. Implement Dual Invoice Creation Interface
+- [x] 37. Implement Dual Invoice Creation Interface
+
+
+
+
+
   - Create invoice type selection (General vs Gold) with dynamic form fields
   - Implement invoice creation forms with customer and product selection
   - Create line item management with gold-specific fields (weight, labor fee, profit, VAT)
