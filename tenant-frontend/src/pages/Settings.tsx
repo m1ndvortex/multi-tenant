@@ -1,44 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Database, FileText, Settings as SettingsIcon, User, Bell, Shield } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Database, Settings as SettingsIcon, User, Bell, Shield, Building2, Coins, Cog } from 'lucide-react';
+import TenantSettings from '@/components/settings/TenantSettings';
+import UserManagement from '@/components/settings/UserManagement';
+import GoldPriceManagement from '@/components/settings/GoldPriceManagement';
+import SystemPreferences from '@/components/settings/SystemPreferences';
 
 const Settings: React.FC = () => {
   const navigate = useNavigate();
-
-  const settingsCategories = [
-    {
-      title: 'پشتیبان‌گیری و خروجی داده‌ها',
-      description: 'مدیریت پشتیبان‌گیری روزانه و تولید خروجی از اطلاعات',
-      icon: Database,
-      action: () => navigate('/backup'),
-      variant: 'gradient-green' as const,
-    },
-    {
-      title: 'مدیریت کاربران',
-      description: 'افزودن، ویرایش و مدیریت دسترسی کاربران',
-      icon: User,
-      action: () => {}, // TODO: Implement user management
-      variant: 'gradient-blue' as const,
-      disabled: true,
-    },
-    {
-      title: 'تنظیمات اعلان‌ها',
-      description: 'پیکربندی ایمیل، پیامک و سایر اعلان‌ها',
-      icon: Bell,
-      action: () => navigate('/notifications'),
-      variant: 'gradient-purple' as const,
-    },
-    {
-      title: 'امنیت و حریم خصوصی',
-      description: 'تنظیمات امنیتی و مدیریت حریم خصوصی',
-      icon: Shield,
-      action: () => {}, // TODO: Implement security settings
-      variant: 'gradient-blue' as const,
-      disabled: true,
-    },
-  ];
+  const [activeTab, setActiveTab] = useState('business');
 
   return (
     <div className="space-y-6">
@@ -55,77 +28,137 @@ const Settings: React.FC = () => {
         </div>
       </div>
 
-      {/* Settings Categories */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {settingsCategories.map((category, index) => {
-          const IconComponent = category.icon;
-          return (
-            <Card key={index} variant={category.variant} className="h-full">
+      {/* Settings Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <div className="bg-gradient-to-r from-green-50 via-teal-50 to-blue-50 rounded-xl p-1">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 bg-transparent gap-1">
+            <TabsTrigger 
+              value="business" 
+              className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:border-2 data-[state=active]:border-blue-300"
+            >
+              <Building2 className="h-4 w-4 ml-2" />
+              اطلاعات کسب‌وکار
+            </TabsTrigger>
+            <TabsTrigger 
+              value="users"
+              className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:border-2 data-[state=active]:border-green-300"
+            >
+              <User className="h-4 w-4 ml-2" />
+              مدیریت کاربران
+            </TabsTrigger>
+            <TabsTrigger 
+              value="gold"
+              className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:border-2 data-[state=active]:border-yellow-300"
+            >
+              <Coins className="h-4 w-4 ml-2" />
+              قیمت طلا
+            </TabsTrigger>
+            <TabsTrigger 
+              value="preferences"
+              className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:border-2 data-[state=active]:border-purple-300"
+            >
+              <Cog className="h-4 w-4 ml-2" />
+              تنظیمات سیستم
+            </TabsTrigger>
+            <TabsTrigger 
+              value="external"
+              className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:border-2 data-[state=active]:border-teal-300"
+            >
+              <Database className="h-4 w-4 ml-2" />
+              سایر تنظیمات
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        <TabsContent value="business" className="space-y-6">
+          <TenantSettings />
+        </TabsContent>
+
+        <TabsContent value="users" className="space-y-6">
+          <UserManagement />
+        </TabsContent>
+
+        <TabsContent value="gold" className="space-y-6">
+          <GoldPriceManagement />
+        </TabsContent>
+
+        <TabsContent value="preferences" className="space-y-6">
+          <SystemPreferences />
+        </TabsContent>
+
+        <TabsContent value="external" className="space-y-6">
+          {/* External Settings - Backup and Notifications */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card variant="gradient-green" className="h-full">
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
                   <div className="h-12 w-12 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
-                    <IconComponent className="h-6 w-6 text-gray-700" />
+                    <Database className="h-6 w-6 text-gray-700" />
                   </div>
                   <div className="flex-1 space-y-3">
                     <div>
-                      <h3 className="font-semibold text-gray-900">{category.title}</h3>
-                      <p className="text-sm text-gray-600 mt-1">{category.description}</p>
+                      <h3 className="font-semibold text-gray-900">پشتیبان‌گیری و خروجی داده‌ها</h3>
+                      <p className="text-sm text-gray-600 mt-1">مدیریت پشتیبان‌گیری روزانه و تولید خروجی از اطلاعات</p>
                     </div>
                     <Button
-                      variant={category.variant}
-                      onClick={category.action}
-                      disabled={category.disabled}
+                      variant="gradient-green"
+                      onClick={() => navigate('/backup')}
                       className="w-full"
                     >
-                      {category.disabled ? 'به زودی...' : 'مدیریت'}
+                      مدیریت
                     </Button>
                   </div>
                 </div>
               </CardContent>
             </Card>
-          );
-        })}
-      </div>
 
-      {/* Additional Settings */}
-      <Card variant="professional">
-        <CardHeader>
-          <CardTitle>تنظیمات عمومی</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <h4 className="font-medium">زبان سیستم</h4>
-                <p className="text-sm text-gray-600">انتخاب زبان رابط کاربری</p>
-              </div>
-              <Button variant="outline" disabled>
-                فارسی
-              </Button>
-            </div>
-            
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <h4 className="font-medium">واحد پول</h4>
-                <p className="text-sm text-gray-600">واحد پولی پیش‌فرض سیستم</p>
-              </div>
-              <Button variant="outline" disabled>
-                ریال
-              </Button>
-            </div>
-            
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <h4 className="font-medium">تقویم</h4>
-                <p className="text-sm text-gray-600">نوع تقویم مورد استفاده</p>
-              </div>
-              <Button variant="outline" disabled>
-                شمسی
-              </Button>
-            </div>
+            <Card variant="gradient-purple" className="h-full">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="h-12 w-12 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
+                    <Bell className="h-6 w-6 text-gray-700" />
+                  </div>
+                  <div className="flex-1 space-y-3">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">تنظیمات اعلان‌ها</h3>
+                      <p className="text-sm text-gray-600 mt-1">پیکربندی ایمیل، پیامک و سایر اعلان‌ها</p>
+                    </div>
+                    <Button
+                      variant="gradient-purple"
+                      onClick={() => navigate('/notifications')}
+                      className="w-full"
+                    >
+                      مدیریت
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Security Settings - Coming Soon */}
+          <Card variant="professional">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shadow-lg">
+                  <Shield className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <CardTitle>امنیت و حریم خصوصی</CardTitle>
+                  <p className="text-sm text-gray-600 mt-1">تنظیمات امنیتی و مدیریت حریم خصوصی</p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8 text-gray-500">
+                <Shield className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <p className="text-lg font-medium mb-2">به زودی...</p>
+                <p className="text-sm">تنظیمات امنیتی در نسخه‌های آینده اضافه خواهد شد</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
