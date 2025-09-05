@@ -8,6 +8,7 @@ import {
   Package, 
   Calculator, 
   BarChart3, 
+  Bell,
   Settings,
   ChevronLeft,
   ChevronRight
@@ -56,6 +57,12 @@ const navigationItems = [
     href: '/reports',
     icon: BarChart3,
     gradient: 'from-pink-500 to-rose-600'
+  },
+  {
+    title: 'اعلان‌ها',
+    href: '/notifications',
+    icon: Bell,
+    gradient: 'from-blue-500 to-purple-600'
   },
   {
     title: 'تنظیمات',

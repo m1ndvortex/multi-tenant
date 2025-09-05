@@ -12,6 +12,7 @@ import Customers from '@/pages/Customers';
 import Products from '@/pages/Products';
 import Accounting from '@/pages/Accounting';
 import Reports from '@/pages/Reports';
+import Notifications from '@/pages/Notifications';
 import Settings from '@/pages/Settings';
 
 const queryClient = new QueryClient({
@@ -41,6 +42,7 @@ function App() {
                   <Route path="/products/*" element={<Products />} />
                   <Route path="/accounting/*" element={<Accounting />} />
                   <Route path="/reports" element={<Reports />} />
+                  <Route path="/notifications" element={<Notifications />} />
                   <Route path="/settings/*" element={<Settings />} />
                 </Routes>
               </Layout>
