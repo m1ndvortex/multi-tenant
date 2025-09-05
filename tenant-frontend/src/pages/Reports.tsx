@@ -13,12 +13,17 @@ import {
   ClockIcon,
   BarChart3Icon,
   LineChartIcon,
-  PieChartIcon
+  PieChartIcon,
+  BrainIcon
 } from 'lucide-react';
 import SalesTrendChart from '@/components/reports/SalesTrendChart';
 import ProfitLossChart from '@/components/reports/ProfitLossChart';
 import CustomerAnalyticsChart from '@/components/reports/CustomerAnalyticsChart';
 import AgingReportChart from '@/components/reports/AgingReportChart';
+import BusinessInsightsWidget from '@/components/business-intelligence/BusinessInsightsWidget';
+import KPIDashboard from '@/components/business-intelligence/KPIDashboard';
+import AlertSystemInterface from '@/components/business-intelligence/AlertSystemInterface';
+import ReportSchedulingInterface from '@/components/business-intelligence/ReportSchedulingInterface';
 import { reportService } from '@/services/reportService';
 import { cn } from '@/lib/utils';
 
@@ -233,7 +238,7 @@ const Reports: React.FC = () => {
 
         {/* Reports Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-gradient-to-r from-green-50 via-teal-50 to-blue-50 p-1 rounded-xl">
+          <TabsList className="grid w-full grid-cols-5 bg-gradient-to-r from-green-50 via-teal-50 to-blue-50 p-1 rounded-xl">
             <TabsTrigger 
               value="sales-trend" 
               className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:border-2 data-[state=active]:border-green-300"
@@ -261,6 +266,13 @@ const Reports: React.FC = () => {
             >
               <ClockIcon className="h-4 w-4" />
               گزارش سنی
+            </TabsTrigger>
+            <TabsTrigger 
+              value="business-intelligence"
+              className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:border-2 data-[state=active]:border-violet-300"
+            >
+              <BarChart3Icon className="h-4 w-4" />
+              هوش تجاری
             </TabsTrigger>
           </TabsList>
 
@@ -375,6 +387,27 @@ const Reports: React.FC = () => {
                 ) : null}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Business Intelligence Tab */}
+          <TabsContent value="business-intelligence" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Business Insights Widget */}
+              <BusinessInsightsWidget className="lg:col-span-2" />
+              
+              {/* KPI Dashboard */}
+              <KPIDashboard className="lg:col-span-2" />
+              
+              {/* Alert System */}
+              <AlertSystemInterface 
+                className="lg:col-span-1" 
+                showFilters={true}
+                maxAlerts={10}
+              />
+              
+              {/* Report Scheduling */}
+              <ReportSchedulingInterface className="lg:col-span-1" />
+            </div>
           </TabsContent>
         </Tabs>
       </div>
