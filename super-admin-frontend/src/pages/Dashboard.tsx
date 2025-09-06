@@ -3,8 +3,12 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import WhoIsOnlineWidget from '@/components/WhoIsOnlineWidget';
-import { useDashboardStats } from '@/hooks/useDashboardStats';
+import { useDashboardData } from '@/hooks/useDashboardStats';
 import { usePlatformMetrics } from '@/hooks/useAnalytics';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ErrorDisplay } from '@/components/ErrorDisplay';
+import { OfflineIndicator } from '@/components/OfflineIndicator';
+import { StatCardSkeleton, SystemHealthSkeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 interface StatCardProps {
@@ -168,10 +172,23 @@ const MiniChart: React.FC<{ data: number[]; color: string; label: string }> = ({
 };
 
 const Dashboard: React.FC = () => {
-  const { data: stats, isLoading, error } = useDashboardStats();
+  const dashboardData = useDashboardData();
   const { data: _analyticsData } = usePlatformMetrics();
   const [dashboardLayout, setDashboardLayout] = useState('default');
   const [showPersonalization, setShowPersonalization] = useState(false);
+
+  const { 
+    stats, 
+    onlineUsers, 
+    alerts, 
+    quickStats, 
+    systemHealth,
+    isLoading, 
+    hasError, 
+    hasData, 
+    isOffline, 
+    refreshAll 
+  } = dashboardData;
 
   // Sample data for mini charts
   const sampleChartData = {
@@ -191,7 +208,7 @@ const Dashboard: React.FC = () => {
       ),
       gradient: 'from-blue-500 to-indigo-600',
       link: '/tenants',
-      badge: stats?.pending_payment_tenants ? `${stats.pending_payment_tenants} در انتظار` : undefined
+      badge: stats.data?.pending_payment_tenants ? `${stats.data.pending_payment_tenants} در انتظار` : undefined
     },
     {
       title: 'آنالیتیکس پلتفرم',
@@ -288,71 +305,84 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  if (error) {
+  // Show error state if there's a critical error and no cached data
+  if (hasError && !hasData) {
     return (
       <div className="space-y-6">
-        <Card variant="professional">
-          <CardContent className="p-8 text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold text-slate-800 mb-2">خطا در دریافت اطلاعات</h3>
-            <p className="text-slate-600 mb-4">امکان دریافت آمار داشبورد وجود ندارد</p>
-            <Button variant="gradient-green" onClick={() => window.location.reload()}>
-              تلاش مجدد
-            </Button>
-          </CardContent>
-        </Card>
+        {isOffline && <OfflineIndicator onRetry={refreshAll} />}
+        <ErrorDisplay
+          error={stats.error || onlineUsers.error || alerts.error || quickStats.error}
+          title="خطا در دریافت اطلاعات داشبورد"
+          onRetry={refreshAll}
+          showDetails={process.env.NODE_ENV === 'development'}
+        />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Dashboard Header with Personalization */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div className="text-center lg:text-right">
-          <div className="w-20 h-20 bg-gradient-to-r from-green-500 to-teal-600 rounded-2xl flex items-center justify-center mx-auto lg:mx-0 mb-4 shadow-xl">
-            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <h1 className="text-3xl font-bold text-slate-800 mb-2">
-            خوش آمدید به پلتفرم HesaabPlus
-          </h1>
-          <p className="text-lg text-slate-600">
-            مدیریت و نظارت بر تمامی عملیات سیستم حسابداری
-          </p>
-        </div>
+    <ErrorBoundary>
+      <div className="space-y-6">
+        {/* Offline Indicator */}
+        {isOffline && <OfflineIndicator onRetry={refreshAll} />}
 
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowPersonalization(!showPersonalization)}
-            className="flex items-center gap-2"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            شخصی‌سازی
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => window.location.reload()}
-            className="flex items-center gap-2"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            بروزرسانی
-          </Button>
+        {/* Error Banner for non-critical errors */}
+        {hasError && hasData && (
+          <ErrorDisplay
+            error={stats.error || onlineUsers.error || alerts.error || quickStats.error}
+            title="Some data may be outdated"
+            variant="banner"
+            onRetry={refreshAll}
+            onDismiss={() => {/* Could implement dismiss logic */}}
+          />
+        )}
+
+        {/* Dashboard Header with Personalization */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="text-center lg:text-right">
+            <div className="w-20 h-20 bg-gradient-to-r from-green-500 to-teal-600 rounded-2xl flex items-center justify-center mx-auto lg:mx-0 mb-4 shadow-xl">
+              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h1 className="text-3xl font-bold text-slate-800 mb-2">
+              خوش آمدید به پلتفرم HesaabPlus
+            </h1>
+            <p className="text-lg text-slate-600">
+              مدیریت و نظارت بر تمامی عملیات سیستم حسابداری
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPersonalization(!showPersonalization)}
+              className="flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              شخصی‌سازی
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={refreshAll}
+              disabled={isLoading}
+              className="flex items-center gap-2"
+            >
+              <svg className={cn(
+                "w-4 h-4",
+                isLoading && "animate-spin"
+              )} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              {isLoading ? 'در حال بروزرسانی...' : 'بروزرسانی'}
+            </Button>
+          </div>
         </div>
-      </div>
 
       {/* Personalization Panel */}
       {showPersonalization && (
@@ -404,11 +434,11 @@ const Dashboard: React.FC = () => {
       )}>
         <StatCard
           title="کل تنانت‌ها"
-          value={stats?.total_tenants || 0}
-          subtitle={`${stats?.active_tenants || 0} فعال`}
+          value={stats.data?.total_tenants || 0}
+          subtitle={`${stats.data?.active_tenants || 0} فعال`}
           gradient="from-blue-500 to-indigo-600"
           link="/tenants"
-          isLoading={isLoading}
+          isLoading={stats.isLoading}
           icon={
             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h3M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
@@ -418,10 +448,10 @@ const Dashboard: React.FC = () => {
 
         <StatCard
           title="کاربران فعال امروز"
-          value={stats?.active_users_today || 0}
-          subtitle={`از ${stats?.total_users || 0} کل کاربر`}
+          value={stats.data?.active_users_today || 0}
+          subtitle={`از ${stats.data?.total_users || 0} کل کاربر`}
           gradient="from-green-500 to-teal-600"
-          isLoading={isLoading}
+          isLoading={stats.isLoading}
           trend={{ value: 12, isPositive: true }}
           icon={
             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -432,10 +462,10 @@ const Dashboard: React.FC = () => {
 
         <StatCard
           title="فاکتورهای این ماه"
-          value={stats?.total_invoices_this_month || 0}
+          value={stats.data?.total_invoices_this_month || 0}
           gradient="from-purple-500 to-violet-600"
           link="/analytics"
-          isLoading={isLoading}
+          isLoading={stats.isLoading}
           trend={{ value: 8, isPositive: true }}
           icon={
             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -446,10 +476,10 @@ const Dashboard: React.FC = () => {
 
         <StatCard
           title="درآمد ماهانه (MRR)"
-          value={`$${stats?.mrr || 0}`}
+          value={`$${stats.data?.mrr || 0}`}
           gradient="from-orange-500 to-red-600"
           link="/analytics"
-          isLoading={isLoading}
+          isLoading={stats.isLoading}
           trend={{ value: 15, isPositive: true }}
           icon={
             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -462,9 +492,9 @@ const Dashboard: React.FC = () => {
           <>
             <StatCard
               title="اشتراک رایگان"
-              value={stats?.free_tier_tenants || 0}
+              value={stats.data?.free_tier_tenants || 0}
               gradient="from-gray-500 to-slate-600"
-              isLoading={isLoading}
+              isLoading={stats.isLoading}
               icon={
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -474,9 +504,9 @@ const Dashboard: React.FC = () => {
 
             <StatCard
               title="اشتراک حرفه‌ای"
-              value={stats?.pro_tier_tenants || 0}
+              value={stats.data?.pro_tier_tenants || 0}
               gradient="from-yellow-500 to-orange-600"
-              isLoading={isLoading}
+              isLoading={stats.isLoading}
               icon={
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
@@ -486,9 +516,9 @@ const Dashboard: React.FC = () => {
 
             <StatCard
               title="در انتظار پرداخت"
-              value={stats?.pending_payment_tenants || 0}
+              value={stats.data?.pending_payment_tenants || 0}
               gradient="from-amber-500 to-yellow-600"
-              isLoading={isLoading}
+              isLoading={stats.isLoading}
               icon={
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -566,26 +596,26 @@ const Dashboard: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {isLoading ? (
-                <div className="space-y-4">
-                  {[...Array(4)].map((_, i) => (
-                    <div key={i} className="flex items-center justify-between animate-pulse">
-                      <div className="h-4 bg-slate-200 rounded w-1/3"></div>
-                      <div className="h-4 bg-slate-200 rounded w-1/4"></div>
-                    </div>
-                  ))}
-                </div>
+              {systemHealth.isLoading ? (
+                <SystemHealthSkeleton />
+              ) : systemHealth.error ? (
+                <ErrorDisplay
+                  error={systemHealth.error}
+                  title="System Health Unavailable"
+                  variant="inline"
+                  onRetry={() => systemHealth.refetch()}
+                />
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50">
                       <span className="text-sm font-medium text-slate-700">CPU Usage</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold">{stats?.system_health?.cpu_usage || 0}%</span>
+                        <span className="text-sm font-bold">{systemHealth.data?.cpu_usage || stats.data?.system_health?.cpu_usage || 0}%</span>
                         <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden">
                           <div
                             className="h-full bg-gradient-to-r from-green-500 to-teal-600 transition-all duration-300"
-                            style={{ width: `${Math.min(stats?.system_health?.cpu_usage || 0, 100)}%` }}
+                            style={{ width: `${Math.min(systemHealth.data?.cpu_usage || stats.data?.system_health?.cpu_usage || 0, 100)}%` }}
                           ></div>
                         </div>
                       </div>
@@ -594,11 +624,11 @@ const Dashboard: React.FC = () => {
                     <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50">
                       <span className="text-sm font-medium text-slate-700">Memory Usage</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold">{stats?.system_health?.memory_usage || 0}%</span>
+                        <span className="text-sm font-bold">{systemHealth.data?.memory_usage || stats.data?.system_health?.memory_usage || 0}%</span>
                         <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden">
                           <div
                             className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-300"
-                            style={{ width: `${Math.min(stats?.system_health?.memory_usage || 0, 100)}%` }}
+                            style={{ width: `${Math.min(systemHealth.data?.memory_usage || stats.data?.system_health?.memory_usage || 0, 100)}%` }}
                           ></div>
                         </div>
                       </div>
@@ -610,10 +640,10 @@ const Dashboard: React.FC = () => {
                       <span className="text-sm font-medium text-slate-700">Database</span>
                       <div className={cn(
                         "flex items-center gap-1 text-sm font-medium",
-                        getStatusColor(stats?.system_health?.database_status || 'unknown')
+                        getStatusColor(systemHealth.data?.database_status || stats.data?.system_health?.database_status || 'unknown')
                       )}>
-                        {getStatusIcon(stats?.system_health?.database_status || 'unknown')}
-                        <span className="capitalize">{stats?.system_health?.database_status || 'Unknown'}</span>
+                        {getStatusIcon(systemHealth.data?.database_status || stats.data?.system_health?.database_status || 'unknown')}
+                        <span className="capitalize">{systemHealth.data?.database_status || stats.data?.system_health?.database_status || 'Unknown'}</span>
                       </div>
                     </div>
 
@@ -621,10 +651,10 @@ const Dashboard: React.FC = () => {
                       <span className="text-sm font-medium text-slate-700">Redis</span>
                       <div className={cn(
                         "flex items-center gap-1 text-sm font-medium",
-                        getStatusColor(stats?.system_health?.redis_status || 'unknown')
+                        getStatusColor(systemHealth.data?.redis_status || stats.data?.system_health?.redis_status || 'unknown')
                       )}>
-                        {getStatusIcon(stats?.system_health?.redis_status || 'unknown')}
-                        <span className="capitalize">{stats?.system_health?.redis_status || 'Unknown'}</span>
+                        {getStatusIcon(systemHealth.data?.redis_status || stats.data?.system_health?.redis_status || 'unknown')}
+                        <span className="capitalize">{systemHealth.data?.redis_status || stats.data?.system_health?.redis_status || 'Unknown'}</span>
                       </div>
                     </div>
 
@@ -632,10 +662,10 @@ const Dashboard: React.FC = () => {
                       <span className="text-sm font-medium text-slate-700">Celery</span>
                       <div className={cn(
                         "flex items-center gap-1 text-sm font-medium",
-                        getStatusColor(stats?.system_health?.celery_status || 'unknown')
+                        getStatusColor(systemHealth.data?.celery_status || stats.data?.system_health?.celery_status || 'unknown')
                       )}>
-                        {getStatusIcon(stats?.system_health?.celery_status || 'unknown')}
-                        <span className="capitalize">{stats?.system_health?.celery_status || 'Unknown'}</span>
+                        {getStatusIcon(systemHealth.data?.celery_status || stats.data?.system_health?.celery_status || 'unknown')}
+                        <span className="capitalize">{systemHealth.data?.celery_status || stats.data?.system_health?.celery_status || 'Unknown'}</span>
                       </div>
                     </div>
                   </div>
@@ -669,7 +699,7 @@ const Dashboard: React.FC = () => {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </ErrorBoundary>
   );
 };
 

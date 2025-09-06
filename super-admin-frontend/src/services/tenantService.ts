@@ -2,24 +2,67 @@ import { Tenant, TenantFormData, TenantsResponse, TenantFilters } from '@/types/
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
+export interface ApiError {
+  message: string;
+  status: number;
+  code?: string;
+  details?: any;
+}
+
 class TenantService {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const token = localStorage.getItem('super_admin_token');
     
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': token ? `Bearer ${token}` : '',
-        ...options.headers,
-      },
-    });
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        ...options,
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+          ...options.headers,
+        },
+      });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        let errorDetails = null;
+        
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.detail || errorMessage;
+          errorDetails = errorData;
+        } catch {
+          // If response is not JSON, use status text
+          errorMessage = response.statusText || errorMessage;
+        }
+
+        const apiError: ApiError = {
+          message: errorMessage,
+          status: response.status,
+          details: errorDetails
+        };
+
+        throw apiError;
+      }
+
+      return response.json();
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          throw new Error('Request timeout - please try again');
+        }
+        if (!navigator.onLine) {
+          throw new Error('No internet connection - please check your network');
+        }
+      }
+      throw error;
     }
-
-    return response.json();
   }
 
   async getTenants(
