@@ -29,6 +29,7 @@ from .marketing import (
     SegmentCustomer, CommunicationPreference,
     CampaignStatus, CampaignType, SegmentationType
 )
+from .api_error_log import APIErrorLog, ErrorSeverity, ErrorCategory
 
 __all__ = [
     "Base",
@@ -87,4 +88,7 @@ __all__ = [
     "CampaignStatus",
     "CampaignType",
     "SegmentationType",
+    "APIErrorLog",
+    "ErrorSeverity",
+    "ErrorCategory",
 ]

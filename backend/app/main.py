@@ -18,6 +18,7 @@ from app.core.database import create_database_tables, check_database_connection
 from app.core.redis_client import redis_client
 from app.core.tenant_context import TenantMiddleware
 from app.core.middleware import PermissionMiddleware, TenantIsolationMiddleware
+from app.core.error_logging_middleware import ErrorLoggingMiddleware, CriticalErrorNotificationMiddleware
 
 # Import API routers
 from app.api.health import router as health_router
@@ -44,6 +45,7 @@ from app.api.reports import router as reports_router
 from app.api.business_intelligence import router as business_intelligence_router
 from app.api.notifications import router as notifications_router
 from app.api.data_export import router as data_export_router
+from app.api.error_logging import router as error_logging_router
 # from app.api.marketing import router as marketing_router
 
 # Configure logging
@@ -139,6 +141,12 @@ app.add_middleware(PermissionMiddleware)
 # Tenant isolation middleware
 app.add_middleware(TenantIsolationMiddleware)
 
+# Error logging middleware (should be added early to catch all errors)
+app.add_middleware(ErrorLoggingMiddleware)
+
+# Critical error notification middleware
+app.add_middleware(CriticalErrorNotificationMiddleware)
+
 # Request timing and logging middleware
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
@@ -203,6 +211,7 @@ app.include_router(reports_router)
 app.include_router(business_intelligence_router)
 app.include_router(notifications_router, prefix="/api/notifications")
 app.include_router(data_export_router)
+app.include_router(error_logging_router, prefix="/api")
 # app.include_router(marketing_router, prefix="/api")
 
 # Root endpoint

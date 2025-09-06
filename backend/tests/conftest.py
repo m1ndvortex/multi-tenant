@@ -75,6 +75,7 @@ def clean_database():
     try:
         # Get all table names
         tables = [
+            'api_error_logs',
             'bank_reconciliation_items', 'bank_reconciliations', 'bank_transactions', 'bank_statements', 'bank_accounts',
             'payment_matching', 'customer_payments', 'supplier_payments', 'supplier_bills',
             'suppliers', 'journal_entry_lines', 'journal_entries', 'accounts', 'payment_methods',
