@@ -47,6 +47,7 @@ from app.api.notifications import router as notifications_router
 from app.api.data_export import router as data_export_router
 from app.api.error_logging import router as error_logging_router
 from app.api.dashboard import router as dashboard_router
+from app.api.invoice_customization import router as invoice_customization_router
 # from app.api.marketing import router as marketing_router
 
 # Configure logging
@@ -214,6 +215,7 @@ app.include_router(notifications_router, prefix="/api/notifications")
 app.include_router(data_export_router)
 app.include_router(error_logging_router, prefix="/api")
 app.include_router(dashboard_router)
+app.include_router(invoice_customization_router, prefix="/api/invoice-customization")
 # app.include_router(marketing_router, prefix="/api")
 
 # Root endpoint

@@ -9,6 +9,10 @@ from .customer import Customer
 from .customer_interaction import CustomerInteraction, InteractionType
 from .product import Product, ProductCategory
 from .invoice import Invoice, InvoiceItem, InvoiceType, InvoiceStatus
+from .invoice_template import (
+    InvoiceTemplate, InvoiceCustomField, InvoiceNumberingScheme, 
+    InvoiceBranding, InvoiceItemCustomFieldValue, TemplateType, FieldType
+)
 from .installment import Installment, InstallmentStatus, InstallmentType, InstallmentPlan
 from .supplier import Supplier
 from .accounting import (
@@ -46,6 +50,13 @@ __all__ = [
     "InvoiceItem",
     "InvoiceType",
     "InvoiceStatus",
+    "InvoiceTemplate",
+    "InvoiceCustomField",
+    "InvoiceNumberingScheme",
+    "InvoiceBranding",
+    "InvoiceItemCustomFieldValue",
+    "TemplateType",
+    "FieldType",
     "Installment",
     "InstallmentStatus",
     "InstallmentType",

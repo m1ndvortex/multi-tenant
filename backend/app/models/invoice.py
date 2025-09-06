@@ -173,6 +173,28 @@ class Invoice(BaseModel, TenantMixin):
         comment="Whether invoice can be shared publicly"
     )
     
+    # Template and Branding
+    template_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("invoice_templates.id"),
+        nullable=True,
+        comment="Invoice template ID"
+    )
+    
+    branding_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("invoice_branding.id"),
+        nullable=True,
+        comment="Invoice branding ID"
+    )
+    
+    numbering_scheme_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("invoice_numbering_schemes.id"),
+        nullable=True,
+        comment="Numbering scheme ID"
+    )
+    
     # Additional Information
     notes = Column(
         Text, 
@@ -197,6 +219,9 @@ class Invoice(BaseModel, TenantMixin):
     customer = relationship("Customer", back_populates="invoices")
     items = relationship("InvoiceItem", back_populates="invoice", cascade="all, delete-orphan")
     installments = relationship("Installment", back_populates="invoice", cascade="all, delete-orphan")
+    template = relationship("InvoiceTemplate")
+    branding = relationship("InvoiceBranding")
+    numbering_scheme = relationship("InvoiceNumberingScheme")
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -417,6 +442,7 @@ class InvoiceItem(BaseModel):
     # Relationships
     invoice = relationship("Invoice", back_populates="items")
     product = relationship("Product", back_populates="invoice_items")
+    custom_field_values = relationship("InvoiceItemCustomFieldValue", back_populates="invoice_item", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<InvoiceItem(id={self.id}, description='{self.description}', quantity={self.quantity})>"
