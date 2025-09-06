@@ -97,7 +97,7 @@ class BusinessIntelligenceService {
    */
   async getBusinessInsights(): Promise<BusinessInsight[]> {
     const response = await apiClient.get<BusinessInsight[]>('/api/business-intelligence/insights');
-    return response.data;
+    return response.data as any;
   }
 
   /**
@@ -105,7 +105,7 @@ class BusinessIntelligenceService {
    */
   async getKPIMetrics(period: 'daily' | 'weekly' | 'monthly' = 'monthly'): Promise<KPIMetric[]> {
     const response = await apiClient.get<KPIMetric[]>(`/api/business-intelligence/kpis?period=${period}`);
-    return response.data;
+    return response.data as any;
   }
 
   /**
@@ -123,7 +123,7 @@ class BusinessIntelligenceService {
     const response = await apiClient.get<BusinessAlert[]>(
       `/api/business-intelligence/alerts?${params.toString()}`
     );
-    return response.data;
+    return response.data as any;
   }
 
   /**
@@ -145,7 +145,7 @@ class BusinessIntelligenceService {
    */
   async getScheduledReports(): Promise<ScheduledReport[]> {
     const response = await apiClient.get<ScheduledReport[]>('/api/business-intelligence/scheduled-reports');
-    return response.data;
+    return response.data as any;
   }
 
   /**
@@ -153,7 +153,7 @@ class BusinessIntelligenceService {
    */
   async createScheduledReport(data: ScheduledReportCreate): Promise<ScheduledReport> {
     const response = await apiClient.post<ScheduledReport>('/api/business-intelligence/scheduled-reports', data);
-    return response.data;
+    return response.data as any;
   }
 
   /**
@@ -161,7 +161,7 @@ class BusinessIntelligenceService {
    */
   async updateScheduledReport(id: string, data: Partial<ScheduledReportCreate>): Promise<ScheduledReport> {
     const response = await apiClient.put<ScheduledReport>(`/api/business-intelligence/scheduled-reports/${id}`, data);
-    return response.data;
+    return response.data as any;
   }
 
   /**
@@ -179,7 +179,7 @@ class BusinessIntelligenceService {
       `/api/business-intelligence/scheduled-reports/${id}/toggle`,
       { active }
     );
-    return response.data;
+    return response.data as any;
   }
 
   /**
@@ -189,7 +189,7 @@ class BusinessIntelligenceService {
     const response = await apiClient.post<{ message: string; job_id: string }>(
       `/api/business-intelligence/scheduled-reports/${id}/run-now`
     );
-    return response.data;
+    return response.data as any;
   }
 
   /**
@@ -207,7 +207,7 @@ class BusinessIntelligenceService {
   }>> {
     const params = reportId ? `?report_id=${reportId}` : '';
     const response = await apiClient.get(`/api/business-intelligence/execution-history${params}`);
-    return response.data;
+    return response.data as any;
   }
 
   /**
@@ -226,7 +226,7 @@ class BusinessIntelligenceService {
     urgent_alerts: BusinessAlert[];
   }> {
     const response = await apiClient.get('/api/business-intelligence/dashboard-summary');
-    return response.data;
+    return response.data as any;
   }
 
   /**
@@ -236,7 +236,7 @@ class BusinessIntelligenceService {
     const response = await apiClient.post<BusinessInsight>('/api/business-intelligence/generate-insight', {
       query
     });
-    return response.data;
+    return response.data as any;
   }
 
   /**
@@ -250,7 +250,7 @@ class BusinessIntelligenceService {
       `/api/business-intelligence/export/${type}?format=${format}`,
       { responseType: 'blob' }
     );
-    return response.data;
+    return response.data as any;
   }
 
   /**
@@ -265,7 +265,7 @@ class BusinessIntelligenceService {
     resolution_rate: number;
   }> {
     const response = await apiClient.get('/api/business-intelligence/alert-statistics');
-    return response.data;
+    return response.data as any;
   }
 
   /**
@@ -292,7 +292,7 @@ class BusinessIntelligenceService {
     auto_resolve_days: number;
   }> {
     const response = await apiClient.get('/api/business-intelligence/alert-settings');
-    return response.data;
+    return response.data as any;
   }
 }
 

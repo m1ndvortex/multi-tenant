@@ -101,7 +101,7 @@ class ReportService {
     const response = await apiClient.get<SalesTrendData[]>(
       `/api/reports/sales-trend?period=${period}&start_date=${startDate}&end_date=${endDate}`
     );
-    return response.data;
+    return response.data as any;
   }
 
   /**
@@ -111,7 +111,7 @@ class ReportService {
     const response = await apiClient.get<ProfitLossData>(
       `/api/reports/profit-loss?start_date=${startDate}&end_date=${endDate}`
     );
-    return response.data;
+    return response.data as any;
   }
 
   /**
@@ -121,7 +121,7 @@ class ReportService {
     const response = await apiClient.get<CustomerAnalyticsData>(
       `/api/reports/customer-analytics?start_date=${startDate}&end_date=${endDate}`
     );
-    return response.data;
+    return response.data as any;
   }
 
   /**
@@ -129,7 +129,7 @@ class ReportService {
    */
   async getAgingReport(): Promise<AgingReportResponse> {
     const response = await apiClient.get<AgingReportResponse>('/api/reports/aging-report');
-    return response.data;
+    return response.data as any;
   }
 
   /**
@@ -151,7 +151,7 @@ class ReportService {
       `/api/reports/${reportType}/export?${params.toString()}`,
       { responseType: 'blob' }
     );
-    return response.data;
+    return response.data as any;
   }
 
   /**
@@ -169,7 +169,7 @@ class ReportService {
     }>;
   }> {
     const response = await apiClient.get('/api/reports/dashboard-summary');
-    return response.data;
+    return response.data as any;
   }
 }
 

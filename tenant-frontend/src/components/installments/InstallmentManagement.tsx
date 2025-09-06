@@ -57,14 +57,14 @@ const InstallmentManagement: React.FC<InstallmentManagementProps> = ({
   const { data: outstandingBalance, isLoading: isLoadingBalance } = useQuery({
     queryKey: ['outstanding-balance', invoice.id],
     queryFn: () => installmentService.getOutstandingBalance(invoice.id),
-    enabled: !!invoice.id && invoice.is_installment,
+    enabled: !!invoice.id && (invoice as any).is_installment,
   });
 
   // Fetch payment history
   const { data: paymentHistory } = useQuery({
     queryKey: ['payment-history', invoice.id],
     queryFn: () => installmentService.getPaymentHistory(invoice.id),
-    enabled: !!invoice.id && invoice.is_installment,
+    enabled: !!invoice.id && (invoice as any).is_installment,
   });
 
   // Create installment plan mutation

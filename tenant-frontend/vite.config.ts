@@ -23,6 +23,16 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
+    rollupOptions: {
+      external: (id) => {
+        // Exclude test files from build
+        return id.includes('/test/') || 
+               id.includes('.test.') || 
+               id.includes('.spec.') ||
+               id.includes('vitest') ||
+               id.includes('@testing-library')
+      }
+    }
   },
   test: {
     globals: true,

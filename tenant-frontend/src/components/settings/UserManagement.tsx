@@ -151,7 +151,7 @@ const UserManagement: React.FC = () => {
       toast({
         title: 'موفقیت',
         description: `رمز عبور موقت: ${result.temporaryPassword}`,
-        duration: 10000,
+
       });
     } catch (error) {
       toast({

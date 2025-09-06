@@ -37,7 +37,7 @@ const Header: React.FC = () => {
     if (tenant.subscription_type === 'pro') {
       return (
         <Badge 
-          variant={isExpired ? "error" : "gradient-green"}
+          variant={isExpired ? "destructive" : "success"}
           className="flex items-center space-x-1 space-x-reverse"
         >
           <Crown className="h-3 w-3" />
@@ -47,7 +47,7 @@ const Header: React.FC = () => {
     }
 
     return (
-      <Badge variant="gradient-blue" className="flex items-center space-x-1 space-x-reverse">
+      <Badge variant="info" className="flex items-center space-x-1 space-x-reverse">
         <User className="h-3 w-3" />
         <span>رایگان</span>
       </Badge>

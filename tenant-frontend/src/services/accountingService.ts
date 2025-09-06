@@ -2,7 +2,7 @@
  * Accounting service for Chart of Accounts and General Ledger operations
  */
 
-import { config } from '@/lib/config';
+import { API_BASE_URL } from '@/lib/config';
 
 // Types and interfaces
 export interface Account {
@@ -190,7 +190,7 @@ class AccountingService {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = `${config.apiUrl}/api/accounting`;
+    this.baseUrl = `${API_BASE_URL}/api/accounting`;
   }
 
   private async request<T>(

@@ -255,7 +255,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
         data.gold_price_at_creation = goldPrice;
       }
 
-      await onSubmit(data);
+      await onSubmit(data as any);
     } catch (error) {
       toast({
         title: 'خطا در ایجاد فاکتور',

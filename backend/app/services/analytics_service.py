@@ -451,3 +451,470 @@ class AnalyticsService:
         except Exception as e:
             logger.error(f"Failed to get API error logs: {e}")
             raise
+
+    def get_user_growth_trends(self, start_date: datetime, end_date: datetime, aggregation: str = "daily") -> Dict[str, Any]:
+        """Get user growth trends over time with daily, weekly, monthly aggregations"""
+        try:
+            from ..models.user import User
+            
+            # Determine aggregation function
+            if aggregation == "daily":
+                date_trunc = func.date(User.created_at)
+                date_format = "%Y-%m-%d"
+            elif aggregation == "weekly":
+                date_trunc = func.date_trunc('week', User.created_at)
+                date_format = "%Y-W%U"
+            elif aggregation == "monthly":
+                date_trunc = func.date_trunc('month', User.created_at)
+                date_format = "%Y-%m"
+            else:
+                date_trunc = func.date(User.created_at)
+                date_format = "%Y-%m-%d"
+            
+            # Query user growth data
+            growth_query = self.db.query(
+                date_trunc.label('period'),
+                func.count(User.id).label('new_users'),
+                func.count(func.distinct(User.tenant_id)).label('new_tenants')
+            ).filter(
+                and_(
+                    User.created_at >= start_date,
+                    User.created_at <= end_date
+                )
+            ).group_by('period').order_by('period').all()
+            
+            # Convert to trend data
+            trend_data = []
+            cumulative_users = 0
+            
+            for period, new_users, new_tenants in growth_query:
+                cumulative_users += new_users
+                
+                if aggregation == "weekly":
+                    period_str = period.strftime("%Y-W%U")
+                elif aggregation == "monthly":
+                    period_str = period.strftime("%Y-%m")
+                else:
+                    period_str = period.strftime("%Y-%m-%d")
+                
+                trend_data.append({
+                    "period": period_str,
+                    "new_users": new_users,
+                    "cumulative_users": cumulative_users,
+                    "new_tenants": new_tenants
+                })
+            
+            # Calculate total users and growth rate
+            total_users = self.db.query(User).count()
+            
+            # Calculate growth rate (comparing first and last periods)
+            growth_rate = 0.0
+            if len(trend_data) >= 2:
+                first_period = trend_data[0]["new_users"]
+                last_period = trend_data[-1]["new_users"]
+                if first_period > 0:
+                    growth_rate = ((last_period - first_period) / first_period) * 100
+            
+            return {
+                "trend_data": trend_data,
+                "total_users": total_users,
+                "growth_rate": round(growth_rate, 2),
+                "aggregation": aggregation,
+                "period_count": len(trend_data)
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to get user growth trends: {e}")
+            raise
+
+    def get_revenue_analysis_trends(self, start_date: datetime, end_date: datetime, aggregation: str = "daily") -> Dict[str, Any]:
+        """Get revenue trend analysis with MRR calculations and growth metrics"""
+        try:
+            # Determine aggregation function
+            if aggregation == "daily":
+                date_trunc = func.date(Tenant.subscription_starts_at)
+            elif aggregation == "weekly":
+                date_trunc = func.date_trunc('week', Tenant.subscription_starts_at)
+            elif aggregation == "monthly":
+                date_trunc = func.date_trunc('month', Tenant.subscription_starts_at)
+            else:
+                date_trunc = func.date(Tenant.subscription_starts_at)
+            
+            # Pro subscription price (assuming $50/month)
+            pro_price_monthly = 50.0
+            
+            # Query revenue data by subscription activations
+            revenue_query = self.db.query(
+                date_trunc.label('period'),
+                func.count(Tenant.id).label('new_subscriptions')
+            ).filter(
+                and_(
+                    Tenant.subscription_starts_at >= start_date,
+                    Tenant.subscription_starts_at <= end_date,
+                    Tenant.subscription_type == SubscriptionType.PRO
+                )
+            ).group_by('period').order_by('period').all()
+            
+            # Convert to trend data
+            trend_data = []
+            cumulative_revenue = 0
+            cumulative_mrr = 0
+            
+            for period, new_subs in revenue_query:
+                new_revenue = new_subs * pro_price_monthly  # Calculate revenue from new subscriptions
+                cumulative_revenue += new_revenue
+                cumulative_mrr += new_revenue
+                
+                if aggregation == "weekly":
+                    period_str = period.strftime("%Y-W%U")
+                elif aggregation == "monthly":
+                    period_str = period.strftime("%Y-%m")
+                else:
+                    period_str = period.strftime("%Y-%m-%d")
+                
+                trend_data.append({
+                    "period": period_str,
+                    "new_subscriptions": new_subs,
+                    "new_revenue": round(new_revenue, 2),
+                    "cumulative_revenue": round(cumulative_revenue, 2),
+                    "period_mrr": round(new_subs * pro_price_monthly, 2)
+                })
+            
+            # Calculate MRR trend (current active Pro subscriptions)
+            current_pro_subs = self.db.query(Tenant).filter(
+                and_(
+                    Tenant.subscription_type == SubscriptionType.PRO,
+                    Tenant.status == TenantStatus.ACTIVE
+                )
+            ).count()
+            
+            current_mrr = current_pro_subs * pro_price_monthly
+            
+            # Calculate growth metrics
+            mrr_growth_rate = 0.0
+            revenue_growth_rate = 0.0
+            
+            if len(trend_data) >= 2:
+                first_mrr = trend_data[0]["period_mrr"]
+                last_mrr = trend_data[-1]["period_mrr"]
+                if first_mrr > 0:
+                    mrr_growth_rate = ((last_mrr - first_mrr) / first_mrr) * 100
+                
+                first_revenue = trend_data[0]["new_revenue"]
+                last_revenue = trend_data[-1]["new_revenue"]
+                if first_revenue > 0:
+                    revenue_growth_rate = ((last_revenue - first_revenue) / first_revenue) * 100
+            
+            # MRR trend data (monthly recurring revenue over time)
+            mrr_trend = []
+            running_mrr = 0
+            
+            for item in trend_data:
+                running_mrr += item["period_mrr"]
+                mrr_trend.append({
+                    "period": item["period"],
+                    "mrr": running_mrr
+                })
+            
+            growth_metrics = {
+                "current_mrr": round(current_mrr, 2),
+                "mrr_growth_rate": round(mrr_growth_rate, 2),
+                "revenue_growth_rate": round(revenue_growth_rate, 2),
+                "total_revenue": round(cumulative_revenue, 2),
+                "average_revenue_per_period": round(cumulative_revenue / len(trend_data), 2) if trend_data else 0.0
+            }
+            
+            return {
+                "trend_data": trend_data,
+                "mrr_trend": mrr_trend,
+                "growth_metrics": growth_metrics,
+                "aggregation": aggregation,
+                "period_count": len(trend_data)
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to get revenue analysis trends: {e}")
+            raise
+
+    def get_invoice_volume_trends(self, start_date: datetime, end_date: datetime, aggregation: str = "daily") -> Dict[str, Any]:
+        """Get platform-wide invoice creation volume tracking and analytics"""
+        try:
+            # Determine aggregation function
+            if aggregation == "daily":
+                date_trunc = func.date(Invoice.created_at)
+            elif aggregation == "weekly":
+                date_trunc = func.date_trunc('week', Invoice.created_at)
+            elif aggregation == "monthly":
+                date_trunc = func.date_trunc('month', Invoice.created_at)
+            else:
+                date_trunc = func.date(Invoice.created_at)
+            
+            # Query invoice volume data
+            volume_query = self.db.query(
+                date_trunc.label('period'),
+                func.count(Invoice.id).label('total_invoices'),
+                func.sum(Invoice.total_amount).label('total_value'),
+                func.count(func.distinct(Invoice.tenant_id)).label('active_tenants')
+            ).filter(
+                and_(
+                    Invoice.created_at >= start_date,
+                    Invoice.created_at <= end_date
+                )
+            ).group_by('period').order_by('period').all()
+            
+            # Convert to trend data
+            trend_data = []
+            cumulative_invoices = 0
+            cumulative_value = 0
+            
+            for period, total_invoices, total_value, active_tenants in volume_query:
+                cumulative_invoices += total_invoices
+                cumulative_value += total_value or 0
+                
+                if aggregation == "weekly":
+                    period_str = period.strftime("%Y-W%U")
+                elif aggregation == "monthly":
+                    period_str = period.strftime("%Y-%m")
+                else:
+                    period_str = period.strftime("%Y-%m-%d")
+                
+                # Get invoice type breakdown for this period (simplified)
+                general_invoices = 0
+                gold_invoices = 0
+                
+                trend_data.append({
+                    "period": period_str,
+                    "total_invoices": total_invoices,
+                    "general_invoices": general_invoices,
+                    "gold_invoices": gold_invoices,
+                    "total_value": round(total_value or 0, 2),
+                    "cumulative_invoices": cumulative_invoices,
+                    "cumulative_value": round(cumulative_value, 2),
+                    "active_tenants": active_tenants
+                })
+            
+            # Calculate totals and averages
+            total_invoices = self.db.query(Invoice).filter(
+                and_(
+                    Invoice.created_at >= start_date,
+                    Invoice.created_at <= end_date
+                )
+            ).count()
+            
+            days_in_period = (end_date - start_date).days + 1
+            average_per_day = total_invoices / days_in_period if days_in_period > 0 else 0.0
+            
+            # Calculate growth rate
+            growth_rate = 0.0
+            if len(trend_data) >= 2:
+                first_period = trend_data[0]["total_invoices"]
+                last_period = trend_data[-1]["total_invoices"]
+                if first_period > 0:
+                    growth_rate = ((last_period - first_period) / first_period) * 100
+            
+            # Invoice type breakdown
+            type_breakdown = self.db.query(
+                Invoice.invoice_type,
+                func.count(Invoice.id).label('count'),
+                func.sum(Invoice.total_amount).label('total_value')
+            ).filter(
+                and_(
+                    Invoice.created_at >= start_date,
+                    Invoice.created_at <= end_date
+                )
+            ).group_by(Invoice.invoice_type).all()
+            
+            by_invoice_type = {}
+            for invoice_type, count, total_value in type_breakdown:
+                by_invoice_type[invoice_type] = {
+                    "count": count,
+                    "total_value": round(total_value or 0, 2),
+                    "percentage": round((count / total_invoices * 100), 2) if total_invoices > 0 else 0.0
+                }
+            
+            # Top tenants by invoice volume
+            top_tenants_query = self.db.query(
+                Invoice.tenant_id,
+                func.count(Invoice.id).label('invoice_count'),
+                func.sum(Invoice.total_amount).label('total_value')
+            ).filter(
+                and_(
+                    Invoice.created_at >= start_date,
+                    Invoice.created_at <= end_date
+                )
+            ).group_by(Invoice.tenant_id).order_by(desc('invoice_count')).limit(10).all()
+            
+            top_tenants = []
+            for tenant_id, invoice_count, total_value in top_tenants_query:
+                # Get tenant name
+                tenant = self.db.query(Tenant).filter(Tenant.id == tenant_id).first()
+                tenant_name = tenant.name if tenant else f"Tenant {tenant_id}"
+                
+                top_tenants.append({
+                    "tenant_id": str(tenant_id),
+                    "tenant_name": tenant_name,
+                    "invoice_count": invoice_count,
+                    "total_value": round(total_value or 0, 2)
+                })
+            
+            return {
+                "trend_data": trend_data,
+                "total_invoices": total_invoices,
+                "average_per_day": round(average_per_day, 2),
+                "growth_rate": round(growth_rate, 2),
+                "by_invoice_type": by_invoice_type,
+                "top_tenants": top_tenants,
+                "aggregation": aggregation,
+                "period_count": len(trend_data)
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to get invoice volume trends: {e}")
+            raise
+
+    def get_subscription_conversion_trends(self, start_date: datetime, end_date: datetime, aggregation: str = "daily") -> Dict[str, Any]:
+        """Get subscription conversion tracking (Free to Pro upgrades)"""
+        try:
+            # Determine aggregation function
+            if aggregation == "daily":
+                date_trunc = func.date(Tenant.subscription_starts_at)
+            elif aggregation == "weekly":
+                date_trunc = func.date_trunc('week', Tenant.subscription_starts_at)
+            elif aggregation == "monthly":
+                date_trunc = func.date_trunc('month', Tenant.subscription_starts_at)
+            else:
+                date_trunc = func.date(Tenant.subscription_starts_at)
+            
+            # Query conversion data (tenants that upgraded from Free to Pro)
+            conversion_query = self.db.query(
+                date_trunc.label('period'),
+                func.count(Tenant.id).label('conversions')
+            ).filter(
+                and_(
+                    Tenant.subscription_type == SubscriptionType.PRO,
+                    Tenant.subscription_starts_at >= start_date,
+                    Tenant.subscription_starts_at <= end_date
+                )
+            ).group_by('period').order_by('period').all()
+            
+            # Query new signups for conversion rate calculation
+            signup_query = self.db.query(
+                func.date(Tenant.created_at).label('period'),
+                func.count(Tenant.id).label('new_signups')
+            ).filter(
+                and_(
+                    Tenant.created_at >= start_date,
+                    Tenant.created_at <= end_date
+                )
+            ).group_by('period').order_by('period').all()
+            
+            # Create lookup for signups by date
+            signups_by_date = {}
+            for period, new_signups in signup_query:
+                signups_by_date[period.strftime("%Y-%m-%d")] = new_signups
+            
+            # Convert to trend data
+            trend_data = []
+            cumulative_conversions = 0
+            
+            for period, conversions in conversion_query:
+                cumulative_conversions += conversions
+                
+                if aggregation == "weekly":
+                    period_str = period.strftime("%Y-W%U")
+                elif aggregation == "monthly":
+                    period_str = period.strftime("%Y-%m")
+                else:
+                    period_str = period.strftime("%Y-%m-%d")
+                
+                # Calculate conversion rate for this period
+                period_signups = signups_by_date.get(period.strftime("%Y-%m-%d"), 0)
+                conversion_rate = (conversions / period_signups * 100) if period_signups > 0 else 0.0
+                
+                trend_data.append({
+                    "period": period_str,
+                    "conversions": conversions,
+                    "cumulative_conversions": cumulative_conversions,
+                    "new_signups": period_signups,
+                    "conversion_rate": round(conversion_rate, 2)
+                })
+            
+            # Calculate overall metrics
+            total_conversions = self.db.query(Tenant).filter(
+                and_(
+                    Tenant.subscription_type == SubscriptionType.PRO,
+                    Tenant.subscription_starts_at >= start_date,
+                    Tenant.subscription_starts_at <= end_date
+                )
+            ).count()
+            
+            total_signups = self.db.query(Tenant).filter(
+                and_(
+                    Tenant.created_at >= start_date,
+                    Tenant.created_at <= end_date
+                )
+            ).count()
+            
+            overall_conversion_rate = (total_conversions / total_signups * 100) if total_signups > 0 else 0.0
+            
+            # Calculate average time to convert (simplified - using subscription_starts_at vs created_at)
+            conversion_times = self.db.query(
+                func.extract('epoch', Tenant.subscription_starts_at - Tenant.created_at).label('time_to_convert')
+            ).filter(
+                and_(
+                    Tenant.subscription_type == SubscriptionType.PRO,
+                    Tenant.subscription_starts_at >= start_date,
+                    Tenant.subscription_starts_at <= end_date,
+                    Tenant.subscription_starts_at.isnot(None)
+                )
+            ).all()
+            
+            avg_time_to_convert = 0.0
+            if conversion_times:
+                total_time = sum([time[0] for time in conversion_times if time[0]])
+                avg_time_to_convert = total_time / len(conversion_times) / 86400  # Convert to days
+            
+            # Conversion funnel
+            total_tenants = self.db.query(Tenant).count()
+            active_free = self.db.query(Tenant).filter(
+                and_(
+                    Tenant.subscription_type == SubscriptionType.FREE,
+                    Tenant.status == TenantStatus.ACTIVE
+                )
+            ).count()
+            active_pro = self.db.query(Tenant).filter(
+                and_(
+                    Tenant.subscription_type == SubscriptionType.PRO,
+                    Tenant.status == TenantStatus.ACTIVE
+                )
+            ).count()
+            
+            conversion_funnel = {
+                "total_signups": total_tenants,
+                "active_free": active_free,
+                "converted_to_pro": active_pro,
+                "conversion_rate": round((active_pro / total_tenants * 100), 2) if total_tenants > 0 else 0.0
+            }
+            
+            # Revenue impact
+            pro_price_monthly = 50.0
+            revenue_impact = {
+                "monthly_revenue_added": round(total_conversions * pro_price_monthly, 2),
+                "annual_revenue_potential": round(total_conversions * pro_price_monthly * 12, 2),
+                "average_revenue_per_conversion": pro_price_monthly
+            }
+            
+            return {
+                "trend_data": trend_data,
+                "total_conversions": total_conversions,
+                "conversion_rate": round(overall_conversion_rate, 2),
+                "average_time_to_convert": round(avg_time_to_convert, 1),
+                "conversion_funnel": conversion_funnel,
+                "revenue_impact": revenue_impact,
+                "aggregation": aggregation,
+                "period_count": len(trend_data)
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to get subscription conversion trends: {e}")
+            raise

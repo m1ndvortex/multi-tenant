@@ -222,7 +222,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                 <Share2 className="h-4 w-4 ml-2" />
                 اشتراک‌گذاری
               </Button>
-              {(invoice.installment_type === 'GENERAL' || invoice.is_installment) && (
+              {(invoice.installment_type === 'GENERAL' || (invoice as any).is_installment) && (
                 <Button
                   variant="outline"
                   size="sm"

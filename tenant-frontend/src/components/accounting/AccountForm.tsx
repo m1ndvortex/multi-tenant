@@ -126,7 +126,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({
         // Update existing account
         const updateData: AccountUpdate = {
           account_name: formData.account_name,
-          account_type: formData.account_type,
+          account_type: formData.account_type || undefined,
           parent_id: formData.parent_id || undefined,
           is_control_account: formData.is_control_account,
           allow_posting: formData.allow_posting,
@@ -143,7 +143,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({
         const createData: AccountCreate = {
           account_code: formData.account_code,
           account_name: formData.account_name,
-          account_type: formData.account_type,
+          account_type: formData.account_type as 'asset' | 'liability' | 'equity' | 'revenue' | 'expense',
           parent_id: formData.parent_id || undefined,
           is_control_account: formData.is_control_account,
           allow_posting: formData.allow_posting,

@@ -206,7 +206,7 @@ const GoldPriceManagement: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Current Price Card */}
-      <Card variant="gradient-yellow">
+      <Card variant="default">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -221,7 +221,7 @@ const GoldPriceManagement: React.FC = () => {
             
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="gradient-yellow">
+                <Button variant="default">
                   <Plus className="h-4 w-4 ml-2" />
                   ثبت قیمت جدید
                 </Button>
@@ -263,7 +263,7 @@ const GoldPriceManagement: React.FC = () => {
                       انصراف
                     </Button>
                     <Button
-                      variant="gradient-yellow"
+                      variant="default"
                       onClick={handleCreatePrice}
                       disabled={submitting}
                     >
@@ -456,7 +456,7 @@ const GoldPriceManagement: React.FC = () => {
                   انصراف
                 </Button>
                 <Button
-                  variant="gradient-yellow"
+                  variant="default"
                   onClick={handleEditPrice}
                   disabled={submitting}
                 >

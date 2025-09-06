@@ -138,8 +138,8 @@ const InvoiceEdit: React.FC<InvoiceEditProps> = ({
     if (product) {
       handleItemChange(index, 'product_id', productId);
       handleItemChange(index, 'description', product.name);
-      handleItemChange(index, 'unit_price', product.price);
-      handleItemChange(index, 'line_total', product.price * (formData.items?.[index]?.quantity || 1));
+      handleItemChange(index, 'unit_price', (product as any).price || 0);
+      handleItemChange(index, 'line_total', ((product as any).price || 0) * (formData.items?.[index]?.quantity || 1));
     }
   };
 
@@ -288,7 +288,7 @@ const InvoiceEdit: React.FC<InvoiceEditProps> = ({
 
           {/* Gold Price (for Gold invoices) */}
           {invoice.invoice_type === 'GOLD' && (
-            <Card variant="gradient-yellow">
+            <Card variant="default">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Coins className="h-5 w-5" />

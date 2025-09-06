@@ -367,7 +367,7 @@ const ManualReminderComponent: React.FC = () => {
                 <Button
                   variant="gradient-green"
                   onClick={handleSendReminder}
-                  disabled={sending || !reminderForm.custom_message.trim()}
+                  disabled={sending || !reminderForm.custom_message?.trim()}
                 >
                   {sending ? 'در حال ارسال...' : 'ارسال یادآوری'}
                 </Button>

@@ -1,4 +1,4 @@
-import { api } from '@/lib/api';
+import { apiClient } from '@/lib/api';
 
 export interface NotificationSettings {
   id: string;
@@ -67,13 +67,13 @@ export interface CustomerSegment {
 class NotificationService {
   // Notification Settings
   async getNotificationSettings(): Promise<NotificationSettings> {
-    const response = await api.get('/notifications/settings');
-    return response.data;
+    const response = await apiClient.get('/notifications/settings');
+    return response.data as NotificationSettings;
   }
 
   async updateNotificationSettings(settings: Partial<NotificationSettings>): Promise<NotificationSettings> {
-    const response = await api.put('/notifications/settings', settings);
-    return response.data;
+    const response = await apiClient.put('/notifications/settings', settings);
+    return response.data as NotificationSettings;
   }
 
   // Notification History
@@ -90,14 +90,14 @@ class NotificationService {
     page: number;
     limit: number;
   }> {
-    const response = await api.get('/notifications/history', { params });
-    return response.data;
+    const response = await apiClient.get('/notifications/history', { params });
+    return response.data as any;
   }
 
   // Manual Reminders
   async sendManualReminder(request: ManualReminderRequest): Promise<{ success: boolean; message: string }> {
-    const response = await api.post('/notifications/manual-reminder', request);
-    return response.data;
+    const response = await apiClient.post('/notifications/manual-reminder', request);
+    return response.data as any;
   }
 
   async getUnpaidInvoices(): Promise<Array<{
@@ -110,8 +110,8 @@ class NotificationService {
     due_date: string;
     days_overdue: number;
   }>> {
-    const response = await api.get('/notifications/unpaid-invoices');
-    return response.data;
+    const response = await apiClient.get('/notifications/unpaid-invoices');
+    return response.data as any;
   }
 
   // Marketing Campaigns
@@ -125,49 +125,49 @@ class NotificationService {
     page: number;
     limit: number;
   }> {
-    const response = await api.get('/notifications/campaigns', { params });
-    return response.data;
+    const response = await apiClient.get('/notifications/campaigns', { params });
+    return response.data as any;
   }
 
   async createMarketingCampaign(campaign: Omit<MarketingCampaign, 'id' | 'tenant_id' | 'created_at'>): Promise<MarketingCampaign> {
-    const response = await api.post('/notifications/campaigns', campaign);
-    return response.data;
+    const response = await apiClient.post('/notifications/campaigns', campaign);
+    return response.data as any;
   }
 
   async updateMarketingCampaign(id: string, campaign: Partial<MarketingCampaign>): Promise<MarketingCampaign> {
-    const response = await api.put(`/notifications/campaigns/${id}`, campaign);
-    return response.data;
+    const response = await apiClient.put(`/notifications/campaigns/${id}`, campaign);
+    return response.data as any;
   }
 
   async deleteMarketingCampaign(id: string): Promise<void> {
-    await api.delete(`/notifications/campaigns/${id}`);
+    await apiClient.delete(`/notifications/campaigns/${id}`);
   }
 
   async sendMarketingCampaign(id: string): Promise<{ success: boolean; message: string }> {
-    const response = await api.post(`/notifications/campaigns/${id}/send`);
-    return response.data;
+    const response = await apiClient.post(`/notifications/campaigns/${id}/send`);
+    return response.data as any;
   }
 
   // Customer Segmentation
   async getCustomerSegments(): Promise<CustomerSegment[]> {
-    const response = await api.get('/notifications/segments');
-    return response.data;
+    const response = await apiClient.get('/notifications/segments');
+    return response.data as any;
   }
 
   async getCustomerTags(): Promise<string[]> {
-    const response = await api.get('/customers/tags');
-    return response.data;
+    const response = await apiClient.get('/customers/tags');
+    return response.data as any;
   }
 
   // Templates
   async getEmailTemplates(): Promise<Array<{ id: string; name: string; subject: string; content: string }>> {
-    const response = await api.get('/notifications/email-templates');
-    return response.data;
+    const response = await apiClient.get('/notifications/email-templates');
+    return response.data as any;
   }
 
   async getSmsTemplates(): Promise<Array<{ id: string; name: string; content: string }>> {
-    const response = await api.get('/notifications/sms-templates');
-    return response.data;
+    const response = await apiClient.get('/notifications/sms-templates');
+    return response.data as any;
   }
 }
 

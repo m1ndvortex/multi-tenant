@@ -203,11 +203,11 @@ const ReportSchedulingInterface: React.FC<ReportSchedulingInterfaceProps> = ({ c
     setEditingReport(report);
     setFormData({
       name: report.name,
-      report_type: report.report_type,
-      schedule_type: report.schedule_type,
+      report_type: report.report_type as any,
+      schedule_type: report.schedule_type as any,
       schedule_time: report.schedule_time,
       schedule_day: report.schedule_day || 1,
-      export_format: report.export_format,
+      export_format: report.export_format as any,
       email_recipients: report.email_recipients.length > 0 ? report.email_recipients : [''],
       parameters: report.parameters
     });
