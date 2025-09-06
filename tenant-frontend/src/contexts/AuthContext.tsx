@@ -6,15 +6,18 @@ interface User {
   email: string;
   role: string;
   tenant_id: string;
+  name?: string;
+  is_active: boolean;
 }
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: (reason?: string) => void;
   isLoading: boolean;
   isAuthenticated: boolean;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -52,11 +55,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await axios.get('/api/auth/me');
       setUser(response.data);
+      
+      // Update last activity timestamp
+      localStorage.setItem('last_activity', Date.now().toString());
     } catch (error) {
       console.error('Token verification failed:', error);
-      logout();
+      logout('توکن نامعتبر است');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const refreshUser = async () => {
+    if (!token) return;
+    
+    try {
+      const response = await axios.get('/api/auth/me');
+      setUser(response.data);
+    } catch (error) {
+      console.error('Failed to refresh user:', error);
+      logout('خطا در بروزرسانی اطلاعات کاربر');
     }
   };
 
@@ -72,6 +90,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setToken(access_token);
       setUser(userData);
       localStorage.setItem('tenant_token', access_token);
+      localStorage.setItem('last_activity', Date.now().toString());
       axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
     } catch (error) {
       console.error('Login failed:', error);
@@ -79,11 +98,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = () => {
+  const logout = (reason?: string) => {
     setUser(null);
     setToken(null);
     localStorage.removeItem('tenant_token');
+    localStorage.removeItem('last_activity');
     delete axios.defaults.headers.common['Authorization'];
+    
+    if (reason) {
+      console.log('Logout reason:', reason);
+    }
   };
 
   const value: AuthContextType = {
@@ -93,6 +117,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     isLoading,
     isAuthenticated: !!user && !!token,
+    refreshUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

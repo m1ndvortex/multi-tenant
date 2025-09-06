@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTenant } from '@/contexts/TenantContext';
+import { useSessionManagement } from '@/hooks/useSessionManagement';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -13,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Card } from '@/components/ui/card';
+import { useToast } from '@/components/ui/use-toast';
 import { 
   Crown, 
   User, 
@@ -20,13 +22,16 @@ import {
   LogOut, 
   CreditCard,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  Clock
 } from 'lucide-react';
 
 
 const Header: React.FC = () => {
   const { user, logout } = useAuth();
   const { tenant } = useTenant();
+  const { toast } = useToast();
+  const { timeRemaining, showWarning, extendSession } = useSessionManagement();
 
   const getSubscriptionBadge = () => {
     if (!tenant) return null;
@@ -189,7 +194,23 @@ const Header: React.FC = () => {
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout} className="text-red-600">
+                {showWarning && timeRemaining && (
+                  <DropdownMenuItem onClick={extendSession} className="text-orange-600">
+                    <Clock className="ml-2 h-4 w-4" />
+                    <span>تمدید جلسه ({timeRemaining} دقیقه)</span>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem 
+                  onClick={() => {
+                    toast({
+                      title: "خروج از سیستم",
+                      description: "با موفقیت از سیستم خارج شدید",
+                      variant: "default",
+                    });
+                    logout('خروج توسط کاربر');
+                  }} 
+                  className="text-red-600"
+                >
                   <LogOut className="ml-2 h-4 w-4" />
                   <span>خروج</span>
                 </DropdownMenuItem>

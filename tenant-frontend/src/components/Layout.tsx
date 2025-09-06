@@ -1,7 +1,9 @@
 import React, { ReactNode, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSessionManagement } from '@/hooks/useSessionManagement';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import LoginPage from '@/pages/Login';
 import { cn } from '@/lib/utils';
 
 interface LayoutProps {
@@ -11,35 +13,34 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { isAuthenticated, isLoading } = useAuth();
+  
+  // Initialize session management
+  useSessionManagement({
+    timeoutMinutes: 30,
+    warningMinutes: 5,
+    checkIntervalSeconds: 60
+  });
 
   // Show loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50/30 to-white flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-green-50/30 to-white flex items-center justify-center" dir="rtl">
         <div className="text-center">
-          <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center mx-auto mb-4">
+          <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center mx-auto mb-4 animate-pulse">
             <span className="text-white font-bold text-lg">ح</span>
           </div>
-          <p className="text-slate-600">در حال بارگذاری...</p>
+          <div className="space-y-2">
+            <div className="h-4 bg-slate-200 rounded w-24 mx-auto animate-pulse"></div>
+            <p className="text-slate-600">در حال بارگذاری...</p>
+          </div>
         </div>
       </div>
     );
   }
 
-  // Show login form if not authenticated
+  // Show login page if not authenticated
   if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50/30 to-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="h-16 w-16 rounded-lg bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center mx-auto mb-6">
-            <span className="text-white font-bold text-2xl">ح</span>
-          </div>
-          <h1 className="text-3xl font-bold text-slate-800 mb-2">حساب پلاس</h1>
-          <p className="text-slate-600 mb-8">سیستم مدیریت کسب و کار</p>
-          <p className="text-slate-500">لطفاً وارد شوید</p>
-        </div>
-      </div>
-    );
+    return <LoginPage />;
   }
 
   return (
