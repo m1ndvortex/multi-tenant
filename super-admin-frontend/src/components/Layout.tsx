@@ -1,7 +1,7 @@
 import React, { ReactNode } from 'react';
 import NavigationSidebar from '@/components/navigation/NavigationSidebar';
+import SuperAdminHeader from '@/components/SuperAdminHeader';
 import Breadcrumb from '@/components/navigation/Breadcrumb';
-import UserProfileDropdown from '@/components/navigation/UserProfileDropdown';
 import { useNavigation } from '@/contexts/NavigationContext';
 import useKeyboardShortcuts from '@/hooks/useKeyboardShortcuts';
 import { cn } from '@/lib/utils';
@@ -21,49 +21,25 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        {/* Top Header */}
-        <header className="bg-white/80 backdrop-blur-sm border-b border-slate-200/50 px-6 py-4">
+        {/* Enhanced Header */}
+        <SuperAdminHeader />
+
+        {/* Page Header with Breadcrumb */}
+        <div className="bg-white/60 backdrop-blur-sm border-b border-slate-200/30 px-6 py-3">
           <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <div className="flex items-center gap-4 mb-2">
-                <h2 className="text-2xl font-semibold text-slate-800">
-                  {navigationState.pageTitle}
-                </h2>
-                {/* Quick Actions */}
-                <div className="flex items-center gap-2">
-                  <button
-                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors duration-200"
-                    title="جستجوی سراسری (Ctrl+/)"
-                  >
-                    <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </button>
-                  <button
-                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors duration-200"
-                    title="اعلان‌ها"
-                  >
-                    <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM10.07 2.82l3.12 3.12M7.05 5.84l3.12 3.12M4.03 8.86l3.12 3.12M1.01 11.88l3.12 3.12" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-slate-600 mb-2">
-                    {navigationState.pageDescription}
-                  </p>
-                  <Breadcrumb />
-                </div>
+            <div>
+              <h2 className="text-xl font-semibold text-slate-800 mb-1">
+                {navigationState.pageTitle}
+              </h2>
+              <div className="flex items-center gap-4">
+                <p className="text-sm text-slate-600">
+                  {navigationState.pageDescription}
+                </p>
+                <Breadcrumb />
               </div>
             </div>
-            
-            {/* User Profile Dropdown */}
-            <UserProfileDropdown />
           </div>
-        </header>
+        </div>
 
         {/* Page Content */}
         <main className={cn(
