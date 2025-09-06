@@ -20,7 +20,9 @@ from ..schemas.super_admin import (
     SubscriptionUpdateRequest, PaymentConfirmationRequest, TenantSearchRequest,
     TenantResponse, TenantListResponse, TenantStatsResponse, TenantUsageResponse,
     PendingPaymentsResponse, PendingPaymentTenant, PaymentConfirmationResponse,
-    TenantActivityResponse, BulkTenantActionRequest, BulkTenantActionResponse
+    TenantActivityResponse, BulkTenantActionRequest, BulkTenantActionResponse,
+    SystemHealthResponse, CeleryMonitoringResponse, DatabaseMetricsResponse,
+    SystemAlertsResponse, PerformanceMetricsResponse
 )
 
 logger = logging.getLogger(__name__)
@@ -855,4 +857,127 @@ async def get_tenant_statistics(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve tenant statistics: {str(e)}"
+        )
+
+
+# System Health Monitoring Endpoints
+
+@router.get("/system/health", response_model=SystemHealthResponse)
+async def get_system_health(
+    current_user: User = Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get comprehensive system health status including CPU, RAM, database, and Celery metrics
+    """
+    try:
+        from ..services.monitoring_service import MonitoringService
+        
+        monitoring_service = MonitoringService(db)
+        health_data = monitoring_service.get_system_health()
+        
+        return SystemHealthResponse(**health_data)
+        
+    except Exception as e:
+        logger.error(f"Failed to get system health: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve system health: {str(e)}"
+        )
+
+
+@router.get("/system/celery", response_model=CeleryMonitoringResponse)
+async def get_celery_monitoring(
+    current_user: User = Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get detailed Celery job queue monitoring with task status and failure tracking
+    """
+    try:
+        from ..services.monitoring_service import MonitoringService
+        
+        monitoring_service = MonitoringService(db)
+        celery_data = monitoring_service.get_celery_monitoring()
+        
+        return CeleryMonitoringResponse(**celery_data)
+        
+    except Exception as e:
+        logger.error(f"Failed to get Celery monitoring data: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve Celery monitoring data: {str(e)}"
+        )
+
+
+@router.get("/system/database", response_model=DatabaseMetricsResponse)
+async def get_database_metrics(
+    current_user: User = Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get database performance monitoring with query performance metrics
+    """
+    try:
+        from ..services.monitoring_service import MonitoringService
+        
+        monitoring_service = MonitoringService(db)
+        db_metrics = monitoring_service.get_database_metrics()
+        
+        return DatabaseMetricsResponse(**db_metrics)
+        
+    except Exception as e:
+        logger.error(f"Failed to get database metrics: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve database metrics: {str(e)}"
+        )
+
+
+@router.get("/system/alerts", response_model=SystemAlertsResponse)
+async def get_system_alerts(
+    current_user: User = Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get system alerts for performance thresholds and failures
+    """
+    try:
+        from ..services.monitoring_service import MonitoringService
+        
+        monitoring_service = MonitoringService(db)
+        alerts_data = monitoring_service.get_system_alerts()
+        
+        return SystemAlertsResponse(**alerts_data)
+        
+    except Exception as e:
+        logger.error(f"Failed to get system alerts: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve system alerts: {str(e)}"
+        )
+
+
+@router.get("/system/performance", response_model=PerformanceMetricsResponse)
+async def get_performance_metrics(
+    hours: int = Query(24, ge=1, le=168, description="Number of hours of historical data"),
+    current_user: User = Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get performance metrics with historical data and trends
+    """
+    try:
+        from ..services.monitoring_service import MonitoringService
+        
+        monitoring_service = MonitoringService(db)
+        performance_data = monitoring_service.get_performance_metrics(hours)
+        
+        return PerformanceMetricsResponse(**performance_data)
+        
+    except Exception as e:
+        logger.error(f"Failed to get performance metrics: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve performance metrics: {str(e)}"
         )

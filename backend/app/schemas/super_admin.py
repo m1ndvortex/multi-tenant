@@ -206,3 +206,102 @@ class BulkTenantActionResponse(BaseModel):
     successful_tenant_ids: List[str]
     failed_operations: List[Dict[str, str]]
     message: str
+
+
+# System Health Monitoring Schemas
+
+class SystemHealthResponse(BaseModel):
+    """Response model for system health status"""
+    status: str = Field(..., description="Overall system status: healthy, degraded, unhealthy")
+    database_status: bool = Field(..., description="Database connection status")
+    redis_status: bool = Field(..., description="Redis connection status")
+    celery_status: bool = Field(..., description="Celery worker status")
+    cpu_usage_percent: float = Field(..., description="Current CPU usage percentage")
+    memory_usage_percent: float = Field(..., description="Current memory usage percentage")
+    disk_usage_percent: float = Field(..., description="Current disk usage percentage")
+    database_connections: int = Field(..., description="Active database connections")
+    database_response_time_ms: float = Field(..., description="Database response time in milliseconds")
+    celery_active_tasks: int = Field(..., description="Number of active Celery tasks")
+    celery_pending_tasks: int = Field(..., description="Number of pending Celery tasks")
+    celery_failed_tasks: int = Field(..., description="Number of failed Celery tasks")
+    celery_workers: int = Field(..., description="Number of active Celery workers")
+    average_response_time_ms: float = Field(..., description="Average API response time in milliseconds")
+    requests_per_minute: float = Field(..., description="API requests per minute")
+    error_rate_percent: float = Field(..., description="API error rate percentage")
+    last_health_check: datetime = Field(..., description="Timestamp of last health check")
+    uptime_seconds: int = Field(..., description="System uptime in seconds")
+
+
+class CeleryTaskInfo(BaseModel):
+    """Model for Celery task information"""
+    task_id: Optional[str] = Field(None, description="Task ID")
+    task_name: Optional[str] = Field(None, description="Task name")
+    state: str = Field(..., description="Task state")
+    worker: Optional[str] = Field(None, description="Worker name")
+    timestamp: Optional[datetime] = Field(None, description="Task timestamp")
+    runtime: Optional[float] = Field(None, description="Task runtime in seconds")
+    args: Optional[List[Any]] = Field(None, description="Task arguments")
+    kwargs: Optional[Dict[str, Any]] = Field(None, description="Task keyword arguments")
+    error_message: Optional[str] = Field(None, description="Error message if failed")
+
+
+class CeleryWorkerInfo(BaseModel):
+    """Model for Celery worker information"""
+    name: str = Field(..., description="Worker name")
+    status: str = Field(..., description="Worker status")
+    processed_tasks: int = Field(..., description="Total processed tasks")
+    active_tasks: int = Field(..., description="Currently active tasks")
+    load_avg: float = Field(..., description="Worker load average")
+    memory_usage: int = Field(..., description="Worker memory usage")
+
+
+class CeleryMonitoringResponse(BaseModel):
+    """Response model for Celery monitoring information"""
+    active_tasks: List[CeleryTaskInfo] = Field(..., description="Currently active tasks")
+    pending_tasks: List[CeleryTaskInfo] = Field(..., description="Pending tasks")
+    failed_tasks: List[CeleryTaskInfo] = Field(..., description="Recently failed tasks")
+    completed_tasks: List[CeleryTaskInfo] = Field(..., description="Recently completed tasks")
+    total_active: int = Field(..., description="Total active tasks count")
+    total_pending: int = Field(..., description="Total pending tasks count")
+    total_failed: int = Field(..., description="Total failed tasks count")
+    total_completed: int = Field(..., description="Total completed tasks count")
+    active_workers: List[CeleryWorkerInfo] = Field(..., description="Active workers")
+    worker_count: int = Field(..., description="Number of active workers")
+    average_task_duration: float = Field(..., description="Average task duration in seconds")
+    tasks_per_minute: float = Field(..., description="Tasks processed per minute")
+    failure_rate: float = Field(..., description="Task failure rate percentage")
+    last_updated: datetime = Field(..., description="Last update timestamp")
+
+
+class DatabaseMetricsResponse(BaseModel):
+    """Response model for database performance metrics"""
+    connection_count: int = Field(..., description="Active database connections")
+    max_connections: int = Field(..., description="Maximum allowed connections")
+    connection_usage_percent: float = Field(..., description="Connection usage percentage")
+    average_query_time_ms: float = Field(..., description="Average query execution time")
+    slow_queries_count: int = Field(..., description="Number of slow queries")
+    database_size_mb: float = Field(..., description="Database size in MB")
+    cache_hit_ratio: float = Field(..., description="Database cache hit ratio")
+    transactions_per_second: float = Field(..., description="Transactions per second")
+    locks_count: int = Field(..., description="Number of active locks")
+    deadlocks_count: int = Field(..., description="Number of deadlocks")
+    last_updated: datetime = Field(..., description="Last update timestamp")
+
+
+class SystemAlertsResponse(BaseModel):
+    """Response model for system alerts"""
+    critical_alerts: List[Dict[str, Any]] = Field(..., description="Critical system alerts")
+    warning_alerts: List[Dict[str, Any]] = Field(..., description="Warning alerts")
+    info_alerts: List[Dict[str, Any]] = Field(..., description="Informational alerts")
+    total_alerts: int = Field(..., description="Total number of alerts")
+    last_updated: datetime = Field(..., description="Last update timestamp")
+
+
+class PerformanceMetricsResponse(BaseModel):
+    """Response model for performance metrics with historical data"""
+    current_metrics: Dict[str, float] = Field(..., description="Current performance metrics")
+    hourly_metrics: List[Dict[str, Any]] = Field(..., description="Hourly performance data")
+    daily_metrics: List[Dict[str, Any]] = Field(..., description="Daily performance data")
+    trends: Dict[str, str] = Field(..., description="Performance trends (up, down, stable)")
+    thresholds: Dict[str, float] = Field(..., description="Performance thresholds")
+    last_updated: datetime = Field(..., description="Last update timestamp")
