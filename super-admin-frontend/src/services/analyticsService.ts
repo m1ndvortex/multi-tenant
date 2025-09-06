@@ -22,15 +22,23 @@ export interface PlatformMetrics {
   user_growth: {
     labels: string[];
     data: number[];
+    cumulative_data?: number[];
+    new_signups?: number[];
+    active_users?: number[];
   };
   revenue_trends: {
     labels: string[];
     mrr_data: number[];
     growth_rate: number[];
+    arr_data?: number[];
+    revenue_forecast?: number[];
   };
   invoice_volume: {
     labels: string[];
     data: number[];
+    general_invoices?: number[];
+    gold_invoices?: number[];
+    average_value?: number[];
   };
   subscription_conversions: {
     labels: string[];

@@ -9,6 +9,7 @@ export const usePlatformMetrics = (timeRange: '7d' | '30d' | '90d' | '1y' = '30d
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: 2,
     retryDelay: 1000,
+    refetchOnWindowFocus: false, // Prevent automatic refetch on window focus
   });
 };
 
@@ -20,6 +21,7 @@ export const useSystemHealthMetrics = (timeRange: '1h' | '24h' | '7d' = '24h') =
     gcTime: 5 * 60 * 1000, // 5 minutes
     retry: 2,
     retryDelay: 1000,
+    refetchOnWindowFocus: false, // Prevent automatic refetch on window focus
   });
 };
 

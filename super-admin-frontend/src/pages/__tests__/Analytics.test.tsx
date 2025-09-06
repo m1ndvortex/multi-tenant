@@ -33,6 +33,14 @@ vi.mock('@/components/charts/InvoiceVolumeChart', () => ({
   ),
 }));
 
+vi.mock('@/components/charts/ConversionRatesChart', () => ({
+  default: ({ data, isLoading }: any) => (
+    <div data-testid="conversion-rates-chart">
+      {isLoading ? 'Loading...' : `Data: ${JSON.stringify(data)}`}
+    </div>
+  ),
+}));
+
 vi.mock('@/components/charts/SystemHealthChart', () => ({
   default: ({ data, isLoading }: any) => (
     <div data-testid="system-health-chart">
@@ -145,6 +153,7 @@ describe('Analytics', () => {
     expect(screen.getByTestId('user-growth-chart')).toBeInTheDocument();
     expect(screen.getByTestId('revenue-chart')).toBeInTheDocument();
     expect(screen.getByTestId('invoice-volume-chart')).toBeInTheDocument();
+    expect(screen.getByTestId('conversion-rates-chart')).toBeInTheDocument();
   });
 
   it('switches to system health tab when clicked', () => {
@@ -219,10 +228,12 @@ describe('Analytics', () => {
     const userGrowthChart = screen.getByTestId('user-growth-chart');
     const revenueChart = screen.getByTestId('revenue-chart');
     const invoiceVolumeChart = screen.getByTestId('invoice-volume-chart');
+    const conversionRatesChart = screen.getByTestId('conversion-rates-chart');
     
     expect(userGrowthChart).toHaveTextContent(JSON.stringify(mockPlatformMetrics.user_growth));
     expect(revenueChart).toHaveTextContent(JSON.stringify(mockPlatformMetrics.revenue_trends));
     expect(invoiceVolumeChart).toHaveTextContent(JSON.stringify(mockPlatformMetrics.invoice_volume));
+    expect(conversionRatesChart).toHaveTextContent(JSON.stringify(mockPlatformMetrics.subscription_conversions));
   });
 
   it('displays system health metrics cards', () => {
@@ -267,12 +278,10 @@ describe('Analytics', () => {
     expect(userGrowthChart).toHaveTextContent('{"labels":[],"data":[]}');
   });
 
-  it('displays subscription conversions placeholder', () => {
+  it('displays subscription conversions chart', () => {
     render(<Analytics />, { wrapper: createWrapper() });
     
-    expect(screen.getByText('تبدیل اشتراک‌ها')).toBeInTheDocument();
-    expect(screen.getByText('نمودار تبدیل اشتراک‌ها')).toBeInTheDocument();
-    expect(screen.getByText('در حال توسعه...')).toBeInTheDocument();
+    expect(screen.getByTestId('conversion-rates-chart')).toBeInTheDocument();
   });
 
   it('applies correct gradient styling to cards', () => {
@@ -285,5 +294,46 @@ describe('Analytics', () => {
     );
     
     expect(cards.length).toBeGreaterThan(0);
+  });
+
+  it('displays real-time status and controls', () => {
+    render(<Analytics />, { wrapper: createWrapper() });
+    
+    expect(screen.getByText(/آخرین بروزرسانی:/)).toBeInTheDocument();
+    expect(screen.getByText('بروزرسانی')).toBeInTheDocument();
+    expect(screen.getByText('خودکار فعال')).toBeInTheDocument();
+  });
+
+  it('handles manual refresh button click', () => {
+    const mockRefetch = vi.fn();
+    mockUsePlatformMetrics.mockReturnValue({
+      data: mockPlatformMetrics,
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+    } as any);
+
+    mockUseSystemHealthMetrics.mockReturnValue({
+      data: mockHealthMetrics,
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+    } as any);
+
+    render(<Analytics />, { wrapper: createWrapper() });
+    
+    const refreshButton = screen.getByText('بروزرسانی');
+    fireEvent.click(refreshButton);
+    
+    expect(mockRefetch).toHaveBeenCalledTimes(2); // Once for each hook
+  });
+
+  it('toggles auto-refresh when button is clicked', () => {
+    render(<Analytics />, { wrapper: createWrapper() });
+    
+    const autoRefreshButton = screen.getByText('خودکار فعال');
+    fireEvent.click(autoRefreshButton);
+    
+    expect(screen.getByText('خودکار غیرفعال')).toBeInTheDocument();
   });
 });

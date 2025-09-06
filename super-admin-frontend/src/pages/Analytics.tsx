@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import UserGrowthChart from '@/components/charts/UserGrowthChart';
 import RevenueChart from '@/components/charts/RevenueChart';
 import InvoiceVolumeChart from '@/components/charts/InvoiceVolumeChart';
+import ConversionRatesChart from '@/components/charts/ConversionRatesChart';
 import SystemHealthChart from '@/components/charts/SystemHealthChart';
 import RealTimeSystemHealth from '@/components/RealTimeSystemHealth';
 import ApiErrorLog from '@/components/ApiErrorLog';
@@ -14,9 +15,30 @@ import { usePlatformMetrics, useSystemHealthMetrics } from '@/hooks/useAnalytics
 const Analytics: React.FC = () => {
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
   const [healthTimeRange, setHealthTimeRange] = useState<'1h' | '24h' | '7d'>('24h');
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
-  const { data: platformMetrics, isLoading: metricsLoading, error: metricsError } = usePlatformMetrics(timeRange);
-  const { data: healthMetrics, isLoading: healthLoading, error: healthError } = useSystemHealthMetrics(healthTimeRange);
+  const { data: platformMetrics, isLoading: metricsLoading, error: metricsError, refetch: refetchMetrics } = usePlatformMetrics(timeRange);
+  const { data: healthMetrics, isLoading: healthLoading, error: healthError, refetch: refetchHealth } = useSystemHealthMetrics(healthTimeRange);
+
+  // Auto-refresh functionality
+  useEffect(() => {
+    if (!autoRefresh) return;
+
+    const interval = setInterval(() => {
+      refetchMetrics();
+      refetchHealth();
+      setLastUpdated(new Date());
+    }, 60000); // Refresh every minute
+
+    return () => clearInterval(interval);
+  }, [autoRefresh, refetchMetrics, refetchHealth]);
+
+  const handleManualRefresh = () => {
+    refetchMetrics();
+    refetchHealth();
+    setLastUpdated(new Date());
+  };
 
   const timeRangeOptions = [
     { value: '7d', label: '7 روز گذشته' },
@@ -67,6 +89,38 @@ const Analytics: React.FC = () => {
         <p className="text-lg text-slate-600">
           تحلیل عملکرد، نظارت بر سلامت سیستم و بررسی خطاها
         </p>
+        
+        {/* Real-time Status and Controls */}
+        <div className="flex items-center justify-center gap-4 mt-4">
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <div className={`w-2 h-2 rounded-full ${autoRefresh ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+            آخرین بروزرسانی: {lastUpdated.toLocaleTimeString('fa-IR')}
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleManualRefresh}
+            disabled={metricsLoading || healthLoading}
+          >
+            {metricsLoading || healthLoading ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            )}
+            بروزرسانی
+          </Button>
+          
+          <Button
+            variant={autoRefresh ? 'gradient-green' : 'outline'}
+            size="sm"
+            onClick={() => setAutoRefresh(!autoRefresh)}
+          >
+            {autoRefresh ? 'خودکار فعال' : 'خودکار غیرفعال'}
+          </Button>
+        </div>
       </div>
 
       {/* Analytics Tabs */}
@@ -120,10 +174,14 @@ const Analytics: React.FC = () => {
             <UserGrowthChart 
               data={(platformMetrics as any)?.user_growth || { labels: [], data: [] }}
               isLoading={metricsLoading}
+              onTimeRangeChange={setTimeRange}
+              currentTimeRange={timeRange}
             />
             <RevenueChart 
               data={(platformMetrics as any)?.revenue_trends || { labels: [], mrr_data: [], growth_rate: [] }}
               isLoading={metricsLoading}
+              onTimeRangeChange={setTimeRange}
+              currentTimeRange={timeRange}
             />
           </div>
 
@@ -131,40 +189,15 @@ const Analytics: React.FC = () => {
             <InvoiceVolumeChart 
               data={(platformMetrics as any)?.invoice_volume || { labels: [], data: [] }}
               isLoading={metricsLoading}
+              onTimeRangeChange={setTimeRange}
+              currentTimeRange={timeRange}
             />
             
             {/* Subscription Conversions Chart */}
-            <Card variant="professional">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center">
-                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                  </div>
-                  تبدیل اشتراک‌ها
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {metricsLoading ? (
-                  <div className="h-80 flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
-                  </div>
-                ) : (
-                  <div className="h-80 flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg className="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                      </div>
-                      <p className="text-slate-600">نمودار تبدیل اشتراک‌ها</p>
-                      <p className="text-sm text-slate-500 mt-1">در حال توسعه...</p>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <ConversionRatesChart 
+              data={(platformMetrics as any)?.subscription_conversions || { labels: [], free_to_pro: [], churn_rate: [] }}
+              isLoading={metricsLoading}
+            />
           </div>
         </TabsContent>
 
