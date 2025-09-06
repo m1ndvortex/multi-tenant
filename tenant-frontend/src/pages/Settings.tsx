@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Database, Settings as SettingsIcon, User, Bell, Shield, Building2, Coins, Cog, FileText } from 'lucide-react';
+import { Database, Settings as SettingsIcon, User, Bell, Shield, Building2, Coins, Cog, FileText, Key } from 'lucide-react';
 import TenantSettings from '@/components/settings/TenantSettings';
 import UserManagement from '@/components/settings/UserManagement';
 import GoldPriceManagement from '@/components/settings/GoldPriceManagement';
 import SystemPreferences from '@/components/settings/SystemPreferences';
 import InvoiceCustomization from '@/components/settings/InvoiceCustomization';
+import ApiAccessManagement from '@/components/settings/ApiAccessManagement';
 
 const Settings: React.FC = () => {
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ const Settings: React.FC = () => {
       {/* Settings Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <div className="bg-gradient-to-r from-green-50 via-teal-50 to-blue-50 rounded-xl p-1">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 bg-transparent gap-1">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-7 bg-transparent gap-1">
             <TabsTrigger 
               value="business" 
               className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:border-2 data-[state=active]:border-blue-300"
@@ -60,6 +61,13 @@ const Settings: React.FC = () => {
             >
               <Coins className="h-4 w-4 ml-2" />
               قیمت طلا
+            </TabsTrigger>
+            <TabsTrigger 
+              value="api"
+              className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:border-2 data-[state=active]:border-blue-300"
+            >
+              <Key className="h-4 w-4 ml-2" />
+              دسترسی API
             </TabsTrigger>
             <TabsTrigger 
               value="preferences"
@@ -92,6 +100,10 @@ const Settings: React.FC = () => {
 
         <TabsContent value="gold" className="space-y-6">
           <GoldPriceManagement />
+        </TabsContent>
+
+        <TabsContent value="api" className="space-y-6">
+          <ApiAccessManagement />
         </TabsContent>
 
         <TabsContent value="preferences" className="space-y-6">
