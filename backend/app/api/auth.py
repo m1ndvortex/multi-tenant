@@ -4,7 +4,7 @@ Authentication API endpoints
 
 from datetime import datetime, timedelta
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Body
+from fastapi import APIRouter, Depends, HTTPException, status, Body, Request
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr, Field
@@ -351,43 +351,151 @@ async def tenant_login(
         )
 
 
-@router.post("/super-admin/login", response_model=LoginResponse)
+class SuperAdminLoginResponse(BaseModel):
+    """Enhanced Super Admin login response model"""
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_in: int = Field(description="Token expiration in seconds")
+    security_level: str = Field(description="Security level for super admin")
+    user: dict
+    platform_permissions: list = Field(description="Platform-wide permissions")
+    session_info: dict = Field(description="Session security information")
+
+
+@router.post("/super-admin/login", response_model=SuperAdminLoginResponse)
 async def super_admin_login(
     login_data: SuperAdminLoginRequest,
+    request: Request,
     db: Session = Depends(get_db)
 ):
     """
-    Authenticate super admin user and return JWT tokens
+    Enhanced Super Admin authentication with security validation and audit trail
     
     - **email**: Super admin email address
     - **password**: Super admin password
+    
+    Features:
+    - Enhanced security validation
+    - Extended session timeout (4 hours)
+    - Platform-wide access claims
+    - Comprehensive audit logging
+    - Account lockout protection
     """
-    # Authenticate super admin user
-    user = authenticate_user(
-        db=db, 
-        email=login_data.email, 
-        password=login_data.password
-    )
+    from ..core.auth import authenticate_super_admin, create_super_admin_tokens
+    from ..services.auth_logging_service import AuthLoggingService
+    import time
     
-    if not user or not user.is_super_admin:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid super admin credentials",
-            headers={"WWW-Authenticate": "Bearer"},
+    auth_logger = AuthLoggingService(db)
+    
+    # Get client information for security logging
+    client_ip = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent", "unknown")
+    
+    try:
+        # Enhanced super admin authentication
+        user = authenticate_super_admin(
+            db=db, 
+            email=login_data.email, 
+            password=login_data.password
         )
-    
-    # Update login information
-    user.update_login()
-    db.commit()
-    
-    # Create tokens
-    tokens = create_user_tokens(user)
-    
-    return {
-        **tokens,
-        "expires_in": 30 * 60,  # 30 minutes in seconds
-        "user": serialize_user(user)
-    }
+        
+        if not user:
+            # Additional logging for failed super admin login
+            auth_logger.log_failed_login(
+                email=login_data.email,
+                tenant_id=None,
+                reason="super_admin_authentication_failed",
+                ip_address=client_ip,
+                user_agent=user_agent,
+                metadata={
+                    "attempt_type": "super_admin_login",
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "security_level": "critical"
+                }
+            )
+            
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid super admin credentials",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        # Update login information with enhanced tracking
+        user.update_login()
+        
+        # Record successful super admin login with enhanced metadata
+        auth_logger.log_successful_login(
+            user_id=str(user.id),
+            tenant_id=None,
+            email=login_data.email,
+            ip_address=client_ip,
+            user_agent=user_agent,
+            metadata={
+                "auth_type": "super_admin_login",
+                "security_level": "maximum",
+                "platform_access": True,
+                "session_duration_hours": 4,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        )
+        
+        db.commit()
+        
+        # Create enhanced super admin tokens
+        tokens = create_super_admin_tokens(user)
+        
+        # Prepare platform permissions list
+        platform_permissions = [
+            "tenant_management",
+            "user_impersonation", 
+            "system_monitoring",
+            "backup_recovery",
+            "disaster_recovery",
+            "analytics_access",
+            "error_management",
+            "platform_configuration"
+        ]
+        
+        # Session security information
+        session_info = {
+            "login_time": datetime.utcnow().isoformat(),
+            "expires_at": (datetime.utcnow() + timedelta(hours=4)).isoformat(),
+            "client_ip": client_ip,
+            "user_agent": user_agent,
+            "security_level": "maximum",
+            "platform_access": True
+        }
+        
+        return {
+            **tokens,
+            "user": serialize_user(user),
+            "platform_permissions": platform_permissions,
+            "session_info": session_info
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        # Log system error for super admin login attempt
+        auth_logger.log_failed_login(
+            email=login_data.email,
+            tenant_id=None,
+            reason="super_admin_system_error",
+            ip_address=client_ip,
+            user_agent=user_agent,
+            error_details=str(e),
+            metadata={
+                "attempt_type": "super_admin_login",
+                "error_type": "system_error",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        )
+        
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Super admin authentication system error"
+        )
 
 
 @router.post("/refresh", response_model=LoginResponse)
@@ -532,6 +640,84 @@ async def validate_token(
         response_data["admin_user_id"] = current_user.admin_user_id
     
     return response_data
+
+
+@router.get("/super-admin/validate-session")
+async def validate_super_admin_session(
+    request: Request,
+    current_user: User = Depends(get_super_admin_user)
+):
+    """
+    Validate Super Admin session and return enhanced session information
+    
+    This endpoint validates the current super admin session and returns
+    detailed session information including permissions and security context.
+    """
+    from ..services.auth_logging_service import AuthLoggingService
+    
+    # Get client information
+    client_ip = request.client.host if request and request.client else "unknown"
+    
+    # Session information
+    session_info = {
+        "user": serialize_user(current_user),
+        "session_valid": True,
+        "security_level": "maximum",
+        "platform_access": True,
+        "client_ip": client_ip,
+        "last_activity": current_user.last_activity_at.isoformat() if current_user.last_activity_at else None,
+        "platform_permissions": [
+            "tenant_management",
+            "user_impersonation", 
+            "system_monitoring",
+            "backup_recovery",
+            "disaster_recovery",
+            "analytics_access",
+            "error_management",
+            "platform_configuration"
+        ]
+    }
+    
+    return session_info
+
+
+@router.post("/super-admin/logout")
+async def super_admin_logout(
+    request: Request,
+    current_user: User = Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Enhanced Super Admin logout with security audit trail
+    """
+    from ..services.auth_logging_service import AuthLoggingService
+    
+    auth_logger = AuthLoggingService(db)
+    
+    # Get client information
+    client_ip = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent", "unknown")
+    
+    # Log super admin logout
+    auth_logger.log_logout(
+        user_id=str(current_user.id),
+        tenant_id=None,
+        email=current_user.email,
+        ip_address=client_ip,
+        user_agent=user_agent,
+        metadata={
+            "auth_type": "super_admin_logout",
+            "security_level": "maximum",
+            "session_duration": "extended",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    )
+    
+    return {
+        "message": "Super admin successfully logged out",
+        "timestamp": datetime.utcnow().isoformat(),
+        "security_level": "maximum"
+    }
 
 
 # Health check endpoint for authentication service

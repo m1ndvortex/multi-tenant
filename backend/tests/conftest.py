@@ -170,10 +170,61 @@ def test_user(db_session, test_tenant):
         tenant_id=test_tenant.id,
         email="test@example.com",
         password_hash=get_password_hash("testpassword"),
-        full_name="Test User",
+        first_name="Test",
+        last_name="User",
         role=UserRole.ADMIN,
         status=UserStatus.ACTIVE,
-        is_active=True
+        is_email_verified=True
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
+
+
+@pytest.fixture
+def super_admin_user(db_session):
+    """Create a super admin user"""
+    from app.models.user import User, UserRole, UserStatus
+    from app.core.auth import get_password_hash
+    import uuid
+    
+    # Use unique email to avoid conflicts
+    unique_id = str(uuid.uuid4())[:8]
+    
+    user = User(
+        tenant_id=None,  # Super admin has no tenant
+        email=f"superadmin-{unique_id}@hesaabplus.com",
+        password_hash=get_password_hash("superadmin123"),
+        first_name="Super",
+        last_name="Admin",
+        role=UserRole.OWNER,
+        status=UserStatus.ACTIVE,
+        is_super_admin=True,
+        is_email_verified=True
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
+
+
+@pytest.fixture
+def regular_user(db_session, test_tenant):
+    """Create a regular user (not super admin)"""
+    from app.models.user import User, UserRole, UserStatus
+    from app.core.auth import get_password_hash
+    
+    user = User(
+        tenant_id=test_tenant.id,
+        email="regular@example.com",
+        password_hash=get_password_hash("password123"),
+        first_name="Regular",
+        last_name="User",
+        role=UserRole.USER,
+        status=UserStatus.ACTIVE,
+        is_super_admin=False,
+        is_email_verified=True
     )
     db_session.add(user)
     db_session.commit()

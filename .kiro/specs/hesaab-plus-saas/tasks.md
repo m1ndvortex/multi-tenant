@@ -962,7 +962,12 @@
 
 ## Authentication Interfaces
 
-- [ ] 61. Implement Super Admin Login Page Backend
+- [x] 61. Implement Super Admin Login Page Backend
+
+
+
+
+
 
 
 

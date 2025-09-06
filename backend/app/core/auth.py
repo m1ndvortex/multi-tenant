@@ -67,6 +67,47 @@ def create_access_token(
     return encoded_jwt
 
 
+def create_super_admin_access_token(
+    data: Dict[str, Any], 
+    expires_delta: Optional[timedelta] = None
+) -> str:
+    """Create JWT access token for Super Admin with extended timeout and platform-wide claims"""
+    to_encode = data.copy()
+    
+    # Extended timeout for super admin (4 hours instead of 30 minutes)
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(hours=4)
+    
+    # Add platform-wide access claims
+    to_encode.update({
+        "exp": expire, 
+        "type": "access",
+        "is_super_admin": True,
+        "platform_access": True,
+        "permissions": [
+            "tenant_management",
+            "user_impersonation", 
+            "system_monitoring",
+            "backup_recovery",
+            "disaster_recovery",
+            "analytics_access",
+            "error_management",
+            "platform_configuration"
+        ],
+        "security_level": "maximum"
+    })
+    
+    encoded_jwt = jwt.encode(
+        to_encode, 
+        settings.jwt_secret_key, 
+        algorithm=settings.jwt_algorithm
+    )
+    
+    return encoded_jwt
+
+
 def create_refresh_token(
     data: Dict[str, Any], 
     expires_delta: Optional[timedelta] = None
@@ -159,6 +200,76 @@ def authenticate_user(db: Session, email: str, password: str, tenant_id: Optiona
     if not user.is_super_admin and user.tenant:
         if user.tenant.status != TenantStatus.ACTIVE:
             return None
+    
+    return user
+
+
+def authenticate_super_admin(db: Session, email: str, password: str) -> Optional[User]:
+    """
+    Enhanced Super Admin authentication with security validation
+    """
+    from ..services.auth_logging_service import AuthLoggingService
+    
+    auth_logger = AuthLoggingService(db)
+    
+    # Enhanced security validation for super admin
+    query = db.query(User).filter(
+        User.email == email,
+        User.is_super_admin == True,
+        User.status == UserStatus.ACTIVE
+    )
+    
+    user = query.first()
+    
+    if not user:
+        # Log failed attempt - user not found or not super admin
+        auth_logger.log_failed_login(
+            email=email,
+            tenant_id=None,
+            reason="super_admin_not_found",
+            ip_address=None
+        )
+        return None
+    
+    # Verify password
+    if not verify_password(password, user.password_hash):
+        # Log failed attempt - invalid password
+        auth_logger.log_failed_login(
+            email=email,
+            tenant_id=None,
+            reason="invalid_super_admin_password",
+            ip_address=None
+        )
+        return None
+    
+    # Additional security checks for super admin
+    if not user.is_email_verified:
+        auth_logger.log_failed_login(
+            email=email,
+            tenant_id=None,
+            reason="super_admin_email_not_verified",
+            ip_address=None
+        )
+        return None
+    
+    # Check for account lockout (more strict for super admin)
+    if auth_logger.is_account_locked(email=email, max_attempts=3, lockout_hours=2):
+        auth_logger.log_failed_login(
+            email=email,
+            tenant_id=None,
+            reason="super_admin_account_locked",
+            ip_address=None
+        )
+        return None
+    
+    # Log successful authentication
+    auth_logger.log_successful_login(
+        user_id=str(user.id),
+        tenant_id=None,
+        email=email,
+        ip_address=None,
+        metadata={"auth_type": "super_admin", "security_level": "maximum"}
+    )
     
     return user
 
@@ -312,6 +423,44 @@ def create_user_tokens(user: User) -> Dict[str, str]:
         "access_token": access_token,
         "refresh_token": refresh_token,
         "token_type": "bearer"
+    }
+
+
+def create_super_admin_tokens(user: User) -> Dict[str, str]:
+    """Create enhanced access and refresh tokens for Super Admin with platform-wide claims"""
+    # Prepare enhanced token data with platform-wide permissions
+    token_data = {
+        "user_id": str(user.id),
+        "email": user.email,
+        "role": user.role.value,
+        "is_super_admin": True,
+        "platform_access": True,
+        "security_level": "maximum",
+        "permissions": [
+            "tenant_management",
+            "user_impersonation", 
+            "system_monitoring",
+            "backup_recovery",
+            "disaster_recovery",
+            "analytics_access",
+            "error_management",
+            "platform_configuration"
+        ]
+    }
+    
+    # Create tokens with extended timeout for super admin
+    access_token = create_super_admin_access_token(data=token_data)
+    refresh_token = create_refresh_token(
+        data={"user_id": str(user.id), "is_super_admin": True},
+        expires_delta=timedelta(days=30)  # Extended refresh token for super admin
+    )
+    
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "expires_in": 4 * 60 * 60,  # 4 hours in seconds
+        "security_level": "maximum"
     }
 
 
