@@ -35,6 +35,7 @@ from .marketing import (
 )
 from .api_error_log import APIErrorLog, ErrorSeverity, ErrorCategory
 from .api_key import ApiKey, ApiKeyUsage, WebhookEndpoint, ApiKeyStatus, ApiKeyScope
+from .authentication_log import AuthenticationLog
 
 __all__ = [
     "Base",
@@ -108,4 +109,5 @@ __all__ = [
     "WebhookEndpoint",
     "ApiKeyStatus",
     "ApiKeyScope",
+    "AuthenticationLog",
 ]

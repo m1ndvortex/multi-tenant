@@ -315,6 +315,40 @@ def create_user_tokens(user: User) -> Dict[str, str]:
     }
 
 
+def create_tenant_user_tokens(user: User, tenant) -> Dict[str, str]:
+    """Create enhanced access and refresh tokens for tenant user with subscription claims"""
+    # Prepare enhanced token data with subscription information
+    token_data = {
+        "user_id": str(user.id),
+        "email": user.email,
+        "role": user.role.value,
+        "tenant_id": str(user.tenant_id),
+        "is_super_admin": False,
+        "subscription_type": tenant.subscription_type.value,
+        "subscription_active": tenant.is_subscription_active,
+        "tenant_status": tenant.status.value,
+        "permissions": {
+            "max_users": tenant.max_users,
+            "max_products": tenant.max_products,
+            "max_customers": tenant.max_customers,
+            "max_monthly_invoices": tenant.max_monthly_invoices
+        }
+    }
+    
+    # Create tokens with enhanced claims
+    access_token = create_access_token(data=token_data)
+    refresh_token = create_refresh_token(data={
+        "user_id": str(user.id),
+        "tenant_id": str(user.tenant_id)
+    })
+    
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer"
+    }
+
+
 def refresh_access_token(refresh_token: str, db: Session) -> Dict[str, str]:
     """Create new access token from refresh token"""
     try:

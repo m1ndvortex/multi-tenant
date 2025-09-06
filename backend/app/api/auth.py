@@ -14,6 +14,7 @@ from ..core.database import get_db
 from ..core.auth import (
     authenticate_user, 
     create_user_tokens, 
+    create_tenant_user_tokens,
     refresh_access_token,
     create_impersonation_token,
     get_current_user,
@@ -55,6 +56,24 @@ class SuperAdminLoginRequest(BaseModel):
     """Super admin login request model"""
     email: EmailStr = Field(..., description="Super admin email address")
     password: str = Field(..., min_length=6, description="Super admin password")
+
+
+class TenantLoginRequest(BaseModel):
+    """Tenant user login request model"""
+    email: EmailStr = Field(..., description="User email address")
+    password: str = Field(..., min_length=6, description="User password")
+    tenant_id: str = Field(..., description="Tenant ID for multi-tenant context")
+
+
+class TenantLoginResponse(BaseModel):
+    """Tenant login response model with subscription details"""
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_in: int = Field(description="Token expiration in seconds")
+    user: dict
+    tenant: dict
+    subscription_status: dict
 
 
 # Impersonation models moved to dedicated impersonation API
@@ -163,6 +182,173 @@ async def login(
         response_data["tenant"] = serialize_tenant(user.tenant)
     
     return response_data
+
+
+@router.post("/tenant/login", response_model=TenantLoginResponse)
+async def tenant_login(
+    login_data: TenantLoginRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Authenticate tenant user with multi-tenant context validation and subscription checking
+    
+    - **email**: User email address
+    - **password**: User password  
+    - **tenant_id**: Tenant ID for multi-tenant context validation
+    """
+    from ..services.auth_logging_service import AuthLoggingService
+    from ..models.tenant import TenantStatus, SubscriptionType
+    
+    auth_logger = AuthLoggingService(db)
+    
+    try:
+        # Validate tenant_id is a valid UUID
+        try:
+            tenant_uuid = uuid.UUID(login_data.tenant_id)
+        except ValueError:
+            auth_logger.log_failed_login(
+                email=login_data.email,
+                tenant_id=None,  # Don't pass invalid UUID
+                reason="invalid_tenant_id",
+                ip_address=None
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid tenant ID format",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        # Validate tenant exists and is active
+        tenant = db.query(Tenant).filter(Tenant.id == tenant_uuid).first()
+        if not tenant:
+            auth_logger.log_failed_login(
+                email=login_data.email,
+                tenant_id=login_data.tenant_id,
+                reason="tenant_not_found",
+                ip_address=None  # Will be added by middleware
+            )
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Tenant not found",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        # Check tenant status
+        if tenant.status != TenantStatus.ACTIVE:
+            auth_logger.log_failed_login(
+                email=login_data.email,
+                tenant_id=login_data.tenant_id,
+                reason=f"tenant_status_{tenant.status.value}",
+                ip_address=None
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Tenant account is {tenant.status.value}",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        # Check subscription status
+        if not tenant.is_subscription_active:
+            auth_logger.log_failed_login(
+                email=login_data.email,
+                tenant_id=login_data.tenant_id,
+                reason="subscription_expired",
+                ip_address=None
+            )
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail="Subscription has expired",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        # Authenticate user with tenant context
+        user = authenticate_user(
+            db=db,
+            email=login_data.email,
+            password=login_data.password,
+            tenant_id=login_data.tenant_id
+        )
+        
+        if not user:
+            auth_logger.log_failed_login(
+                email=login_data.email,
+                tenant_id=login_data.tenant_id,
+                reason="invalid_credentials",
+                ip_address=None
+            )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        # Validate user belongs to the specified tenant
+        if str(user.tenant_id) != login_data.tenant_id:
+            auth_logger.log_failed_login(
+                email=login_data.email,
+                tenant_id=login_data.tenant_id,
+                reason="tenant_mismatch",
+                ip_address=None
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User does not belong to specified tenant",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        # Update login information
+        user.update_login()
+        tenant.update_activity()
+        db.commit()
+        
+        # Create enhanced JWT tokens with subscription claims
+        tokens = create_tenant_user_tokens(user, tenant)
+        
+        # Log successful login
+        auth_logger.log_successful_login(
+            user_id=str(user.id),
+            tenant_id=login_data.tenant_id,
+            email=login_data.email,
+            ip_address=None
+        )
+        
+        # Prepare subscription status information
+        subscription_status = {
+            "type": tenant.subscription_type.value,
+            "is_active": tenant.is_subscription_active,
+            "expires_at": tenant.subscription_expires_at.isoformat() if tenant.subscription_expires_at else None,
+            "days_until_expiry": tenant.days_until_expiry,
+            "limits": {
+                "max_users": tenant.max_users,
+                "max_products": tenant.max_products,
+                "max_customers": tenant.max_customers,
+                "max_monthly_invoices": tenant.max_monthly_invoices
+            },
+            "usage": tenant.get_usage_stats(db)
+        }
+        
+        return {
+            **tokens,
+            "expires_in": 30 * 60,  # 30 minutes in seconds
+            "user": serialize_user(user),
+            "tenant": serialize_tenant(tenant),
+            "subscription_status": subscription_status
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        auth_logger.log_failed_login(
+            email=login_data.email,
+            tenant_id=login_data.tenant_id,
+            reason="system_error",
+            ip_address=None,
+            error_details=str(e)
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Authentication system error"
+        )
 
 
 @router.post("/super-admin/login", response_model=LoginResponse)
