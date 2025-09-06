@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import SystemHealthChart from '@/components/charts/SystemHealthChart';
 import RealTimeSystemHealth from '@/components/RealTimeSystemHealth';
+import SystemHealthAlerts from '@/components/SystemHealthAlerts';
 import { useSystemHealthMetrics } from '@/hooks/useAnalytics';
 
 const SystemHealth: React.FC = () => {
@@ -75,6 +76,9 @@ const SystemHealth: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* System Health Alerts */}
+      <SystemHealthAlerts />
 
       {/* Real-time Health and Historical Chart */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
