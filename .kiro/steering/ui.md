@@ -1,8 +1,3 @@
----
-
-inclusion: manual
-
----
 # Design Document
 
 ## Overview

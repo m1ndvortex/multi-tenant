@@ -81,7 +81,7 @@ export const useResolveError = () => {
   return useMutation({
     mutationFn: ({ errorId, resolutionData }: { errorId: string; resolutionData: ErrorResolutionRequest }) =>
       errorLoggingService.resolveError(errorId, resolutionData),
-    onSuccess: (data, variables) => {
+    onSuccess: (_, variables) => {
       // Invalidate and refetch error logs
       queryClient.invalidateQueries({ queryKey: ['error-logs'] });
       queryClient.invalidateQueries({ queryKey: ['error-log', variables.errorId] });

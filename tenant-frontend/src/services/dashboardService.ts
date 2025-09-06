@@ -3,7 +3,7 @@
  * Handles API calls for tenant dashboard data, insights, and analytics
  */
 
-import { api } from '@/lib/api';
+import { apiClient } from '@/lib/api';
 
 // Types for dashboard data
 export interface DashboardMetric {
@@ -139,7 +139,7 @@ class DashboardService {
       queryParams.append('sales_chart_days', params.sales_chart_days.toString());
     }
 
-    const response = await api.get(`/dashboard?${queryParams.toString()}`);
+    const response = await apiClient.get<DashboardResponse>(`/dashboard?${queryParams.toString()}`);
     return response.data;
   }
 
@@ -147,7 +147,7 @@ class DashboardService {
    * Get dashboard summary with key metrics
    */
   async getDashboardSummary(): Promise<DashboardSummary> {
-    const response = await api.get('/dashboard/summary');
+    const response = await apiClient.get<DashboardSummary>('/dashboard/summary');
     return response.data;
   }
 
@@ -155,7 +155,7 @@ class DashboardService {
    * Get business insights and recommendations
    */
   async getBusinessInsights(): Promise<BusinessInsightsResponse> {
-    const response = await api.get('/dashboard/insights');
+    const response = await apiClient.get<BusinessInsightsResponse>('/dashboard/insights');
     return response.data;
   }
 
@@ -163,7 +163,7 @@ class DashboardService {
    * Get dashboard alerts and notifications
    */
   async getDashboardAlerts(): Promise<AlertsResponse> {
-    const response = await api.get('/dashboard/alerts');
+    const response = await apiClient.get<AlertsResponse>('/dashboard/alerts');
     return response.data;
   }
 
@@ -171,7 +171,7 @@ class DashboardService {
    * Get quick statistics for widgets
    */
   async getQuickStats(): Promise<QuickStats> {
-    const response = await api.get('/dashboard/quick-stats');
+    const response = await apiClient.get<QuickStats>('/dashboard/quick-stats');
     return response.data;
   }
 
@@ -179,7 +179,7 @@ class DashboardService {
    * Get sales chart data
    */
   async getSalesChartData(periodDays: number = 30): Promise<SalesChartData> {
-    const response = await api.get(`/dashboard/sales-chart?period_days=${periodDays}`);
+    const response = await apiClient.get<SalesChartData>(`/dashboard/sales-chart?period_days=${periodDays}`);
     return response.data;
   }
 
@@ -187,7 +187,7 @@ class DashboardService {
    * Get recent business activities
    */
   async getRecentActivities(limit: number = 10): Promise<RecentActivity[]> {
-    const response = await api.get(`/dashboard/activities?limit=${limit}`);
+    const response = await apiClient.get<RecentActivity[]>(`/dashboard/activities?limit=${limit}`);
     return response.data;
   }
 
@@ -195,7 +195,7 @@ class DashboardService {
    * Check dashboard service health
    */
   async checkHealth(): Promise<any> {
-    const response = await api.get('/dashboard/health');
+    const response = await apiClient.get('/dashboard/health');
     return response.data;
   }
 }

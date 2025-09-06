@@ -18,7 +18,7 @@ import {
   useErrorLoggingHealth 
 } from '@/hooks/useErrorLogging';
 import { ErrorLogFilters } from '@/services/errorLoggingService';
-import { cn } from '@/lib/utils';
+
 
 const ErrorLogging: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');

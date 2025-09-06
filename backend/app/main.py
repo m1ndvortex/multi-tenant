@@ -50,6 +50,7 @@ from app.api.dashboard import router as dashboard_router
 from app.api.invoice_customization import router as invoice_customization_router
 from app.api.api_access import router as api_access_router
 from app.api.external_api import router as external_api_router
+from app.api.super_admin_dashboard import router as super_admin_dashboard_router
 # from app.api.marketing import router as marketing_router
 
 # Configure logging
@@ -220,6 +221,7 @@ app.include_router(dashboard_router)
 app.include_router(invoice_customization_router, prefix="/api/invoice-customization")
 app.include_router(api_access_router, prefix="/api")
 app.include_router(external_api_router, prefix="/api/external")
+app.include_router(super_admin_dashboard_router)
 # app.include_router(marketing_router, prefix="/api")
 
 # Root endpoint

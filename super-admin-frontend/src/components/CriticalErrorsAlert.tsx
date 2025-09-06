@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CriticalErrorAlert } from '@/services/errorLoggingService';
-import { cn } from '@/lib/utils';
+
 
 interface CriticalErrorsAlertProps {
   criticalErrors: CriticalErrorAlert[];

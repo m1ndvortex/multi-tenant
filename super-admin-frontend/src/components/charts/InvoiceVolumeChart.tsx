@@ -255,8 +255,6 @@ const InvoiceVolumeChart: React.FC<InvoiceVolumeChartProps> = ({
     );
   }
 
-  const ChartComponent = chartType === 'line' ? Line : Bar;
-
   return (
     <Card variant="professional" className="h-full">
       <CardHeader>
@@ -335,7 +333,11 @@ const InvoiceVolumeChart: React.FC<InvoiceVolumeChartProps> = ({
       </CardHeader>
       <CardContent>
         <div className="h-80">
-          <ChartComponent data={chartData} options={options} />
+          {chartType === 'line' ? (
+            <Line data={chartData as any} options={options} />
+          ) : (
+            <Bar data={chartData as any} options={options} />
+          )}
         </div>
       </CardContent>
     </Card>

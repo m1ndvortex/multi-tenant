@@ -14,6 +14,8 @@ const cardVariants = cva(
         "gradient-green": "border-0 shadow-lg bg-gradient-to-br from-green-50 to-teal-100/50 hover:shadow-xl",
         "gradient-blue": "border-0 shadow-lg bg-gradient-to-br from-blue-50 to-indigo-100/50 hover:shadow-xl",
         "gradient-purple": "border-0 shadow-lg bg-gradient-to-br from-purple-50 to-violet-100/50 hover:shadow-xl",
+        "gradient-red": "border-0 shadow-lg bg-gradient-to-br from-red-50 to-rose-100/50 hover:shadow-xl",
+        "gradient-orange": "border-0 shadow-lg bg-gradient-to-br from-orange-50 to-amber-100/50 hover:shadow-xl",
         
         // Filter/header cards
         filter: "border-0 shadow-lg bg-gradient-to-r from-slate-50 to-slate-100/80",

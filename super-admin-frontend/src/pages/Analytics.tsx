@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -14,6 +14,10 @@ import { usePlatformMetrics, useSystemHealthMetrics } from '@/hooks/useAnalytics
 
 const Analytics: React.FC = () => {
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
+  
+  const handleTimeRangeChange = (range: string) => {
+    setTimeRange(range as '7d' | '30d' | '90d' | '1y');
+  };
   const [healthTimeRange, setHealthTimeRange] = useState<'1h' | '24h' | '7d'>('24h');
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -174,13 +178,13 @@ const Analytics: React.FC = () => {
             <UserGrowthChart 
               data={(platformMetrics as any)?.user_growth || { labels: [], data: [] }}
               isLoading={metricsLoading}
-              onTimeRangeChange={setTimeRange}
+              onTimeRangeChange={handleTimeRangeChange}
               currentTimeRange={timeRange}
             />
             <RevenueChart 
               data={(platformMetrics as any)?.revenue_trends || { labels: [], mrr_data: [], growth_rate: [] }}
               isLoading={metricsLoading}
-              onTimeRangeChange={setTimeRange}
+              onTimeRangeChange={handleTimeRangeChange}
               currentTimeRange={timeRange}
             />
           </div>
@@ -189,7 +193,7 @@ const Analytics: React.FC = () => {
             <InvoiceVolumeChart 
               data={(platformMetrics as any)?.invoice_volume || { labels: [], data: [] }}
               isLoading={metricsLoading}
-              onTimeRangeChange={setTimeRange}
+              onTimeRangeChange={handleTimeRangeChange}
               currentTimeRange={timeRange}
             />
             

@@ -10,8 +10,7 @@ import {
   CheckCircle, 
   X, 
   Bell, 
-  BellOff,
-  Settings 
+  BellOff
 } from 'lucide-react';
 
 interface SystemAlert {
@@ -54,7 +53,7 @@ const SystemHealthAlerts: React.FC<SystemHealthAlertsProps> = ({ className }) =>
   const { data: healthData } = useCurrentSystemHealth();
   const [alerts, setAlerts] = useState<SystemAlert[]>([]);
   const [alertsEnabled, setAlertsEnabled] = useState(true);
-  const [thresholds, setThresholds] = useState<AlertThresholds>(DEFAULT_THRESHOLDS);
+  const [thresholds] = useState<AlertThresholds>(DEFAULT_THRESHOLDS);
 
   // Generate alerts based on current health data
   useEffect(() => {

@@ -12,6 +12,8 @@ const buttonVariants = cva(
         "gradient-green": "bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 text-white shadow-lg hover:shadow-xl",
         "gradient-blue": "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl",
         "gradient-purple": "bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white shadow-lg hover:shadow-xl",
+        "gradient-indigo": "bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl",
+        "gradient-pink": "bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white shadow-lg hover:shadow-xl",
         
         // Outline variants with gradient borders
         "outline-gradient": "border-2 border-transparent bg-gradient-to-r from-green-500 to-teal-600 bg-clip-border hover:shadow-lg text-white",

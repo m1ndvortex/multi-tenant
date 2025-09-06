@@ -2,7 +2,7 @@
  * Invoice customization service for managing templates, branding, and custom fields
  */
 
-import { api } from '@/lib/api';
+import { apiClient } from '@/lib/api';
 
 // Types
 export interface InvoiceTemplate {
@@ -200,31 +200,31 @@ class InvoiceCustomizationService {
     page?: number;
     per_page?: number;
   }): Promise<TemplateListResponse> {
-    const response = await api.get(`${this.baseUrl}/templates`, { params });
+    const response = await apiClient.get<TemplateListResponse>(`${this.baseUrl}/templates`, { params });
     return response.data;
   }
 
   async getTemplate(templateId: string): Promise<InvoiceTemplateWithFields> {
-    const response = await api.get(`${this.baseUrl}/templates/${templateId}`);
+    const response = await apiClient.get<InvoiceTemplateWithFields>(`${this.baseUrl}/templates/${templateId}`);
     return response.data;
   }
 
   async createTemplate(templateData: CreateInvoiceTemplate): Promise<InvoiceTemplate> {
-    const response = await api.post(`${this.baseUrl}/templates`, templateData);
+    const response = await apiClient.post<InvoiceTemplate>(`${this.baseUrl}/templates`, templateData);
     return response.data;
   }
 
   async updateTemplate(templateId: string, templateData: Partial<CreateInvoiceTemplate>): Promise<InvoiceTemplate> {
-    const response = await api.put(`${this.baseUrl}/templates/${templateId}`, templateData);
+    const response = await apiClient.put<InvoiceTemplate>(`${this.baseUrl}/templates/${templateId}`, templateData);
     return response.data;
   }
 
   async deleteTemplate(templateId: string): Promise<void> {
-    await api.delete(`${this.baseUrl}/templates/${templateId}`);
+    await apiClient.delete(`${this.baseUrl}/templates/${templateId}`);
   }
 
   async getDefaultTemplate(templateType: 'GENERAL' | 'GOLD' | 'CUSTOM'): Promise<InvoiceTemplate> {
-    const response = await api.get(`${this.baseUrl}/templates/default/${templateType}`);
+    const response = await apiClient.get<InvoiceTemplate>(`${this.baseUrl}/templates/default/${templateType}`);
     return response.data;
   }
 
@@ -233,73 +233,73 @@ class InvoiceCustomizationService {
     template_id?: string;
     is_line_item_field?: boolean;
   }): Promise<CustomFieldListResponse> {
-    const response = await api.get(`${this.baseUrl}/custom-fields`, { params });
-    return response.data;
+    const response = await apiClient.get(`${this.baseUrl}/custom-fields`, { params });
+    return response.data as any;
   }
 
   async createCustomField(fieldData: CreateInvoiceCustomField): Promise<InvoiceCustomField> {
-    const response = await api.post(`${this.baseUrl}/custom-fields`, fieldData);
-    return response.data;
+    const response = await apiClient.post(`${this.baseUrl}/custom-fields`, fieldData);
+    return response.data as any;
   }
 
   async updateCustomField(fieldId: string, fieldData: Partial<CreateInvoiceCustomField>): Promise<InvoiceCustomField> {
-    const response = await api.put(`${this.baseUrl}/custom-fields/${fieldId}`, fieldData);
-    return response.data;
+    const response = await apiClient.put(`${this.baseUrl}/custom-fields/${fieldId}`, fieldData);
+    return response.data as any;
   }
 
   async deleteCustomField(fieldId: string): Promise<void> {
-    await api.delete(`${this.baseUrl}/custom-fields/${fieldId}`);
+    await apiClient.delete(`${this.baseUrl}/custom-fields/${fieldId}`);
   }
 
   // Numbering Scheme Management
   async getNumberingSchemes(): Promise<NumberingSchemeListResponse> {
-    const response = await api.get(`${this.baseUrl}/numbering-schemes`);
-    return response.data;
+    const response = await apiClient.get(`${this.baseUrl}/numbering-schemes`);
+    return response.data as any;
   }
 
   async createNumberingScheme(schemeData: CreateInvoiceNumberingScheme): Promise<InvoiceNumberingScheme> {
-    const response = await api.post(`${this.baseUrl}/numbering-schemes`, schemeData);
-    return response.data;
+    const response = await apiClient.post(`${this.baseUrl}/numbering-schemes`, schemeData);
+    return response.data as any;
   }
 
   async getDefaultNumberingScheme(): Promise<InvoiceNumberingScheme> {
-    const response = await api.get(`${this.baseUrl}/numbering-schemes/default`);
-    return response.data;
+    const response = await apiClient.get(`${this.baseUrl}/numbering-schemes/default`);
+    return response.data as any;
   }
 
   async previewInvoiceNumbers(schemeId: string, count: number = 1): Promise<InvoiceNumberPreviewResponse> {
-    const response = await api.post(`${this.baseUrl}/numbering-schemes/${schemeId}/preview`, { count });
-    return response.data;
+    const response = await apiClient.post(`${this.baseUrl}/numbering-schemes/${schemeId}/preview`, { count });
+    return response.data as any;
   }
 
   async generateInvoiceNumber(schemeId?: string): Promise<{ invoice_number: string }> {
-    const response = await api.post(`${this.baseUrl}/generate-invoice-number`, { scheme_id: schemeId });
-    return response.data;
+    const response = await apiClient.post(`${this.baseUrl}/generate-invoice-number`, { scheme_id: schemeId });
+    return response.data as any;
   }
 
   // Branding Management
   async getBrandingConfigs(): Promise<BrandingListResponse> {
-    const response = await api.get(`${this.baseUrl}/branding`);
-    return response.data;
+    const response = await apiClient.get(`${this.baseUrl}/branding`);
+    return response.data as any;
   }
 
   async createBranding(brandingData: CreateInvoiceBranding): Promise<InvoiceBranding> {
-    const response = await api.post(`${this.baseUrl}/branding`, brandingData);
-    return response.data;
+    const response = await apiClient.post(`${this.baseUrl}/branding`, brandingData);
+    return response.data as any;
   }
 
   async updateBranding(brandingId: string, brandingData: Partial<CreateInvoiceBranding>): Promise<InvoiceBranding> {
-    const response = await api.put(`${this.baseUrl}/branding/${brandingId}`, brandingData);
-    return response.data;
+    const response = await apiClient.put(`${this.baseUrl}/branding/${brandingId}`, brandingData);
+    return response.data as any;
   }
 
   async deleteBranding(brandingId: string): Promise<void> {
-    await api.delete(`${this.baseUrl}/branding/${brandingId}`);
+    await apiClient.delete(`${this.baseUrl}/branding/${brandingId}`);
   }
 
   async getDefaultBranding(): Promise<InvoiceBranding> {
-    const response = await api.get(`${this.baseUrl}/branding/default`);
-    return response.data;
+    const response = await apiClient.get(`${this.baseUrl}/branding/default`);
+    return response.data as any;
   }
 
   // Logo Upload
@@ -307,13 +307,13 @@ class InvoiceCustomizationService {
     const formData = new FormData();
     formData.append('logo', file);
     
-    const response = await api.post('/api/upload/logo', formData, {
+    const response = await apiClient.post('/api/upload/logo', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
     
-    return response.data;
+    return response.data as any;
   }
 }
 
