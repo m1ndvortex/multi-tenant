@@ -26,7 +26,8 @@ class AuthLoggingService:
         email: str = None,
         ip_address: str = None,
         user_agent: str = None,
-        metadata: Dict[str, Any] = None
+        metadata: Dict[str, Any] = None,
+        auto_commit: bool = False
     ) -> AuthenticationLog:
         """Log successful login attempt"""
         
@@ -42,8 +43,15 @@ class AuthLoggingService:
         )
         
         self.db.add(log_entry)
-        self.db.commit()
-        self.db.refresh(log_entry)
+        
+        if auto_commit:
+            try:
+                self.db.commit()
+                self.db.refresh(log_entry)
+            except Exception as e:
+                self.db.rollback()
+                # Log error but don't fail authentication
+                print(f"Warning: Failed to log successful login: {e}")
         
         return log_entry
     
@@ -55,7 +63,8 @@ class AuthLoggingService:
         ip_address: str = None,
         user_agent: str = None,
         error_details: str = None,
-        metadata: Dict[str, Any] = None
+        metadata: Dict[str, Any] = None,
+        auto_commit: bool = False
     ) -> AuthenticationLog:
         """Log failed login attempt"""
         
@@ -72,8 +81,15 @@ class AuthLoggingService:
         )
         
         self.db.add(log_entry)
-        self.db.commit()
-        self.db.refresh(log_entry)
+        
+        if auto_commit:
+            try:
+                self.db.commit()
+                self.db.refresh(log_entry)
+            except Exception as e:
+                self.db.rollback()
+                # Log error but don't fail authentication
+                print(f"Warning: Failed to log failed login: {e}")
         
         return log_entry
     
@@ -84,7 +100,8 @@ class AuthLoggingService:
         email: str = None,
         ip_address: str = None,
         user_agent: str = None,
-        metadata: Dict[str, Any] = None
+        metadata: Dict[str, Any] = None,
+        auto_commit: bool = False
     ) -> AuthenticationLog:
         """Log logout event"""
         
@@ -100,8 +117,15 @@ class AuthLoggingService:
         )
         
         self.db.add(log_entry)
-        self.db.commit()
-        self.db.refresh(log_entry)
+        
+        if auto_commit:
+            try:
+                self.db.commit()
+                self.db.refresh(log_entry)
+            except Exception as e:
+                self.db.rollback()
+                # Log error but don't fail authentication
+                print(f"Warning: Failed to log logout: {e}")
         
         return log_entry
     

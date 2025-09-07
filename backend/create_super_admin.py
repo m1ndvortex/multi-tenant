@@ -38,20 +38,29 @@ def create_super_admin():
         db.execute(
             text("""
                 INSERT INTO users (
-                    id, email, hashed_password, name, is_active, 
-                    is_super_admin, created_at, updated_at
+                    id, email, password_hash, first_name, last_name, is_active, 
+                    is_super_admin, role, status, is_email_verified, login_count,
+                    language, timezone, created_at, updated_at
                 ) VALUES (
-                    :id, :email, :hashed_password, :name, :is_active,
-                    :is_super_admin, NOW(), NOW()
+                    :id, :email, :password_hash, :first_name, :last_name, :is_active,
+                    :is_super_admin, :role, :status, :is_email_verified, :login_count,
+                    :language, :timezone, NOW(), NOW()
                 )
             """),
             {
                 "id": str(uuid.uuid4()),
                 "email": "admin@hesaabplus.com",
-                "hashed_password": hashed_password,
-                "name": "Super Admin",
+                "password_hash": hashed_password,
+                "first_name": "Super",
+                "last_name": "Admin",
                 "is_active": True,
-                "is_super_admin": True
+                "is_super_admin": True,
+                "role": "OWNER",
+                "status": "ACTIVE",
+                "is_email_verified": True,
+                "login_count": 0,
+                "language": "fa",
+                "timezone": "Asia/Tehran"
             }
         )
         
