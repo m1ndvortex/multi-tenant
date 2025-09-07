@@ -5,6 +5,8 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { NavigationProvider } from '@/contexts/NavigationContext';
 import Layout from '@/components/Layout';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
 import TenantManagement from '@/pages/TenantManagement';
 import Analytics from '@/pages/Analytics';
@@ -29,24 +31,34 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
-          <NavigationProvider>
-            <Router>
-              <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100" dir="rtl">
-                <Layout>
-                  <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/tenants" element={<TenantManagement />} />
-                    <Route path="/analytics" element={<Analytics />} />
-                    <Route path="/system-health" element={<SystemHealth />} />
-                    <Route path="/backup-recovery" element={<BackupRecovery />} />
-                    <Route path="/impersonation" element={<UserImpersonation />} />
-                    <Route path="/error-logging" element={<ErrorLogging />} />
-                  </Routes>
-                </Layout>
-                <Toaster />
-              </div>
-            </Router>
-          </NavigationProvider>
+          <Router>
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100" dir="rtl">
+              <Routes>
+                {/* Public route */}
+                <Route path="/login" element={<Login />} />
+                
+                {/* Protected routes */}
+                <Route path="/*" element={
+                  <ProtectedRoute>
+                    <NavigationProvider>
+                      <Layout>
+                        <Routes>
+                          <Route path="/" element={<Dashboard />} />
+                          <Route path="/tenants" element={<TenantManagement />} />
+                          <Route path="/analytics" element={<Analytics />} />
+                          <Route path="/system-health" element={<SystemHealth />} />
+                          <Route path="/backup-recovery" element={<BackupRecovery />} />
+                          <Route path="/impersonation" element={<UserImpersonation />} />
+                          <Route path="/error-logging" element={<ErrorLogging />} />
+                        </Routes>
+                      </Layout>
+                    </NavigationProvider>
+                  </ProtectedRoute>
+                } />
+              </Routes>
+              <Toaster />
+            </div>
+          </Router>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

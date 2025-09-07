@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useOnlineUsers } from '@/hooks/useOnlineUsers';
 import SystemStatusIndicator from './SystemStatusIndicator';
@@ -16,6 +17,7 @@ interface SuperAdminHeaderProps {
 
 const SuperAdminHeader: React.FC<SuperAdminHeaderProps> = ({ className }) => {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const { data: dashboardStats } = useDashboardStats();
@@ -41,7 +43,7 @@ const SuperAdminHeader: React.FC<SuperAdminHeaderProps> = ({ className }) => {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
+    logout();
     navigate('/login');
   };
 
@@ -139,7 +141,7 @@ const SuperAdminHeader: React.FC<SuperAdminHeaderProps> = ({ className }) => {
               <div className="flex items-center gap-3 pl-3 border-r border-slate-200">
                 <div className="text-right hidden sm:block">
                   <p className="text-sm font-medium text-slate-800">Super Admin</p>
-                  <p className="text-xs text-slate-600">admin@hesaabplus.com</p>
+                  <p className="text-xs text-slate-600">{user?.email || 'admin@hesaabplus.com'}</p>
                 </div>
                 <div className="relative group">
                   <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-teal-600 rounded-full flex items-center justify-center shadow-lg cursor-pointer group-hover:shadow-xl transition-all duration-300">
@@ -152,7 +154,7 @@ const SuperAdminHeader: React.FC<SuperAdminHeaderProps> = ({ className }) => {
                   <div className="absolute left-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-200/50 py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                     <div className="px-4 py-3 border-b border-slate-100">
                       <p className="font-semibold text-slate-800">Super Admin</p>
-                      <p className="text-sm text-slate-600">admin@hesaabplus.com</p>
+                      <p className="text-sm text-slate-600">{user?.email || 'admin@hesaabplus.com'}</p>
                     </div>
                     
                     <div className="py-2">

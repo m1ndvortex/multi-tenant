@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import axios from 'axios';
 
 interface User {
@@ -12,9 +12,10 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: (redirectToLogin?: boolean) => void;
   isLoading: boolean;
   isAuthenticated: boolean;
+  refreshToken: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,10 +32,42 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+// Session timeout configuration (30 minutes)
+const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
+const TOKEN_REFRESH_INTERVAL = 25 * 60 * 1000; // 25 minutes in milliseconds
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem('super_admin_token'));
   const [isLoading, setIsLoading] = useState(true);
+  const [sessionTimer, setSessionTimer] = useState<NodeJS.Timeout | null>(null);
+  const [refreshTimer, setRefreshTimer] = useState<NodeJS.Timeout | null>(null);
+
+  // Clear timers on cleanup
+  useEffect(() => {
+    return () => {
+      if (sessionTimer) clearTimeout(sessionTimer);
+      if (refreshTimer) clearTimeout(refreshTimer);
+    };
+  }, [sessionTimer, refreshTimer]);
+
+  // Setup axios interceptors for handling 401 responses
+  useEffect(() => {
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401 && token) {
+          // Token is invalid or expired
+          logout(true);
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    return () => {
+      axios.interceptors.response.eject(interceptor);
+    };
+  }, [token]);
 
   useEffect(() => {
     if (token) {
@@ -43,10 +76,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Verify token and get user info
       verifyToken();
+      
+      // Setup session management
+      setupSessionManagement();
     } else {
       setIsLoading(false);
     }
   }, [token]);
+
+  const setupSessionManagement = useCallback(() => {
+    // Clear existing timers
+    if (sessionTimer) clearTimeout(sessionTimer);
+    if (refreshTimer) clearTimeout(refreshTimer);
+
+    // Setup session timeout
+    const newSessionTimer = setTimeout(() => {
+      logout(true);
+    }, SESSION_TIMEOUT);
+
+    // Setup token refresh
+    const newRefreshTimer = setTimeout(() => {
+      refreshToken();
+    }, TOKEN_REFRESH_INTERVAL);
+
+    setSessionTimer(newSessionTimer);
+    setRefreshTimer(newRefreshTimer);
+  }, [sessionTimer, refreshTimer]);
 
   const verifyToken = async () => {
     try {
@@ -54,9 +109,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(response.data);
     } catch (error) {
       console.error('Token verification failed:', error);
-      logout();
+      logout(true);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const refreshToken = async () => {
+    try {
+      const response = await axios.post('/api/auth/super-admin/refresh');
+      const { access_token } = response.data;
+      
+      setToken(access_token);
+      localStorage.setItem('super_admin_token', access_token);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+      
+      // Reset session management timers
+      setupSessionManagement();
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      logout(true);
     }
   };
 
@@ -79,12 +151,43 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = () => {
+  const logout = useCallback((redirectToLogin: boolean = false) => {
+    // Clear timers
+    if (sessionTimer) clearTimeout(sessionTimer);
+    if (refreshTimer) clearTimeout(refreshTimer);
+    
+    // Clear state and storage
     setUser(null);
     setToken(null);
     localStorage.removeItem('super_admin_token');
     delete axios.defaults.headers.common['Authorization'];
-  };
+
+    // Redirect to login with session expired flag if needed
+    if (redirectToLogin && window.location.pathname !== '/login') {
+      window.location.href = '/login?expired=true';
+    }
+  }, [sessionTimer, refreshTimer]);
+
+  // Reset session timer on user activity
+  useEffect(() => {
+    const resetSessionTimer = () => {
+      if (token && user) {
+        setupSessionManagement();
+      }
+    };
+
+    // Listen for user activity
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    events.forEach(event => {
+      document.addEventListener(event, resetSessionTimer, true);
+    });
+
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, resetSessionTimer, true);
+      });
+    };
+  }, [token, user, setupSessionManagement]);
 
   const value: AuthContextType = {
     user,
@@ -93,6 +196,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     isLoading,
     isAuthenticated: !!user && !!token,
+    refreshToken,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
