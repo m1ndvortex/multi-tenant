@@ -5,7 +5,9 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { TenantProvider } from '@/contexts/TenantContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import Layout from '@/components/Layout';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import ImpersonationBanner from '@/components/ImpersonationBanner';
+import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
 import Invoices from '@/pages/Invoices';
 import Customers from '@/pages/Customers';
@@ -34,21 +36,33 @@ function App() {
         <AuthProvider>
           <TenantProvider>
             <Router>
-              <ImpersonationBanner />
-              <Layout>
+              <div className="min-h-screen bg-gradient-to-br from-green-50/30 to-white" dir="rtl">
                 <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/invoices/*" element={<Invoices />} />
-                  <Route path="/customers/*" element={<Customers />} />
-                  <Route path="/products/*" element={<Products />} />
-                  <Route path="/accounting/*" element={<Accounting />} />
-                  <Route path="/reports" element={<Reports />} />
-                  <Route path="/notifications" element={<Notifications />} />
-                  <Route path="/backup" element={<Backup />} />
-                  <Route path="/settings/*" element={<Settings />} />
+                  {/* Public route */}
+                  <Route path="/login" element={<Login />} />
+                  
+                  {/* Protected routes */}
+                  <Route path="/*" element={
+                    <ProtectedRoute>
+                      <ImpersonationBanner />
+                      <Layout>
+                        <Routes>
+                          <Route path="/" element={<Dashboard />} />
+                          <Route path="/invoices/*" element={<Invoices />} />
+                          <Route path="/customers/*" element={<Customers />} />
+                          <Route path="/products/*" element={<Products />} />
+                          <Route path="/accounting/*" element={<Accounting />} />
+                          <Route path="/reports" element={<Reports />} />
+                          <Route path="/notifications" element={<Notifications />} />
+                          <Route path="/backup" element={<Backup />} />
+                          <Route path="/settings/*" element={<Settings />} />
+                        </Routes>
+                      </Layout>
+                    </ProtectedRoute>
+                  } />
                 </Routes>
-              </Layout>
-              <Toaster />
+                <Toaster />
+              </div>
             </Router>
           </TenantProvider>
         </AuthProvider>

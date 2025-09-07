@@ -314,7 +314,7 @@ const Dashboard: React.FC = () => {
           error={stats.error || onlineUsers.error || alerts.error || quickStats.error}
           title="خطا در دریافت اطلاعات داشبورد"
           onRetry={refreshAll}
-          showDetails={process.env.NODE_ENV === 'development'}
+          showDetails={import.meta.env.DEV}
         />
       </div>
     );
@@ -699,6 +699,7 @@ const Dashboard: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+      </div>
     </ErrorBoundary>
   );
 };

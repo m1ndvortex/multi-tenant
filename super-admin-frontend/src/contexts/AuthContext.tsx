@@ -105,7 +105,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const verifyToken = async () => {
     try {
-      const response = await axios.get('/api/super-admin/me');
+      const response = await axios.get('/api/auth/me');
       setUser(response.data);
     } catch (error) {
       console.error('Token verification failed:', error);

@@ -18,7 +18,7 @@ class PerformanceMonitor {
   private metrics: PerformanceMetric[] = [];
   private renderMetrics: ComponentRenderMetric[] = [];
   private observers: PerformanceObserver[] = [];
-  private isEnabled: boolean = process.env.NODE_ENV === 'development';
+  private isEnabled: boolean = import.meta.env.DEV;
 
   constructor() {
     if (this.isEnabled && typeof window !== 'undefined') {

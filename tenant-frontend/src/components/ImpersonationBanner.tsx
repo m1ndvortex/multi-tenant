@@ -52,7 +52,7 @@ const ImpersonationBanner: React.FC<ImpersonationBannerProps> = ({
     try {
       // Call the API to end impersonation
       const token = localStorage.getItem('super_admin_token');
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       
       await fetch(`${API_BASE_URL}/api/super-admin/impersonation/end`, {
         method: 'POST',
@@ -72,7 +72,7 @@ const ImpersonationBanner: React.FC<ImpersonationBannerProps> = ({
         onEndImpersonation();
       } else {
         // Default behavior: return to super admin
-        const superAdminUrl = process.env.REACT_APP_SUPER_ADMIN_URL || 'http://localhost:3000';
+        const superAdminUrl = import.meta.env.VITE_SUPER_ADMIN_URL || 'http://localhost:3000';
         window.location.href = `${superAdminUrl}/impersonation`;
       }
     } catch (error) {
@@ -80,7 +80,7 @@ const ImpersonationBanner: React.FC<ImpersonationBannerProps> = ({
       // Force return anyway
       localStorage.removeItem('impersonation_token');
       localStorage.removeItem('impersonation_target_user');
-      const superAdminUrl = process.env.REACT_APP_SUPER_ADMIN_URL || 'http://localhost:3000';
+      const superAdminUrl = import.meta.env.VITE_SUPER_ADMIN_URL || 'http://localhost:3000';
       window.location.href = `${superAdminUrl}/impersonation`;
     } finally {
       setIsEnding(false);

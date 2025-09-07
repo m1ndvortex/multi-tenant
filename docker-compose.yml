@@ -158,9 +158,9 @@ services:
       dockerfile: Dockerfile
     container_name: hesaabplus_super_admin
     environment:
-      - REACT_APP_API_URL=http://localhost:8000
-      - REACT_APP_APP_TYPE=super-admin
-      - REACT_APP_VERSION=2.0.0
+      - VITE_API_URL=http://localhost:8000
+      - VITE_APP_TYPE=super-admin
+      - VITE_VERSION=2.0.0
     volumes:
       - ./super-admin-frontend:/app
       - super_admin_node_modules:/app/node_modules
@@ -186,9 +186,9 @@ services:
       dockerfile: Dockerfile
     container_name: hesaabplus_tenant
     environment:
-      - REACT_APP_API_URL=http://localhost:8000
-      - REACT_APP_APP_TYPE=tenant
-      - REACT_APP_VERSION=2.0.0
+      - VITE_API_URL=http://localhost:8000
+      - VITE_APP_TYPE=tenant
+      - VITE_VERSION=2.0.0
     volumes:
       - ./tenant-frontend:/app
       - tenant_node_modules:/app/node_modules

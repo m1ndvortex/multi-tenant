@@ -8,7 +8,7 @@ import {
   PaginatedDisasterRecoveryResponse,
 } from '@/types/backup';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 class BackupService {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {

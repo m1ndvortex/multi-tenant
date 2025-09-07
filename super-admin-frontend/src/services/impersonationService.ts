@@ -11,7 +11,7 @@ import {
   CurrentSessionInfo,
 } from '@/types/impersonation';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 class ImpersonationService {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -133,7 +133,7 @@ class ImpersonationService {
     localStorage.setItem('impersonation_target_user', JSON.stringify(targetUser));
     
     // Redirect to tenant application
-    const tenantAppUrl = process.env.REACT_APP_TENANT_APP_URL || 'http://localhost:3001';
+    const tenantAppUrl = import.meta.env.VITE_TENANT_APP_URL || 'http://localhost:3001';
     window.location.href = `${tenantAppUrl}?impersonation=true`;
   }
 
@@ -144,7 +144,7 @@ class ImpersonationService {
     localStorage.removeItem('impersonation_target_user');
     
     // Return to super admin app
-    const superAdminUrl = process.env.REACT_APP_SUPER_ADMIN_URL || 'http://localhost:3000';
+    const superAdminUrl = import.meta.env.VITE_SUPER_ADMIN_URL || 'http://localhost:3000';
     window.location.href = `${superAdminUrl}/impersonation`;
   }
 }

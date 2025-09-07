@@ -162,7 +162,7 @@ const OptimizedDashboard: React.FC = () => {
           error={stats.error || onlineUsers.error || alerts.error || quickStats.error}
           title="خطا در دریافت اطلاعات داشبورد"
           onRetry={debouncedRefresh}
-          showDetails={process.env.NODE_ENV === 'development'}
+          showDetails={import.meta.env.DEV}
         />
       </div>
     );
@@ -229,7 +229,7 @@ const OptimizedDashboard: React.FC = () => {
               </svg>
               {isRefreshing ? 'در حال بروزرسانی...' : 'بروزرسانی'}
             </Button>
-            {process.env.NODE_ENV === 'development' && (
+            {import.meta.env.DEV && (
               <div className="text-xs text-slate-500">
                 Cache: {cacheStats.size} items
               </div>
