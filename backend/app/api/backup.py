@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import logging
+from datetime import datetime
 
 from app.core.database import get_db
 from app.core.auth import get_super_admin_user
@@ -198,6 +199,187 @@ async def test_storage_connectivity(
     except Exception as e:
         logger.error(f"Failed to test storage connectivity: {e}")
         raise HTTPException(status_code=500, detail="Failed to test storage connectivity")
+
+
+@router.get("/storage/health")
+async def get_storage_health_status(
+    current_admin=Depends(get_super_admin_user)
+):
+    """Get detailed health status for both storage providers"""
+    try:
+        # Get cloud storage service
+        cloud_storage = CloudStorageService()
+        
+        # Get health status
+        health_status = cloud_storage.get_health_status()
+        
+        return {
+            "status": "success",
+            "health_status": health_status
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get storage health status: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve storage health status")
+
+
+@router.get("/storage/cost-analytics")
+async def get_storage_cost_analytics(
+    current_admin=Depends(get_super_admin_user)
+):
+    """Get detailed cost analytics for both storage providers"""
+    try:
+        # Get cloud storage service
+        cloud_storage = CloudStorageService()
+        
+        # Get cost analytics
+        cost_analytics = cloud_storage.get_cost_analytics()
+        
+        return {
+            "status": "success",
+            "cost_analytics": cost_analytics
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get storage cost analytics: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve cost analytics")
+
+
+@router.get("/storage/redundancy")
+async def get_storage_redundancy_status(
+    current_admin=Depends(get_super_admin_user)
+):
+    """Get storage redundancy status across both providers"""
+    try:
+        # Get cloud storage service
+        cloud_storage = CloudStorageService()
+        
+        # Get redundancy status
+        redundancy_status = cloud_storage.get_storage_redundancy_status()
+        
+        return {
+            "status": "success",
+            "redundancy_status": redundancy_status
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get storage redundancy status: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve redundancy status")
+
+
+@router.post("/storage/failover-strategy")
+async def set_failover_strategy(
+    strategy: str = Query(..., pattern="^(primary_only|secondary_fallback|dual_upload)$"),
+    current_admin=Depends(get_super_admin_user)
+):
+    """Set the failover strategy for storage operations"""
+    try:
+        from app.services.cloud_storage_service import StorageFailoverStrategy
+        
+        # Get cloud storage service
+        cloud_storage = CloudStorageService()
+        
+        # Map string to enum
+        strategy_map = {
+            "primary_only": StorageFailoverStrategy.PRIMARY_ONLY,
+            "secondary_fallback": StorageFailoverStrategy.SECONDARY_FALLBACK,
+            "dual_upload": StorageFailoverStrategy.DUAL_UPLOAD
+        }
+        
+        # Set failover strategy
+        cloud_storage.set_failover_strategy(strategy_map[strategy])
+        
+        return {
+            "status": "success",
+            "message": f"Failover strategy set to {strategy}",
+            "strategy": strategy
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to set failover strategy: {e}")
+        raise HTTPException(status_code=500, detail="Failed to set failover strategy")
+
+
+@router.post("/storage/reset-cost-tracking")
+async def reset_cost_tracking(
+    current_admin=Depends(get_super_admin_user)
+):
+    """Reset cost tracking counters"""
+    try:
+        # Get cloud storage service
+        cloud_storage = CloudStorageService()
+        
+        # Reset cost tracking
+        cloud_storage.reset_cost_tracking()
+        
+        return {
+            "status": "success",
+            "message": "Cost tracking counters have been reset"
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to reset cost tracking: {e}")
+        raise HTTPException(status_code=500, detail="Failed to reset cost tracking")
+
+
+@router.post("/storage/test-failover")
+async def test_storage_failover(
+    test_file_content: str = "Test failover content",
+    current_admin=Depends(get_super_admin_user)
+):
+    """Test storage failover functionality with a test file"""
+    try:
+        import tempfile
+        from pathlib import Path
+        
+        # Get cloud storage service
+        cloud_storage = CloudStorageService()
+        
+        # Create a temporary test file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as temp_file:
+            temp_file.write(test_file_content)
+            temp_path = Path(temp_file.name)
+        
+        try:
+            # Test upload with failover
+            object_key = f"failover_test_{int(datetime.now().timestamp())}.txt"
+            upload_result = cloud_storage.upload_with_failover(
+                temp_path, 
+                object_key,
+                metadata={"test": "failover", "timestamp": datetime.now().isoformat()}
+            )
+            
+            # Clean up test file
+            temp_path.unlink()
+            
+            # Clean up uploaded test files (optional)
+            if upload_result["primary_upload"]:
+                try:
+                    cloud_storage.delete_from_b2(object_key)
+                except:
+                    pass  # Ignore cleanup errors
+            
+            if upload_result["secondary_upload"]:
+                try:
+                    cloud_storage.delete_from_r2(object_key)
+                except:
+                    pass  # Ignore cleanup errors
+            
+            return {
+                "status": "success",
+                "message": "Failover test completed",
+                "test_result": upload_result
+            }
+            
+        except Exception as e:
+            # Clean up temp file on error
+            if temp_path.exists():
+                temp_path.unlink()
+            raise e
+        
+    except Exception as e:
+        logger.error(f"Failed to test storage failover: {e}")
+        raise HTTPException(status_code=500, detail="Failed to test storage failover")
 
 
 @router.get("/task/{task_id}")
