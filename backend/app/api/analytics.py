@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/super-admin/analytics", tags=["Super Admin - Analytics & Monitoring"])
 
 
-@router.get("/platform", response_model=PlatformAnalyticsResponse)
+@router.get("/platform-metrics", response_model=PlatformAnalyticsResponse)
 async def get_platform_analytics(
     time_range: TimeRange = Query(TimeRange.LAST_30_DAYS, description="Time range for analytics"),
     start_date: Optional[datetime] = Query(None, description="Start date for custom range"),
@@ -106,13 +106,117 @@ async def record_heartbeat(
         )
 
 
-@router.get("/system-health", response_model=SystemHealthResponse)
-async def get_system_health(
+@router.get("/system-health")
+async def get_system_health_metrics(
+    range: str = Query("24h", description="Time range: 1h, 24h, 7d"),
     current_user: dict = Depends(get_super_admin_user),
     db: Session = Depends(get_db)
 ):
     """
-    Get comprehensive system health monitoring including CPU, RAM, database, and Celery
+    Get system health metrics over time (frontend compatible)
+    """
+    try:
+        # Mock system health data - replace with actual monitoring service
+        import psutil
+        
+        # Get current system metrics
+        cpu_usage = psutil.cpu_percent(interval=1)
+        memory = psutil.virtual_memory()
+        disk = psutil.disk_usage('/')
+        
+        # Generate time series data based on range
+        from datetime import datetime, timedelta
+        import random
+        
+        now = datetime.now()
+        if range == "1h":
+            points = 12  # 5-minute intervals
+            delta = timedelta(minutes=5)
+        elif range == "24h":
+            points = 24  # hourly intervals
+            delta = timedelta(hours=1)
+        else:  # 7d
+            points = 7   # daily intervals
+            delta = timedelta(days=1)
+        
+        metrics = []
+        for i in range(points):
+            timestamp = now - (delta * (points - i - 1))
+            metrics.append({
+                "timestamp": timestamp.isoformat(),
+                "cpu_usage": round(cpu_usage + random.uniform(-10, 10), 1),
+                "memory_usage": round(memory.percent + random.uniform(-5, 5), 1),
+                "disk_usage": round(disk.percent + random.uniform(-2, 2), 1),
+                "database_connections": random.randint(5, 20),
+                "database_response_time": random.randint(10, 50),
+                "redis_memory_usage": random.randint(20, 40),
+                "redis_connected_clients": random.randint(2, 8),
+                "celery_active_tasks": random.randint(0, 5),
+                "celery_pending_tasks": random.randint(0, 3),
+                "celery_failed_tasks": random.randint(0, 1),
+                "api_response_time": random.randint(100, 300),
+                "error_rate": round(random.uniform(0, 2), 2)
+            })
+        
+        return metrics
+        
+    except Exception as e:
+        logger.error(f"Failed to get system health metrics: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve system health metrics: {str(e)}"
+        )
+
+
+@router.get("/system-health/current")
+async def get_current_system_health_analytics(
+    current_user: dict = Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get current system health status (analytics version)
+    """
+    try:
+        import psutil
+        
+        # Get current system metrics
+        cpu_usage = psutil.cpu_percent(interval=1)
+        memory = psutil.virtual_memory()
+        disk = psutil.disk_usage('/')
+        
+        current_health = {
+            "timestamp": datetime.now().isoformat(),
+            "cpu_usage": round(cpu_usage, 1),
+            "memory_usage": round(memory.percent, 1),
+            "disk_usage": round(disk.percent, 1),
+            "database_connections": 12,
+            "database_response_time": 25,
+            "redis_memory_usage": 30,
+            "redis_connected_clients": 5,
+            "celery_active_tasks": 2,
+            "celery_pending_tasks": 1,
+            "celery_failed_tasks": 0,
+            "api_response_time": 150,
+            "error_rate": 0.1
+        }
+        
+        return current_health
+        
+    except Exception as e:
+        logger.error(f"Failed to get current system health: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve current system health: {str(e)}"
+        )
+
+
+@router.get("/system-health/current", response_model=SystemHealthResponse)
+async def get_current_system_health(
+    current_user: dict = Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get current system health status (same as system-health but different endpoint)
     """
     try:
         monitoring_service = MonitoringService(db)
@@ -121,10 +225,10 @@ async def get_system_health(
         return SystemHealthResponse(**health_data)
         
     except Exception as e:
-        logger.error(f"Failed to get system health: {e}")
+        logger.error(f"Failed to get current system health: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve system health: {str(e)}"
+            detail=f"Failed to retrieve current system health: {str(e)}"
         )
 
 
@@ -147,6 +251,173 @@ async def get_celery_monitoring(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve Celery monitoring data: {str(e)}"
+        )
+
+
+@router.get("/api-errors", response_model=APIErrorLogResponse)
+async def get_api_errors(
+    start_date: Optional[str] = Query(None, description="Start date filter"),
+    end_date: Optional[str] = Query(None, description="End date filter"),
+    status_code: Optional[int] = Query(None, description="HTTP status code filter"),
+    tenant_id: Optional[str] = Query(None, description="Tenant ID filter"),
+    endpoint: Optional[str] = Query(None, description="Endpoint filter"),
+    search: Optional[str] = Query(None, description="Search term"),
+    page: int = Query(1, ge=1, description="Page number"),
+    limit: int = Query(50, ge=1, le=100, description="Items per page"),
+    current_user: dict = Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get API error logs with filtering and pagination (frontend compatible)
+    """
+    try:
+        # Mock error data for now - replace with actual error logging service
+        errors = [
+            {
+                "id": "error_1",
+                "timestamp": "2025-09-08T01:30:00Z",
+                "method": "GET",
+                "endpoint": "/api/super-admin/online-users",
+                "status_code": 401,
+                "error_message": "Unauthorized access",
+                "tenant_id": None,
+                "user_id": "admin_user",
+                "request_id": "req_123",
+                "stack_trace": None,
+                "user_agent": "Mozilla/5.0...",
+                "ip_address": "127.0.0.1"
+            },
+            {
+                "id": "error_2",
+                "timestamp": "2025-09-08T01:25:00Z", 
+                "method": "GET",
+                "endpoint": "/api/super-admin/analytics/platform-metrics",
+                "status_code": 403,
+                "error_message": "Forbidden access",
+                "tenant_id": None,
+                "user_id": "admin_user",
+                "request_id": "req_124",
+                "stack_trace": None,
+                "user_agent": "Mozilla/5.0...",
+                "ip_address": "127.0.0.1"
+            }
+        ]
+        
+        # Apply filters
+        filtered_errors = errors
+        if status_code:
+            filtered_errors = [e for e in filtered_errors if e["status_code"] == status_code]
+        if endpoint:
+            filtered_errors = [e for e in filtered_errors if endpoint in e["endpoint"]]
+        if search:
+            filtered_errors = [e for e in filtered_errors if search.lower() in e["error_message"].lower()]
+        
+        # Pagination
+        total = len(filtered_errors)
+        start_idx = (page - 1) * limit
+        end_idx = start_idx + limit
+        paginated_errors = filtered_errors[start_idx:end_idx]
+        
+        return {
+            "errors": paginated_errors,
+            "total": total,
+            "page": page,
+            "limit": limit,
+            "total_pages": (total + limit - 1) // limit
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get API errors: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve API errors: {str(e)}"
+        )
+
+
+@router.get("/api-errors/{error_id}")
+async def get_api_error_details(
+    error_id: str,
+    current_user: dict = Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get specific API error details by ID
+    """
+    try:
+        # Mock error detail - replace with actual error logging service
+        error_detail = {
+            "id": error_id,
+            "timestamp": "2025-09-08T01:30:00Z",
+            "method": "GET",
+            "endpoint": "/api/super-admin/online-users",
+            "status_code": 401,
+            "error_message": "Unauthorized access - invalid or expired token",
+            "tenant_id": None,
+            "user_id": "admin_user",
+            "request_id": f"req_{error_id}",
+            "stack_trace": "Traceback (most recent call last):\n  File...",
+            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "ip_address": "127.0.0.1",
+            "request_headers": {
+                "Authorization": "Bearer [REDACTED]",
+                "Content-Type": "application/json",
+                "User-Agent": "Mozilla/5.0..."
+            },
+            "response_headers": {
+                "Content-Type": "application/json",
+                "WWW-Authenticate": "Bearer"
+            }
+        }
+        
+        return error_detail
+        
+    except Exception as e:
+        logger.error(f"Failed to get API error details: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve API error details: {str(e)}"
+        )
+
+
+@router.get("/error-statistics")
+async def get_error_statistics(
+    range: str = Query("24h", description="Time range: 24h, 7d, 30d"),
+    current_user: dict = Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get error statistics for the specified time range
+    """
+    try:
+        # Mock error statistics - replace with actual error logging service
+        stats = {
+            "total_errors": 25,
+            "error_rate": 0.5,  # percentage
+            "most_common_errors": [
+                {"status_code": 401, "count": 15, "percentage": 60.0},
+                {"status_code": 403, "count": 8, "percentage": 32.0},
+                {"status_code": 500, "count": 2, "percentage": 8.0}
+            ],
+            "top_error_endpoints": [
+                {"endpoint": "/api/super-admin/online-users", "count": 10},
+                {"endpoint": "/api/super-admin/analytics/platform-metrics", "count": 8},
+                {"endpoint": "/api/super-admin/system-alerts", "count": 7}
+            ],
+            "error_trend": [
+                {"timestamp": "2025-09-08T00:00:00Z", "count": 3},
+                {"timestamp": "2025-09-08T01:00:00Z", "count": 5},
+                {"timestamp": "2025-09-08T02:00:00Z", "count": 2}
+            ],
+            "time_range": range
+        }
+        
+        return stats
+        
+    except Exception as e:
+        logger.error(f"Failed to get error statistics: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve error statistics: {str(e)}"
         )
 
 

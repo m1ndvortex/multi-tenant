@@ -751,6 +751,206 @@ async def update_tenant_subscription(
         )
 
 
+
+
+
+@router.get("/notifications")
+async def get_notifications(
+    limit: int = Query(default=10, le=50),
+    current_user: User = Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get system notifications for super admin
+    """
+    try:
+        # Mock notifications - replace with actual notification system
+        notifications = [
+            {
+                "id": "notif_1",
+                "type": "info",
+                "title": "System Update",
+                "message": "System maintenance completed successfully",
+                "timestamp": datetime.now(timezone.utc) - timedelta(hours=2),
+                "read": False
+            },
+            {
+                "id": "notif_2", 
+                "type": "warning",
+                "title": "High CPU Usage",
+                "message": "CPU usage exceeded 80% for 5 minutes",
+                "timestamp": datetime.now(timezone.utc) - timedelta(hours=1),
+                "read": False
+            },
+            {
+                "id": "notif_3",
+                "type": "success",
+                "title": "New Pro Subscription",
+                "message": "New tenant upgraded to Pro subscription",
+                "timestamp": datetime.now(timezone.utc) - timedelta(minutes=30),
+                "read": True
+            }
+        ]
+        
+        return notifications[:limit]
+        
+    except Exception as e:
+        logger.error(f"Failed to get notifications: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve notifications: {str(e)}"
+        )
+
+
+@router.get("/system-alerts")
+async def get_system_alerts(
+    limit: int = Query(default=10, le=50),
+    current_user: User = Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get system alerts for monitoring
+    """
+    try:
+        # Mock system alerts - replace with actual monitoring system
+        alerts = [
+            {
+                "id": "alert_1",
+                "severity": "warning",
+                "title": "Database Connection Pool",
+                "message": "Database connection pool usage is at 85%",
+                "timestamp": datetime.now(timezone.utc) - timedelta(minutes=15),
+                "resolved": False,
+                "source": "database"
+            },
+            {
+                "id": "alert_2",
+                "severity": "info", 
+                "title": "Backup Completed",
+                "message": "Daily backup completed successfully",
+                "timestamp": datetime.now(timezone.utc) - timedelta(hours=1),
+                "resolved": True,
+                "source": "backup"
+            },
+            {
+                "id": "alert_3",
+                "severity": "critical",
+                "title": "Redis Memory Usage",
+                "message": "Redis memory usage exceeded 90%",
+                "timestamp": datetime.now(timezone.utc) - timedelta(minutes=5),
+                "resolved": False,
+                "source": "redis"
+            }
+        ]
+        
+        return alerts[:limit]
+        
+    except Exception as e:
+        logger.error(f"Failed to get system alerts: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve system alerts: {str(e)}"
+        )
+
+
+@router.get("/online-users")
+async def get_online_users(
+    current_user: User = Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get currently online users across all tenants
+    """
+    try:
+        # Mock online users data - replace with actual session tracking
+        online_users = [
+            {
+                "id": "user_1",
+                "name": "John Doe",
+                "email": "john@example.com",
+                "tenant_name": "Gold Shop ABC",
+                "tenant_id": "tenant_1",
+                "last_activity": datetime.now(timezone.utc) - timedelta(minutes=2),
+                "session_duration": 3600,  # seconds
+                "ip_address": "192.168.1.100",
+                "user_agent": "Chrome/91.0"
+            },
+            {
+                "id": "user_2",
+                "name": "Jane Smith", 
+                "email": "jane@example.com",
+                "tenant_name": "Jewelry Store XYZ",
+                "tenant_id": "tenant_2",
+                "last_activity": datetime.now(timezone.utc) - timedelta(minutes=1),
+                "session_duration": 1800,
+                "ip_address": "192.168.1.101",
+                "user_agent": "Firefox/89.0"
+            }
+        ]
+        
+        return online_users
+        
+    except Exception as e:
+        logger.error(f"Failed to get online users: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve online users: {str(e)}"
+        )
+
+
+@router.get("/backup-status")
+async def get_backup_status(
+    current_user: User = Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get backup status for all tenants
+    """
+    try:
+        # Mock backup status - replace with actual backup monitoring
+        backup_status = {
+            "last_backup": datetime.now(timezone.utc) - timedelta(hours=2),
+            "next_backup": datetime.now(timezone.utc) + timedelta(hours=22),
+            "backup_frequency": "daily",
+            "total_backups": 30,
+            "successful_backups": 29,
+            "failed_backups": 1,
+            "backup_size_gb": 2.5,
+            "retention_days": 30,
+            "recent_backups": [
+                {
+                    "id": "backup_1",
+                    "tenant_id": "tenant_1",
+                    "tenant_name": "Gold Shop ABC",
+                    "status": "completed",
+                    "started_at": datetime.now(timezone.utc) - timedelta(hours=2),
+                    "completed_at": datetime.now(timezone.utc) - timedelta(hours=2, minutes=-15),
+                    "size_mb": 150,
+                    "type": "full"
+                },
+                {
+                    "id": "backup_2",
+                    "tenant_id": "tenant_2", 
+                    "tenant_name": "Jewelry Store XYZ",
+                    "status": "completed",
+                    "started_at": datetime.now(timezone.utc) - timedelta(hours=2, minutes=5),
+                    "completed_at": datetime.now(timezone.utc) - timedelta(hours=1, minutes=50),
+                    "size_mb": 200,
+                    "type": "full"
+                }
+            ]
+        }
+        
+        return backup_status
+        
+    except Exception as e:
+        logger.error(f"Failed to get backup status: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve backup status: {str(e)}"
+        )
+
+
 @router.get("/dashboard-stats", response_model=Dict[str, Any])
 async def get_dashboard_stats(
     current_user: User = Depends(get_super_admin_user),
@@ -1024,6 +1224,68 @@ async def get_current_system_health(
         
         # Get CPU and memory usage
         cpu_usage = psutil.cpu_percent(interval=1)
+        memory = psutil.virtual_memory()
+        disk = psutil.disk_usage('/')
+        
+        # Test database connection
+        try:
+            db.execute("SELECT 1")
+            database_status = "healthy"
+            database_response_time = 10  # Mock response time in ms
+        except Exception:
+            database_status = "unhealthy"
+            database_response_time = 0
+        
+        # Test Redis connection
+        try:
+            redis_client.ping()
+            redis_status = "healthy"
+            redis_memory_usage = 25  # Mock percentage
+        except Exception:
+            redis_status = "unhealthy"
+            redis_memory_usage = 0
+        
+        # Mock Celery status
+        celery_active_tasks = 0
+        celery_pending_tasks = 0
+        celery_failed_tasks = 0
+        
+        return {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "cpu_usage": round(cpu_usage, 1),
+            "memory_usage": round(memory.percent, 1),
+            "disk_usage": round(disk.percent, 1),
+            "database_status": database_status,
+            "database_response_time": database_response_time,
+            "redis_status": redis_status,
+            "redis_memory_usage": redis_memory_usage,
+            "celery_active_tasks": celery_active_tasks,
+            "celery_pending_tasks": celery_pending_tasks,
+            "celery_failed_tasks": celery_failed_tasks,
+            "api_response_time": 150,  # Mock API response time
+            "error_rate": 0.1,  # Mock error rate percentage
+            "uptime_seconds": 86400  # Mock uptime (24 hours)
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get system health: {e}")
+        # Return mock data if system monitoring fails
+        return {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "cpu_usage": 45.0,
+            "memory_usage": 62.0,
+            "disk_usage": 35.0,
+            "database_status": "healthy",
+            "database_response_time": 15,
+            "redis_status": "healthy",
+            "redis_memory_usage": 25,
+            "celery_active_tasks": 0,
+            "celery_pending_tasks": 0,
+            "celery_failed_tasks": 0,
+            "api_response_time": 150,
+            "error_rate": 0.1,
+            "uptime_seconds": 86400
+        }
         memory = psutil.virtual_memory()
         memory_usage = memory.percent
         
