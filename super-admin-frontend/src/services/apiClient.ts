@@ -1,6 +1,32 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+// Prefer relative URLs in dev so Vite proxy (`/api` -> backend) is used from the browser.
+// If VITE_API_URL points to the Docker DNS (http://backend:8000), override to '' to avoid
+// ERR_NAME_NOT_RESOLVED on host browsers. Allow explicit absolute URLs for non-Docker hosts.
+function resolveBaseUrl(): string {
+  const raw = (import.meta as any)?.env?.VITE_API_URL as string | undefined;
+  // Default to relative
+  let base = raw ?? '';
+
+  try {
+    if (typeof window !== 'undefined') {
+      // Heuristic: if pointing to the internal Docker DNS, use relative instead
+      const lower = (raw || '').toLowerCase();
+      if (lower.includes('backend:8000') || lower === 'http://backend' || lower === 'https://backend') {
+        base = '';
+      }
+      // Support special sentinel values
+      if (lower === 'same-origin' || lower === 'relative') {
+        base = '';
+      }
+    }
+  } catch {
+    // ignore and keep base as-is
+  }
+  return base;
+}
+
+const API_BASE_URL = resolveBaseUrl();
 
 export interface ApiError {
   message: string;
@@ -47,7 +73,7 @@ class ApiClient {
   private setupInterceptors() {
     // Request interceptor for auth token
     this.client.interceptors.request.use(
-      (config) => {
+      (config: any) => {
         const token = localStorage.getItem('super_admin_token');
         if (token) {
           config.headers = config.headers || {};

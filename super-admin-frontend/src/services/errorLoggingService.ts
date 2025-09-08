@@ -154,7 +154,8 @@ export const errorLoggingService = {
       }
     });
 
-    return apiClient.get(`/api/super-admin/errors?${params.toString()}`);
+  // Use trailing slash to avoid FastAPI redirect that can break through proxy
+  return apiClient.get(`/api/super-admin/errors/?${params.toString()}`);
   },
 
   // Get specific error log by ID

@@ -119,12 +119,7 @@ const TenantTable: React.FC<TenantTableProps> = ({
             {tenants.map((tenant) => (
               <TableRow key={tenant.id}>
                 <TableCell className="font-medium">
-                  <strong style={{ 
-                    color: '#000000', 
-                    fontWeight: 'bold',
-                    display: 'block',
-                    fontSize: '14px'
-                  }}>
+                  <strong className="tenant-name-cell block font-bold text-[14px]">
                     {tenant.name}
                   </strong>
                 </TableCell>
