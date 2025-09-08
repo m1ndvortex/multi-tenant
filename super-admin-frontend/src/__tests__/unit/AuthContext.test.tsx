@@ -164,9 +164,10 @@ describe('AuthContext', () => {
 
   describe('Login Flow', () => {
     it('should login successfully with valid credentials', async () => {
-      const mockResponse = {
+    const mockResponse = {
         data: {
-          access_token: 'new-token',
+      access_token: 'new-token',
+      refresh_token: 'new-refresh',
           user: {
             id: '1',
             email: 'admin@example.com',
@@ -203,7 +204,8 @@ describe('AuthContext', () => {
 
       expect(screen.getByTestId('token')).toHaveTextContent('new-token');
       expect(screen.getByTestId('user')).toHaveTextContent(JSON.stringify(mockResponse.data.user));
-      expect(localStorage.setItem).toHaveBeenCalledWith('super_admin_token', 'new-token');
+  expect(localStorage.setItem).toHaveBeenCalledWith('super_admin_token', 'new-token');
+  expect(localStorage.setItem).toHaveBeenCalledWith('super_admin_refresh_token', 'new-refresh');
     });
 
     it('should handle login failure', async () => {
@@ -273,9 +275,10 @@ describe('AuthContext', () => {
   describe('Logout Flow', () => {
     it('should logout and clear all auth data', async () => {
       // First login
-      const mockResponse = {
+    const mockResponse = {
         data: {
-          access_token: 'test-token',
+      access_token: 'test-token',
+      refresh_token: 'test-refresh',
           user: {
             id: '1',
             email: 'admin@example.com',
@@ -314,7 +317,8 @@ describe('AuthContext', () => {
       expect(screen.getByTestId('user')).toHaveTextContent('no-user');
       expect(screen.getByTestId('token')).toHaveTextContent('no-token');
       expect(localStorage.removeItem).toHaveBeenCalledWith('super_admin_token');
-      expect(mockedAxios.defaults.headers.common['Authorization']).toBeUndefined();
+  expect(mockedAxios.defaults.headers.common['Authorization']).toBeUndefined();
+  expect(localStorage.removeItem).toHaveBeenCalledWith('super_admin_refresh_token');
     });
 
     it('should redirect to login page when logout with redirect is called', async () => {
@@ -383,6 +387,12 @@ describe('AuthContext', () => {
 
       mockedAxios.post.mockResolvedValueOnce(mockRefreshResponse);
 
+      // Provide a stored refresh token
+      vi.mocked(localStorage.getItem).mockImplementation((key: string) => {
+        if (key === 'super_admin_refresh_token') return 'refresh-token';
+        return null;
+      });
+
       render(
         <TestWrapper>
           <TestComponent />
@@ -398,7 +408,7 @@ describe('AuthContext', () => {
       fireEvent.click(refreshButton);
 
       await waitFor(() => {
-        expect(mockedAxios.post).toHaveBeenCalledWith('/api/auth/super-admin/refresh');
+  expect(mockedAxios.post).toHaveBeenCalledWith('/api/auth/refresh', { refresh_token: 'refresh-token' });
       });
 
       expect(screen.getByTestId('token')).toHaveTextContent('refreshed-token');
@@ -409,6 +419,12 @@ describe('AuthContext', () => {
     it('should logout on refresh token failure', async () => {
       const mockError = new Error('Refresh failed');
       mockedAxios.post.mockRejectedValueOnce(mockError);
+
+      // Provide a stored refresh token
+      vi.mocked(localStorage.getItem).mockImplementation((key: string) => {
+        if (key === 'super_admin_refresh_token') return 'refresh-token';
+        return null;
+      });
 
       const mockHref = vi.fn();
       Object.defineProperty(window.location, 'href', {

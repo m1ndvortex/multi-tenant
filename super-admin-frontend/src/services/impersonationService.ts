@@ -10,28 +10,43 @@ import {
   AuditLogEntry,
   CurrentSessionInfo,
 } from '@/types/impersonation';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+import { apiClient } from './apiClient';
 
 class ImpersonationService {
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const token = localStorage.getItem('super_admin_token');
-    
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': token ? `Bearer ${token}` : '',
-        ...options.headers,
-      },
-    });
+  private async request<T>(endpoint: string, options: { method?: string; body?: any } = {}): Promise<T> {
+    try {
+      const { method = 'GET', body } = options;
+      
+      let response: any;
+      if (method === 'GET') {
+        response = await apiClient.get(endpoint);
+      } else if (method === 'POST') {
+        response = await apiClient.post(endpoint, body);
+      } else if (method === 'PUT') {
+        response = await apiClient.put(endpoint, body);
+      } else if (method === 'DELETE') {
+        response = await apiClient.delete(endpoint);
+      } else {
+        throw new Error(`Unsupported method: ${method}`);
+      }
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      return response.data as T;
+    } catch (error: any) {
+      // Handle axios errors
+      if (error.response) {
+        throw new Error(error.response.data?.detail || `HTTP error! status: ${error.response.status}`);
+      }
+      
+      // Handle network errors
+      if (error.code === 'ECONNABORTED') {
+        throw new Error('Request timeout - please try again');
+      }
+      if (!navigator.onLine) {
+        throw new Error('No internet connection - please check your network');
+      }
+      
+      throw error;
     }
-
-    return response.json();
   }
 
   // User management methods
@@ -59,14 +74,14 @@ class ImpersonationService {
   async startImpersonation(data: ImpersonationStartRequest): Promise<ImpersonationStartResponse> {
     return this.request<ImpersonationStartResponse>('/api/super-admin/impersonation/start', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: data,
     });
   }
 
   async endImpersonation(data: ImpersonationEndRequest = {}): Promise<ImpersonationEndResponse> {
     return this.request<ImpersonationEndResponse>('/api/super-admin/impersonation/end', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: data,
     });
   }
 
@@ -133,7 +148,7 @@ class ImpersonationService {
     localStorage.setItem('impersonation_target_user', JSON.stringify(targetUser));
     
     // Redirect to tenant application
-    const tenantAppUrl = import.meta.env.VITE_TENANT_APP_URL || 'http://localhost:3001';
+    const tenantAppUrl = (import.meta as any).env?.VITE_TENANT_APP_URL || 'http://localhost:3001';
     window.location.href = `${tenantAppUrl}?impersonation=true`;
   }
 
@@ -144,7 +159,7 @@ class ImpersonationService {
     localStorage.removeItem('impersonation_target_user');
     
     // Return to super admin app
-    const superAdminUrl = import.meta.env.VITE_SUPER_ADMIN_URL || 'http://localhost:3000';
+    const superAdminUrl = (import.meta as any).env?.VITE_SUPER_ADMIN_URL || 'http://localhost:3000';
     window.location.href = `${superAdminUrl}/impersonation`;
   }
 }

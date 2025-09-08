@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/services/apiClient';
 
 interface BackupStatus {
   last_backup: string;
@@ -24,33 +25,11 @@ interface HeaderActionsProps {
 }
 
 const fetchBackupStatus = async (): Promise<BackupStatus> => {
-  const response = await fetch('/api/super-admin/backup-status', {
-    headers: {
-      'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch backup status');
-  }
-
-  return response.json();
+  return apiClient.get<BackupStatus>('/api/super-admin/backup-status');
 };
 
 const fetchSystemAlerts = async (): Promise<SystemAlert[]> => {
-  const response = await fetch('/api/super-admin/system-alerts', {
-    headers: {
-      'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch system alerts');
-  }
-
-  return response.json();
+  return apiClient.get<SystemAlert[]>('/api/super-admin/system-alerts');
 };
 
 const HeaderActions: React.FC<HeaderActionsProps> = ({ className }) => {

@@ -1,22 +1,4 @@
-import axios from 'axios';
-
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Add auth token to requests
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+import { apiClient } from './apiClient';
 
 export enum ErrorSeverity {
   LOW = 'low',
@@ -172,20 +154,17 @@ export const errorLoggingService = {
       }
     });
 
-    const response = await api.get(`/api/super-admin/errors?${params.toString()}`);
-    return response.data;
+    return apiClient.get(`/api/super-admin/errors?${params.toString()}`);
   },
 
   // Get specific error log by ID
   async getErrorLog(errorId: string): Promise<ErrorLog> {
-    const response = await api.get(`/api/super-admin/errors/${errorId}`);
-    return response.data;
+    return apiClient.get(`/api/super-admin/errors/${errorId}`);
   },
 
   // Mark error as resolved
   async resolveError(errorId: string, resolutionData: ErrorResolutionRequest): Promise<ErrorLog> {
-    const response = await api.put(`/api/super-admin/errors/${errorId}/resolve`, resolutionData);
-    return response.data;
+    return apiClient.put(`/api/super-admin/errors/${errorId}/resolve`, resolutionData);
   },
 
   // Get error statistics
@@ -200,32 +179,27 @@ export const errorLoggingService = {
     if (startDate) params.append('start_date', startDate);
     if (endDate) params.append('end_date', endDate);
 
-    const response = await api.get(`/api/super-admin/errors/statistics/overview?${params.toString()}`);
-    return response.data;
+    return apiClient.get(`/api/super-admin/errors/statistics/overview?${params.toString()}`);
   },
 
   // Get error trends
   async getErrorTrends(days: number = 7): Promise<ErrorTrends> {
-    const response = await api.get(`/api/super-admin/errors/statistics/trends?days=${days}`);
-    return response.data;
+    return apiClient.get(`/api/super-admin/errors/statistics/trends?days=${days}`);
   },
 
   // Get critical errors
   async getCriticalErrors(hours: number = 24): Promise<CriticalErrorAlert[]> {
-    const response = await api.get(`/api/super-admin/errors/alerts/critical?hours=${hours}`);
-    return response.data;
+    return apiClient.get(`/api/super-admin/errors/alerts/critical?hours=${hours}`);
   },
 
   // Perform bulk actions on errors
   async bulkErrorAction(actionData: BulkErrorActionRequest): Promise<BulkErrorActionResponse> {
-    const response = await api.post('/api/super-admin/errors/bulk-action', actionData);
-    return response.data;
+    return apiClient.post('/api/super-admin/errors/bulk-action', actionData);
   },
 
   // Delete error log
   async deleteErrorLog(errorId: string): Promise<{ message: string }> {
-    const response = await api.delete(`/api/super-admin/errors/${errorId}`);
-    return response.data;
+    return apiClient.delete(`/api/super-admin/errors/${errorId}`);
   },
 
   // Health check for error logging system
@@ -236,7 +210,6 @@ export const errorLoggingService = {
     total_errors_in_system: number;
     timestamp: string;
   }> {
-    const response = await api.get('/api/super-admin/errors/health/check');
-    return response.data;
+    return apiClient.get('/api/super-admin/errors/health/check');
   }
 };

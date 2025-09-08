@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/services/apiClient';
 
 interface Notification {
   id: string;
@@ -24,18 +25,9 @@ interface NotificationCenterProps {
 }
 
 const fetchNotifications = async (): Promise<{ notifications: Notification[]; unread_count: number }> => {
-  const response = await fetch('/api/super-admin/notifications', {
-    headers: {
-      'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch notifications');
-  }
-
-  return response.json();
+  return apiClient.get<{ notifications: Notification[]; unread_count: number }>(
+    '/api/super-admin/notifications'
+  );
 };
 
 const NotificationCenter: React.FC<NotificationCenterProps> = ({ 
@@ -104,13 +96,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
 
   const markAsRead = async (notificationId: string) => {
     try {
-      await fetch(`/api/super-admin/notifications/${notificationId}/read`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      await apiClient.post(`/api/super-admin/notifications/${notificationId}/read`);
       
       setNotifications(prev => 
         prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
@@ -122,13 +108,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
 
   const markAllAsRead = async () => {
     try {
-      await fetch('/api/super-admin/notifications/mark-all-read', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      await apiClient.post('/api/super-admin/notifications/mark-all-read');
       
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     } catch (error) {

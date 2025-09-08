@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/services/apiClient';
 
 interface SearchResult {
   id: string;
@@ -25,19 +26,9 @@ interface QuickSearchModalProps {
 
 const searchItems = async (query: string): Promise<SearchResult[]> => {
   if (!query.trim()) return [];
-  
-  const response = await fetch(`/api/super-admin/search?q=${encodeURIComponent(query)}`, {
-    headers: {
-      'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to search');
-  }
-
-  return response.json();
+  return apiClient.get<SearchResult[]>(
+    `/api/super-admin/search?q=${encodeURIComponent(query)}`
+  );
 };
 
 const QuickSearchModal: React.FC<QuickSearchModalProps> = ({ isOpen, onClose }) => {

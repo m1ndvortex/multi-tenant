@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 export interface ApiError {
   message: string;
@@ -19,6 +19,8 @@ export interface RetryConfig {
 
 class ApiClient {
   private client: AxiosInstance;
+  private isRefreshing = false;
+  private refreshPromise: Promise<string | null> | null = null;
   private defaultRetryConfig: RetryConfig = {
     retries: 3,
     retryDelay: 1000,
@@ -48,21 +50,87 @@ class ApiClient {
       (config) => {
         const token = localStorage.getItem('super_admin_token');
         if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
+          config.headers = config.headers || {};
+          (config.headers as any).Authorization = `Bearer ${token}`;
         }
         return config;
       },
-      (error) => Promise.reject(error)
+  (error: any) => Promise.reject(error)
     );
 
     // Response interceptor for error handling
     this.client.interceptors.response.use(
-      (response) => response,
-      (error: AxiosError) => {
+  (response: any) => response,
+  async (error: AxiosError) => {
+        const originalRequest = error.config as (AxiosRequestConfig & { _retry?: boolean });
+
+        // Attempt token refresh once on 401
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
+
+          try {
+            const newToken = await this.refreshAccessToken();
+            if (newToken) {
+              // Update header and retry the original request
+              originalRequest.headers = originalRequest.headers || {};
+              (originalRequest.headers as any).Authorization = `Bearer ${newToken}`;
+              return this.client.request(originalRequest);
+            }
+          } catch (e) {
+            // fall through to transform and reject
+          }
+        }
+
         const apiError = this.transformError(error);
         return Promise.reject(apiError);
       }
     );
+  }
+
+  private async refreshAccessToken(): Promise<string | null> {
+    // Debounce multiple concurrent 401s
+    if (this.isRefreshing && this.refreshPromise) {
+      return this.refreshPromise;
+    }
+
+    this.isRefreshing = true;
+    this.refreshPromise = (async () => {
+      try {
+        // Use the same client to hit refresh endpoint with stored refresh token
+        const refreshToken = localStorage.getItem('super_admin_refresh_token');
+        if (!refreshToken) {
+          return null;
+        }
+        const resp = await this.client.post(
+          '/api/auth/refresh',
+          { refresh_token: refreshToken }
+        );
+        const data: any = (resp as any).data ?? resp;
+        const newAccessToken = data?.access_token;
+        const newRefreshToken = data?.refresh_token;
+        if (newAccessToken) {
+          localStorage.setItem('super_admin_token', newAccessToken);
+          if (newRefreshToken) {
+            localStorage.setItem('super_admin_refresh_token', newRefreshToken);
+          }
+          return newAccessToken;
+        }
+        return null;
+      } catch (e) {
+        // Clear invalid token
+        localStorage.removeItem('super_admin_token');
+        localStorage.removeItem('super_admin_refresh_token');
+        try {
+          window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+        } catch {}
+        return null;
+      } finally {
+        this.isRefreshing = false;
+        this.refreshPromise = null;
+      }
+    })();
+
+    return this.refreshPromise;
   }
 
   private transformError(error: AxiosError): ApiError {

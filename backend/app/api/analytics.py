@@ -108,7 +108,7 @@ async def record_heartbeat(
 
 @router.get("/system-health")
 async def get_system_health_metrics(
-    range: str = Query("24h", description="Time range: 1h, 24h, 7d"),
+    time_range: str = Query("24h", description="Time range: 1h, 24h, 7d", alias="range"),
     current_user: dict = Depends(get_super_admin_user),
     db: Session = Depends(get_db)
 ):
@@ -118,27 +118,27 @@ async def get_system_health_metrics(
     try:
         # Mock system health data - replace with actual monitoring service
         import psutil
-        
+
         # Get current system metrics
         cpu_usage = psutil.cpu_percent(interval=1)
         memory = psutil.virtual_memory()
         disk = psutil.disk_usage('/')
-        
+
         # Generate time series data based on range
         from datetime import datetime, timedelta
         import random
-        
+
         now = datetime.now()
-        if range == "1h":
+        if time_range == "1h":
             points = 12  # 5-minute intervals
             delta = timedelta(minutes=5)
-        elif range == "24h":
+        elif time_range == "24h":
             points = 24  # hourly intervals
             delta = timedelta(hours=1)
         else:  # 7d
             points = 7   # daily intervals
             delta = timedelta(days=1)
-        
+
         metrics = []
         for i in range(points):
             timestamp = now - (delta * (points - i - 1))
@@ -157,9 +157,9 @@ async def get_system_health_metrics(
                 "api_response_time": random.randint(100, 300),
                 "error_rate": round(random.uniform(0, 2), 2)
             })
-        
+
         return metrics
-        
+
     except Exception as e:
         logger.error(f"Failed to get system health metrics: {e}")
         raise HTTPException(

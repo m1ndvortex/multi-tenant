@@ -7,27 +7,43 @@ import {
   PaginatedBackupsResponse,
   PaginatedDisasterRecoveryResponse,
 } from '@/types/backup';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+import { apiClient } from './apiClient';
 
 class BackupService {
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const token = localStorage.getItem('super_admin_token');
-    
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': token ? `Bearer ${token}` : '',
-        ...options.headers,
-      },
-    });
+  private async request<T>(endpoint: string, options: { method?: string; body?: any } = {}): Promise<T> {
+    try {
+      const { method = 'GET', body } = options;
+      
+      let response: any;
+      if (method === 'GET') {
+        response = await apiClient.get(endpoint);
+      } else if (method === 'POST') {
+        response = await apiClient.post(endpoint, body);
+      } else if (method === 'PUT') {
+        response = await apiClient.put(endpoint, body);
+      } else if (method === 'DELETE') {
+        response = await apiClient.delete(endpoint);
+      } else {
+        throw new Error(`Unsupported method: ${method}`);
+      }
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      return response.data as T;
+    } catch (error: any) {
+      // Handle axios errors
+      if (error.response) {
+        throw new Error(error.response.data?.message || error.response.data?.detail || `HTTP error! status: ${error.response.status}`);
+      }
+      
+      // Handle network errors
+      if (error.code === 'ECONNABORTED') {
+        throw new Error('Request timeout - please try again');
+      }
+      if (!navigator.onLine) {
+        throw new Error('No internet connection - please check your network');
+      }
+      
+      throw error;
     }
-
-    return response.json();
   }
 
   // Tenant Backup Management
@@ -50,17 +66,17 @@ class BackupService {
   async createTenantBackup(tenantIds: string[], storageProvider: 'cloudflare_r2' | 'backblaze_b2'): Promise<{ job_id: string }> {
     return this.request<{ job_id: string }>('/api/super-admin/backups/tenants', {
       method: 'POST',
-      body: JSON.stringify({
+      body: {
         tenant_ids: tenantIds,
         storage_provider: storageProvider,
-      }),
+      },
     });
   }
 
   async restoreTenantBackup(data: RestoreConfirmationData): Promise<RestoreOperation> {
     return this.request<RestoreOperation>('/api/super-admin/backups/tenants/restore', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: data,
     });
   }
 
@@ -96,11 +112,11 @@ class BackupService {
   ): Promise<RestoreOperation> {
     return this.request<RestoreOperation>('/api/super-admin/backups/disaster-recovery/restore', {
       method: 'POST',
-      body: JSON.stringify({
+      body: {
         backup_id: backupId,
         storage_provider: storageProvider,
         confirmation_phrase: confirmationPhrase,
-      }),
+      },
     });
   }
 
@@ -113,10 +129,10 @@ class BackupService {
   async verifyBackupIntegrity(backupId: string, backupType: 'tenant' | 'disaster_recovery'): Promise<{ job_id: string }> {
     return this.request<{ job_id: string }>('/api/super-admin/backups/verify-integrity', {
       method: 'POST',
-      body: JSON.stringify({
+      body: {
         backup_id: backupId,
         backup_type: backupType,
-      }),
+      },
     });
   }
 

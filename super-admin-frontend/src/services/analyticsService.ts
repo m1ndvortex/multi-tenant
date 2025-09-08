@@ -1,22 +1,4 @@
-import axios from 'axios';
-
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Add auth token to requests
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('super_admin_token') || localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+import { apiClient } from './apiClient';
 
 export interface PlatformMetrics {
   user_growth: {
@@ -100,20 +82,17 @@ export interface ErrorLogResponse {
 export const analyticsService = {
   // Platform metrics
   async getPlatformMetrics(timeRange: '7d' | '30d' | '90d' | '1y' = '30d'): Promise<PlatformMetrics> {
-    const response = await api.get(`/api/super-admin/analytics/platform-metrics?range=${timeRange}`);
-    return response.data;
+    return apiClient.get<PlatformMetrics>(`/api/super-admin/analytics/platform-metrics?range=${timeRange}`);
   },
 
   // System health metrics
   async getSystemHealthMetrics(timeRange: '1h' | '24h' | '7d' = '24h'): Promise<SystemHealthMetrics[]> {
-    const response = await api.get(`/api/super-admin/analytics/system-health?range=${timeRange}`);
-    return response.data;
+    return apiClient.get<SystemHealthMetrics[]>(`/api/super-admin/analytics/system-health?range=${timeRange}`);
   },
 
   // Real-time system health
   async getCurrentSystemHealth(): Promise<SystemHealthMetrics> {
-    const response = await api.get('/api/super-admin/analytics/system-health/current');
-    return response.data;
+    return apiClient.get<SystemHealthMetrics>('/api/super-admin/analytics/system-health/current');
   },
 
   // API error logs
@@ -126,19 +105,16 @@ export const analyticsService = {
       }
     });
 
-    const response = await api.get(`/api/super-admin/analytics/api-errors?${params.toString()}`);
-    return response.data;
+    return apiClient.get<ErrorLogResponse>(`/api/super-admin/analytics/api-errors?${params.toString()}`);
   },
 
   // Get error details
   async getErrorDetails(errorId: string): Promise<ApiError> {
-    const response = await api.get(`/api/super-admin/analytics/api-errors/${errorId}`);
-    return response.data;
+    return apiClient.get<ApiError>(`/api/super-admin/analytics/api-errors/${errorId}`);
   },
 
   // Get error statistics
   async getErrorStatistics(timeRange: '24h' | '7d' | '30d' = '24h') {
-    const response = await api.get(`/api/super-admin/analytics/error-statistics?range=${timeRange}`);
-    return response.data;
+    return apiClient.get(`/api/super-admin/analytics/error-statistics?range=${timeRange}`);
   },
 };

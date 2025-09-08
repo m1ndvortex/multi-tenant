@@ -1,6 +1,5 @@
 import { Tenant, TenantFormData, TenantsResponse, TenantFilters } from '@/types/tenant';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+import { apiClient } from './apiClient';
 
 export interface ApiError {
   message: string;
@@ -10,57 +9,43 @@ export interface ApiError {
 }
 
 class TenantService {
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const token = localStorage.getItem('super_admin_token');
-    
+  private async request<T>(endpoint: string, options: { method?: string; body?: any } = {}): Promise<T> {
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      const { method = 'GET', body } = options;
       
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        ...options,
-        signal: controller.signal,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : '',
-          ...options.headers,
-        },
-      });
+      let response;
+      if (method === 'GET') {
+        response = await apiClient.get(endpoint);
+      } else if (method === 'POST') {
+        response = await apiClient.post(endpoint, body);
+      } else if (method === 'PUT') {
+        response = await apiClient.put(endpoint, body);
+      } else if (method === 'DELETE') {
+        response = await apiClient.delete(endpoint);
+      } else {
+        throw new Error(`Unsupported method: ${method}`);
+      }
 
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        let errorMessage = `HTTP error! status: ${response.status}`;
-        let errorDetails = null;
-        
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorData.detail || errorMessage;
-          errorDetails = errorData;
-        } catch {
-          // If response is not JSON, use status text
-          errorMessage = response.statusText || errorMessage;
-        }
-
+      return response.data as T;
+    } catch (error: any) {
+      // Handle axios errors
+      if (error.response) {
         const apiError: ApiError = {
-          message: errorMessage,
-          status: response.status,
-          details: errorDetails
+          message: error.response.data?.message || error.response.data?.detail || `HTTP error! status: ${error.response.status}`,
+          status: error.response.status,
+          details: error.response.data
         };
-
         throw apiError;
       }
-
-      return response.json();
-    } catch (error) {
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          throw new Error('Request timeout - please try again');
-        }
-        if (!navigator.onLine) {
-          throw new Error('No internet connection - please check your network');
-        }
+      
+      // Handle network errors
+      if (error.code === 'ECONNABORTED') {
+        throw new Error('Request timeout - please try again');
       }
+      if (!navigator.onLine) {
+        throw new Error('No internet connection - please check your network');
+      }
+      
       throw error;
     }
   }
@@ -88,14 +73,14 @@ class TenantService {
   async createTenant(data: TenantFormData): Promise<Tenant> {
     return this.request<Tenant>('/api/super-admin/tenants', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: data,
     });
   }
 
   async updateTenant(id: string, data: Partial<TenantFormData>): Promise<Tenant> {
     return this.request<Tenant>(`/api/super-admin/tenants/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: data,
     });
   }
 

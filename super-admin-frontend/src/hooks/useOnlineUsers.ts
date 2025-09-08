@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/services/apiClient';
 
 interface OnlineUser {
   id: string;
@@ -15,18 +16,7 @@ interface OnlineUsersResponse {
 }
 
 const fetchOnlineUsers = async (): Promise<OnlineUsersResponse> => {
-  const response = await fetch('/api/super-admin/online-users', {
-    headers: {
-      'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch online users');
-  }
-
-  return response.json();
+  return apiClient.get<OnlineUsersResponse>('/api/super-admin/online-users');
 };
 
 export const useOnlineUsers = () => {
