@@ -6,6 +6,7 @@ from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi import status
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from sqlalchemy import and_, or_, func, desc, asc
 from datetime import datetime, timedelta, timezone
 import uuid
@@ -1220,30 +1221,49 @@ async def get_current_system_health(
     """
     try:
         import psutil
-        import redis
+        from ..core.redis_client import redis_client
         
         # Get CPU and memory usage
         cpu_usage = psutil.cpu_percent(interval=1)
         memory = psutil.virtual_memory()
         disk = psutil.disk_usage('/')
         
-        # Test database connection
+        # Test database connection and get active connections
         try:
-            db.execute("SELECT 1")
+            # Use SQLAlchemy text for portability
+            db.execute(text("SELECT 1"))
+            # Attempt to get active connection count (PostgreSQL)
+            try:
+                result = db.execute(text("""
+                    SELECT count(*) as connections 
+                    FROM pg_stat_activity 
+                    WHERE state = 'active'
+                """))
+                db_connections = result.fetchone()[0]
+            except Exception:
+                db_connections = 0
             database_status = "healthy"
             database_response_time = 10  # Mock response time in ms
         except Exception:
             database_status = "unhealthy"
             database_response_time = 0
+            db_connections = 0
         
         # Test Redis connection
         try:
-            redis_client.ping()
+            # Ping using our configured Redis client
+            if getattr(redis_client, 'redis_client', None) is not None:
+                redis_client.redis_client.ping()
+                info = redis_client.redis_client.info() or {}
+                redis_connected_clients = int(info.get('connected_clients', 0))
+            else:
+                raise RuntimeError("Redis client not initialized")
             redis_status = "healthy"
             redis_memory_usage = 25  # Mock percentage
         except Exception:
             redis_status = "unhealthy"
             redis_memory_usage = 0
+            redis_connected_clients = 0
         
         # Mock Celery status
         celery_active_tasks = 0
@@ -1255,10 +1275,12 @@ async def get_current_system_health(
             "cpu_usage": round(cpu_usage, 1),
             "memory_usage": round(memory.percent, 1),
             "disk_usage": round(disk.percent, 1),
+            "database_connections": db_connections,
             "database_status": database_status,
             "database_response_time": database_response_time,
             "redis_status": redis_status,
             "redis_memory_usage": redis_memory_usage,
+            "redis_connected_clients": redis_connected_clients,
             "celery_active_tasks": celery_active_tasks,
             "celery_pending_tasks": celery_pending_tasks,
             "celery_failed_tasks": celery_failed_tasks,
@@ -1286,37 +1308,7 @@ async def get_current_system_health(
             "error_rate": 0.1,
             "uptime_seconds": 86400
         }
-        memory = psutil.virtual_memory()
-        memory_usage = memory.percent
         
-        # Check database status
-        try:
-            # Use a simple query to test database connectivity
-            db.query(Tenant).count()
-            database_status = "healthy"
-        except Exception as e:
-            logger.error(f"Database health check failed: {e}")
-            database_status = "error"
-        
-        # Check Redis status
-        try:
-            r = redis.Redis(host='redis', port=6379, db=0)
-            r.ping()
-            redis_status = "healthy"
-        except Exception:
-            redis_status = "error"
-        
-        # Check Celery status (mock for now)
-        celery_status = "healthy"
-        
-        return {
-            "cpu_usage": round(cpu_usage, 1),
-            "memory_usage": round(memory_usage, 1),
-            "database_status": database_status,
-            "redis_status": redis_status,
-            "celery_status": celery_status,
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        }
         
     except ImportError:
         # Fallback if psutil is not available

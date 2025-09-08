@@ -92,7 +92,7 @@ export const analyticsService = {
 
   // Real-time system health
   async getCurrentSystemHealth(): Promise<SystemHealthMetrics> {
-    return apiClient.get<SystemHealthMetrics>('/api/super-admin/analytics/system-health/current');
+  return apiClient.get<SystemHealthMetrics>('/api/super-admin/system-health/current');
   },
 
   // API error logs

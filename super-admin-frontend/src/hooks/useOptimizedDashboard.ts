@@ -27,9 +27,9 @@ const QUERY_CONFIGS = {
     refetchInterval: 30000,
   },
   systemHealth: {
-    staleTime: 5000,
-    cacheTime: 30000,
-    refetchInterval: 10000,
+  staleTime: 4000,
+  cacheTime: 30000,
+  refetchInterval: 5000,
   },
 };
 

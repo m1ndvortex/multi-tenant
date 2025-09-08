@@ -22,6 +22,7 @@ export const useSystemHealthMetrics = (timeRange: '1h' | '24h' | '7d' = '24h') =
     retry: 2,
     retryDelay: 1000,
     refetchOnWindowFocus: false, // Prevent automatic refetch on window focus
+  refetchInterval: 10000, // Refresh the time-series every 10 seconds
   });
 };
 
@@ -29,11 +30,12 @@ export const useCurrentSystemHealth = () => {
   return useQuery({
     queryKey: ['current-system-health'],
     queryFn: () => analyticsService.getCurrentSystemHealth(),
-    refetchInterval: 30000, // Refetch every 30 seconds
-    staleTime: 25000, // Consider data stale after 25 seconds
+  refetchInterval: 5000, // Refetch every 5 seconds for near real-time updates
+  staleTime: 4500, // Consider data stale shortly before next refetch
     gcTime: 60000, // Keep in cache for 1 minute
     retry: 3,
     retryDelay: 2000,
+  refetchOnWindowFocus: false,
   });
 };
 
