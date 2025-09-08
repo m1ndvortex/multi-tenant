@@ -120,12 +120,12 @@ const ActiveSessionsTable: React.FC<ActiveSessionsTableProps> = ({
           <Clock className="h-5 w-5" />
           جلسات فعال جانشینی
           <Badge variant="secondary" className="mr-2">
-            {sessions.length} جلسه
+            {sessions?.length || 0} جلسه
           </Badge>
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        {sessions.length === 0 ? (
+        {!sessions || sessions.length === 0 ? (
           <div className="flex items-center justify-center h-32 p-6">
             <div className="text-slate-500">هیچ جلسه فعالی وجود ندارد</div>
           </div>

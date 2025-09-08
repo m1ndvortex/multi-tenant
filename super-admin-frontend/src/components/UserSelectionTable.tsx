@@ -75,7 +75,7 @@ const UserSelectionTable: React.FC<UserSelectionTableProps> = ({
     );
   }
 
-  if (users.length === 0) {
+  if (!users || users.length === 0) {
     return (
       <Card variant="professional">
         <CardContent className="p-6">

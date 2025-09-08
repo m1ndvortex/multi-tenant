@@ -1366,6 +1366,135 @@ async def delete_tenant(
             detail=f"Failed to delete tenant: {str(e)}"
         )
 
+
+# Users endpoints for impersonation support
+@router.get("/users")
+async def get_users(
+    page: int = Query(1, ge=1, description="Page number"),
+    limit: int = Query(10, ge=1, le=100, description="Items per page"),
+    search: Optional[str] = Query(None, description="Search by email or name"),
+    tenant_id: Optional[str] = Query(None, description="Filter by tenant ID"),
+    role: Optional[str] = Query(None, description="Filter by user role"),
+    is_active: Optional[bool] = Query(None, description="Filter by active status"),
+    current_user: User = Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get list of users across all tenants for impersonation
+    """
+    try:
+        # Build base query with tenant join
+        query = db.query(User, Tenant.name.label('tenant_name')).join(
+            Tenant, User.tenant_id == Tenant.id
+        )
+        
+        # Apply filters
+        if search:
+            search_filter = or_(
+                User.email.ilike(f"%{search}%"),
+                User.first_name.ilike(f"%{search}%"),
+                User.last_name.ilike(f"%{search}%")
+            )
+            query = query.filter(search_filter)
+        
+        if tenant_id:
+            query = query.filter(User.tenant_id == tenant_id)
+        
+        if role:
+            query = query.filter(User.role == role)
+        
+        if is_active is not None:
+            if is_active:
+                query = query.filter(User.is_active == True)
+            else:
+                query = query.filter(User.is_active == False)
+        
+        # Get total count
+        total = query.count()
+        
+        # Apply pagination
+        skip = (page - 1) * limit
+        users_with_tenants = query.offset(skip).limit(limit).all()
+        
+        # Convert to response models
+        users = []
+        for user, tenant_name in users_with_tenants:
+            users.append({
+                "id": str(user.id),
+                "email": user.email,
+                "name": f"{user.first_name or ''} {user.last_name or ''}".strip() or None,
+                "tenant_id": str(user.tenant_id),
+                "tenant_name": tenant_name,
+                "role": user.role.value if hasattr(user.role, 'value') else str(user.role),
+                "is_active": user.is_active,
+                "last_login": user.last_login_at,
+                "created_at": user.created_at
+            })
+        
+        total_pages = (total + limit - 1) // limit
+        
+        return {
+            "users": users,
+            "pagination": {
+                "page": page,
+                "limit": limit,
+                "total": total,
+                "totalPages": total_pages
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get users: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve users: {str(e)}"
+        )
+
+
+@router.get("/users/{user_id}")
+async def get_user(
+    user_id: str,
+    current_user: User = Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get single user details for impersonation
+    """
+    try:
+        # Query user with tenant information
+        result = db.query(User, Tenant.name.label('tenant_name')).join(
+            Tenant, User.tenant_id == Tenant.id
+        ).filter(User.id == user_id).first()
+        
+        if not result:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        user, tenant_name = result
+        
+        return {
+            "id": str(user.id),
+            "email": user.email,
+            "name": f"{user.first_name or ''} {user.last_name or ''}".strip() or None,
+            "tenant_id": str(user.tenant_id),
+            "tenant_name": tenant_name,
+            "role": user.role.value if hasattr(user.role, 'value') else str(user.role),
+            "is_active": user.is_active,
+            "last_login": user.last_login_at,
+            "created_at": user.created_at
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get user {user_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve user: {str(e)}"
+        )
+
 @router.get("/stats", response_model=TenantStatsResponse)
 async def get_tenant_statistics(
     current_user: User = Depends(get_super_admin_user),

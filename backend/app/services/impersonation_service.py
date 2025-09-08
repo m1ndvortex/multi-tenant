@@ -279,7 +279,7 @@ class ImpersonationService:
         active_sessions = []
         
         for key in session_keys:
-            session_data = self._get_session_data(key.decode().split(":")[-1])
+            session_data = self._get_session_data(key.split(":")[-1])
             
             if not session_data or session_data.get("status") != "active":
                 continue
@@ -299,7 +299,7 @@ class ImpersonationService:
                 continue
             
             # Add session ID to data
-            session_data["session_id"] = key.decode().split(":")[-1]
+            session_data["session_id"] = key.split(":")[-1]
             active_sessions.append(session_data)
         
         return active_sessions

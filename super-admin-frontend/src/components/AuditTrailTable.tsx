@@ -138,12 +138,12 @@ const AuditTrailTable: React.FC<AuditTrailTableProps> = ({
           <FileText className="h-5 w-5" />
           سابقه عملیات جانشینی
           <Badge variant="secondary" className="mr-2">
-            {auditLogs.length} رکورد
+            {auditLogs?.length || 0} رکورد
           </Badge>
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        {auditLogs.length === 0 ? (
+        {!auditLogs || auditLogs.length === 0 ? (
           <div className="flex items-center justify-center h-32 p-6">
             <div className="text-slate-500">هیچ رکوردی در سابقه وجود ندارد</div>
           </div>

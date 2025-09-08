@@ -96,6 +96,7 @@ const UserImpersonation: React.FC = () => {
         totalPages: response.pagination.totalPages,
       }));
     } catch (error) {
+      setUsers([]); // Ensure users is always an array
       toast({
         title: 'خطا در بارگذاری کاربران',
         description: error instanceof Error ? error.message : 'خطای نامشخص',
@@ -112,6 +113,7 @@ const UserImpersonation: React.FC = () => {
       const sessions = await impersonationService.getActiveSessions();
       setActiveSessions(sessions);
     } catch (error) {
+      setActiveSessions([]); // Ensure activeSessions is always an array
       toast({
         title: 'خطا در بارگذاری جلسات فعال',
         description: error instanceof Error ? error.message : 'خطای نامشخص',
@@ -135,6 +137,7 @@ const UserImpersonation: React.FC = () => {
       );
       setAuditLogs(logs);
     } catch (error) {
+      setAuditLogs([]); // Ensure auditLogs is always an array
       toast({
         title: 'خطا در بارگذاری سابقه عملیات',
         description: error instanceof Error ? error.message : 'خطای نامشخص',
@@ -148,8 +151,9 @@ const UserImpersonation: React.FC = () => {
   const loadTenants = async () => {
     try {
       const response = await tenantService.getTenants(1, 100);
-      setTenants(response.tenants);
+      setTenants(response.tenants || []); // Ensure it's always an array
     } catch (error) {
+      setTenants([]); // Ensure tenants is always an array
       console.error('Failed to load tenants:', error);
     }
   };
@@ -235,6 +239,12 @@ const UserImpersonation: React.FC = () => {
     loadAuditLogs();
   };
 
+  // Ensure all arrays are properly initialized to prevent undefined errors
+  const safeUsers = users || [];
+  const safeActiveSessions = activeSessions || [];
+  const safeAuditLogs = auditLogs || [];
+  const safeTenants = tenants || [];
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -288,17 +298,17 @@ const UserImpersonation: React.FC = () => {
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             انتخاب کاربر
-            <Badge variant="secondary">{users.length}</Badge>
+            <Badge variant="secondary">{safeUsers.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="sessions" className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
             جلسات فعال
-            <Badge variant="secondary">{activeSessions.length}</Badge>
+            <Badge variant="secondary">{safeActiveSessions.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="audit" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
             سابقه عملیات
-            <Badge variant="secondary">{auditLogs.length}</Badge>
+            <Badge variant="secondary">{safeAuditLogs.length}</Badge>
           </TabsTrigger>
         </TabsList>
 
@@ -308,11 +318,11 @@ const UserImpersonation: React.FC = () => {
             filters={userFilters}
             onFiltersChange={handleFiltersChange}
             onReset={handleFiltersReset}
-            tenants={tenants.map(t => ({ id: t.id, name: t.name }))}
+            tenants={safeTenants.map(t => ({ id: t.id, name: t.name }))}
           />
           
           <UserSelectionTable
-            users={users}
+            users={safeUsers}
             onImpersonate={handleImpersonate}
             isLoading={usersLoading}
             impersonatingUserId={impersonatingUserId || undefined}
@@ -322,7 +332,7 @@ const UserImpersonation: React.FC = () => {
         {/* Active Sessions Tab */}
         <TabsContent value="sessions">
           <ActiveSessionsTable
-            sessions={activeSessions}
+            sessions={safeActiveSessions}
             onTerminateSession={handleTerminateSession}
             isLoading={sessionsLoading}
             terminatingSessionId={terminatingSessionId || undefined}
@@ -332,7 +342,7 @@ const UserImpersonation: React.FC = () => {
         {/* Audit Trail Tab */}
         <TabsContent value="audit">
           <AuditTrailTable
-            auditLogs={auditLogs}
+            auditLogs={safeAuditLogs}
             isLoading={auditLoading}
           />
         </TabsContent>

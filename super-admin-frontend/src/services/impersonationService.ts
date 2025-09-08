@@ -30,7 +30,7 @@ class ImpersonationService {
         throw new Error(`Unsupported method: ${method}`);
       }
 
-      return response.data as T;
+      return response as T;
     } catch (error: any) {
       // Handle axios errors
       if (error.response) {
@@ -72,14 +72,14 @@ class ImpersonationService {
 
   // Impersonation methods
   async startImpersonation(data: ImpersonationStartRequest): Promise<ImpersonationStartResponse> {
-    return this.request<ImpersonationStartResponse>('/api/super-admin/impersonation/start', {
+    return this.request<ImpersonationStartResponse>('/api/impersonation/start', {
       method: 'POST',
       body: data,
     });
   }
 
   async endImpersonation(data: ImpersonationEndRequest = {}): Promise<ImpersonationEndResponse> {
-    return this.request<ImpersonationEndResponse>('/api/super-admin/impersonation/end', {
+    return this.request<ImpersonationEndResponse>('/api/impersonation/end', {
       method: 'POST',
       body: data,
     });
@@ -93,7 +93,7 @@ class ImpersonationService {
     if (adminUserId) params.append('admin_user_id', adminUserId);
     if (targetUserId) params.append('target_user_id', targetUserId);
 
-    return this.request<ActiveSession[]>(`/api/super-admin/impersonation/sessions?${params}`);
+    return this.request<ActiveSession[]>(`/api/impersonation/sessions?${params}`);
   }
 
   async getAuditLog(
@@ -114,7 +114,7 @@ class ImpersonationService {
     if (startDate) params.append('start_date', startDate.toISOString());
     if (endDate) params.append('end_date', endDate.toISOString());
 
-    return this.request<AuditLogEntry[]>(`/api/super-admin/impersonation/audit-log?${params}`);
+    return this.request<AuditLogEntry[]>(`/api/impersonation/audit-log?${params}`);
   }
 
   async validateSession(sessionId: string): Promise<{
@@ -123,7 +123,7 @@ class ImpersonationService {
     session_data?: any;
     validated_at: string;
   }> {
-    return this.request(`/api/super-admin/impersonation/validate-session/${sessionId}`);
+    return this.request(`/api/impersonation/validate-session/${sessionId}`);
   }
 
   async terminateSession(sessionId: string): Promise<{
@@ -132,13 +132,13 @@ class ImpersonationService {
     terminated_at: string;
     terminated_by: string;
   }> {
-    return this.request(`/api/super-admin/impersonation/sessions/${sessionId}`, {
+    return this.request(`/api/impersonation/sessions/${sessionId}`, {
       method: 'DELETE',
     });
   }
 
   async getCurrentSession(): Promise<CurrentSessionInfo> {
-    return this.request<CurrentSessionInfo>('/api/super-admin/impersonation/current-session');
+    return this.request<CurrentSessionInfo>('/api/impersonation/current-session');
   }
 
   // Helper method to redirect to tenant application with impersonation token
