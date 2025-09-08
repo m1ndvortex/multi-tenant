@@ -2,11 +2,17 @@ export interface Tenant {
   id: string;
   name: string;
   domain?: string;
-  subscription_type: 'free' | 'pro' | 'pending_payment' | 'expired';
+  // Backend enums
+  subscription_type: 'free' | 'pro' | 'enterprise';
+  status?: 'pending' | 'active' | 'suspended' | 'cancelled';
+  // Dates
+  subscription_starts_at?: string;
   subscription_expires_at?: string;
-  is_active: boolean;
   created_at: string;
   updated_at: string;
+  last_activity_at?: string;
+  // Derived/legacy fields used by UI
+  is_active: boolean;
   user_count?: number;
   last_activity?: string;
 }

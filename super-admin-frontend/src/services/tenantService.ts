@@ -13,20 +13,21 @@ class TenantService {
     try {
       const { method = 'GET', body } = options;
       
-      let response;
+      // NOTE: apiClient methods already return response data (not AxiosResponse)
+      let result: any;
       if (method === 'GET') {
-        response = await apiClient.get(endpoint);
+        result = await apiClient.get(endpoint);
       } else if (method === 'POST') {
-        response = await apiClient.post(endpoint, body);
+        result = await apiClient.post(endpoint, body);
       } else if (method === 'PUT') {
-        response = await apiClient.put(endpoint, body);
+        result = await apiClient.put(endpoint, body);
       } else if (method === 'DELETE') {
-        response = await apiClient.delete(endpoint);
+        result = await apiClient.delete(endpoint);
       } else {
         throw new Error(`Unsupported method: ${method}`);
       }
 
-      return response.data as T;
+      return result as T;
     } catch (error: any) {
       // Handle axios errors
       if (error.response) {
@@ -55,15 +56,45 @@ class TenantService {
     limit: number = 10,
     filters: Partial<TenantFilters> = {}
   ): Promise<TenantsResponse> {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-      ...Object.fromEntries(
-        Object.entries(filters).filter(([_, value]) => value && value !== '')
-      ),
-    });
+    // Map frontend filters to backend query params
+    const qs = new URLSearchParams();
+    // Backend expects skip/limit; compute skip from page/limit
+    const skip = (Math.max(1, page) - 1) * Math.max(1, limit);
+    qs.set('skip', String(skip));
+    qs.set('limit', String(limit));
 
-    return this.request<TenantsResponse>(`/api/super-admin/tenants?${params}`);
+    if (filters.search && filters.search.trim()) {
+      qs.set('search_term', filters.search.trim());
+    }
+    if (filters.subscription_type && filters.subscription_type !== '') {
+      // Only supported values on backend: free | pro | enterprise
+      const st = filters.subscription_type as string;
+      if (['free', 'pro', 'enterprise'].includes(st)) {
+        qs.set('subscription_type', st);
+      }
+    }
+    // Note: backend uses status enum (pending|active|suspended|cancelled).
+    // Our UI currently has a boolean is_active filter; ignore it to avoid 422.
+
+    const backend = await this.request<any>(`/api/super-admin/tenants?${qs.toString()}`);
+
+    // backend shape: { tenants, total, skip, limit, has_more }
+    const tenants = (backend?.tenants ?? []).map((t: any) => ({
+      // passthrough
+      ...t,
+      // derive for UI compatibility
+      is_active: String(t?.status || '').toLowerCase() === 'active',
+    }));
+
+    const pageFromSkip = Math.floor((backend?.skip ?? 0) / Math.max(1, limit)) + 1;
+    const pagination = {
+      page: pageFromSkip,
+      limit: backend?.limit ?? limit,
+      total: backend?.total ?? tenants.length,
+      totalPages: Math.max(1, Math.ceil((backend?.total ?? tenants.length) / Math.max(1, backend?.limit ?? limit)))
+    };
+
+    return { tenants, pagination } as TenantsResponse;
   }
 
   async getTenant(id: string): Promise<Tenant> {
@@ -91,21 +122,25 @@ class TenantService {
   }
 
   async suspendTenant(id: string): Promise<Tenant> {
-    return this.request<Tenant>(`/api/super-admin/tenants/${id}/suspend`, {
-      method: 'POST',
+    // Align with backend: PUT /super-admin/tenants/{tenant_id}/status
+    return this.request<Tenant>(`/api/super-admin/tenants/${id}/status`, {
+      method: 'PUT',
+      body: { status: 'suspended' },
     });
   }
 
   async activateTenant(id: string): Promise<Tenant> {
-    return this.request<Tenant>(`/api/super-admin/tenants/${id}/activate`, {
-      method: 'POST',
+    return this.request<Tenant>(`/api/super-admin/tenants/${id}/status`, {
+      method: 'PUT',
+      body: { status: 'active' },
     });
   }
 
   async confirmPayment(id: string, duration: number = 12): Promise<Tenant> {
-    return this.request<Tenant>(`/api/super-admin/tenants/${id}/confirm-payment`, {
+    // Backend expects POST /super-admin/tenants/confirm-payment with tenant_id
+    return this.request<Tenant>(`/api/super-admin/tenants/confirm-payment`, {
       method: 'POST',
-      body: JSON.stringify({ duration_months: duration }),
+      body: { tenant_id: id, duration_months: duration },
     });
   }
 }

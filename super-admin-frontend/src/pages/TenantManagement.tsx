@@ -54,13 +54,14 @@ const TenantManagement: React.FC = () => {
   const pagination = tenantsData?.pagination;
 
   const stats = useMemo(() => {
-    if (!tenants.length) return { total: 0, active: 0, pro: 0, pending: 0 };
-    
+    const total = pagination?.total || 0;
+    if (!tenants.length) return { total, active: 0, pro: 0, pending: 0 };
+
     return {
-      total: pagination?.total || 0,
-      active: tenants.filter(t => t.is_active).length,
+      total,
+      active: tenants.filter(t => (t.status ?? (t.is_active ? 'active' : 'suspended')) === 'active').length,
       pro: tenants.filter(t => t.subscription_type === 'pro').length,
-      pending: tenants.filter(t => t.subscription_type === 'pending_payment').length,
+      pending: tenants.filter(t => (t.status ?? (t.is_active ? 'active' : 'pending')) === 'pending').length,
     };
   }, [tenants, pagination]);
 

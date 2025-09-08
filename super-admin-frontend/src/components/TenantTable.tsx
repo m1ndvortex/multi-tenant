@@ -49,10 +49,8 @@ const TenantTable: React.FC<TenantTableProps> = ({
         return <Badge variant="secondary">رایگان</Badge>;
       case 'pro':
         return <Badge variant="gradient-green">حرفه‌ای</Badge>;
-      case 'pending_payment':
-        return <Badge variant="warning">در انتظار پرداخت</Badge>;
-      case 'expired':
-        return <Badge variant="error">منقضی شده</Badge>;
+      case 'enterprise':
+        return <Badge variant="professional">سازمانی</Badge>;
       default:
         return <Badge variant="secondary">{subscription_type}</Badge>;
     }
@@ -121,7 +119,14 @@ const TenantTable: React.FC<TenantTableProps> = ({
             {tenants.map((tenant) => (
               <TableRow key={tenant.id}>
                 <TableCell className="font-medium">
-                  {tenant.name}
+                  <strong style={{ 
+                    color: '#000000', 
+                    fontWeight: 'bold',
+                    display: 'block',
+                    fontSize: '14px'
+                  }}>
+                    {tenant.name}
+                  </strong>
                 </TableCell>
                 <TableCell>
                   {tenant.domain ? (
@@ -143,7 +148,9 @@ const TenantTable: React.FC<TenantTableProps> = ({
                 </TableCell>
                 <TableCell>
                   <span className="text-slate-600">
-                    {tenant.last_activity ? formatDate(tenant.last_activity) : 'هرگز'}
+                    {tenant.last_activity || tenant.last_activity_at
+                      ? formatDate(tenant.last_activity || (tenant.last_activity_at as string))
+                      : 'هرگز'}
                   </span>
                 </TableCell>
                 <TableCell>
@@ -185,7 +192,7 @@ const TenantTable: React.FC<TenantTableProps> = ({
                     )}
 
                     {/* Confirm Payment Button */}
-                    {tenant.subscription_type === 'pending_payment' && (
+                    {tenant.subscription_type === 'pro' && tenant.status === 'pending' && (
                       <Button
                         variant="ghost"
                         size="sm"

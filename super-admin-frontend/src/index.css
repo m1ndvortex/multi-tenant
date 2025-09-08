@@ -86,3 +86,29 @@
 ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(to bottom, #16a34a, #15803d);
 }
+
+/* Force tenant name visibility */
+.tenant-name-cell {
+  color: #1f2937 !important;
+  font-weight: 600 !important;
+}
+
+.dark .tenant-name-cell {
+  color: #ffffff !important;
+}
+
+/* More specific selectors to override any table styles */
+table .tenant-name-cell,
+tbody .tenant-name-cell,
+tr .tenant-name-cell,
+td .tenant-name-cell {
+  color: #000000 !important;
+  font-weight: 600 !important;
+}
+
+.dark table .tenant-name-cell,
+.dark tbody .tenant-name-cell,
+.dark tr .tenant-name-cell,
+.dark td .tenant-name-cell {
+  color: #ffffff !important;
+}
