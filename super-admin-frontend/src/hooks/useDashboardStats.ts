@@ -1,11 +1,11 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { dashboardService, DashboardStats, OnlineUser, SystemAlert, QuickStats } from '@/services/dashboardService';
+import { dashboardService } from '@/services/dashboardService';
 import { ApiError } from '@/services/apiClient';
 import { useToast } from '@/hooks/use-toast';
 import { useCallback, useEffect, useState } from 'react';
 
 export const useDashboardStats = () => {
-  const { toast } = useToast();
+  // const { toast } = useToast();
   
   return useQuery({
     queryKey: ['dashboard-stats'],
@@ -13,7 +13,7 @@ export const useDashboardStats = () => {
     refetchInterval: 60000, // Refetch every minute
     staleTime: 50000, // Consider data stale after 50 seconds
     retry: (failureCount, error) => {
-      const apiError = error as ApiError;
+      const apiError = error as unknown as ApiError;
       
       // Don't retry on auth errors
       if (apiError.status === 401 || apiError.status === 403) {
@@ -24,28 +24,7 @@ export const useDashboardStats = () => {
       return failureCount < 3;
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    onError: (error: ApiError) => {
-      if (error.status === 401) {
-        toast({
-          title: 'Authentication Error',
-          description: 'Please log in again to continue',
-          variant: 'destructive',
-        });
-      } else if (error.isNetworkError) {
-        toast({
-          title: 'Network Error',
-          description: 'Please check your internet connection',
-          variant: 'destructive',
-        });
-      } else if (!error.isTimeoutError) {
-        // Don't show toast for timeout errors as they're handled by retry
-        toast({
-          title: 'Error Loading Dashboard',
-          description: error.message,
-          variant: 'destructive',
-        });
-      }
-    },
+    // onError callback removed - React Query v5 doesn't support it
     placeholderData: (previousData) => previousData, // Keep previous data while loading
   });
 };

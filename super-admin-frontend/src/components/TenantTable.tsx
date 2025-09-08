@@ -50,7 +50,7 @@ const TenantTable: React.FC<TenantTableProps> = ({
       case 'pro':
         return <Badge variant="gradient-green">حرفه‌ای</Badge>;
       case 'enterprise':
-        return <Badge variant="professional">سازمانی</Badge>;
+        return <Badge variant="gradient-purple">سازمانی</Badge>;
       default:
         return <Badge variant="secondary">{subscription_type}</Badge>;
     }

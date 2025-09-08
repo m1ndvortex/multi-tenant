@@ -6,13 +6,15 @@ import DisasterRecoveryManagement from '@/components/DisasterRecoveryManagement'
 import StorageUsageAnalytics from '@/components/StorageUsageAnalytics';
 import RestoreConfirmationDialog from '@/components/RestoreConfirmationDialog';
 import RestoreOperationsMonitor from '@/components/RestoreOperationsMonitor';
+import AdvancedBackupMonitoring from '@/pages/AdvancedBackupMonitoring';
 import { TenantBackup, DisasterRecoveryBackup } from '@/types/backup';
 import { 
   HardDriveIcon, 
   ServerIcon, 
   BarChart3Icon, 
   ActivityIcon,
-  ShieldIcon
+  ShieldIcon,
+  MonitorIcon
 } from 'lucide-react';
 
 const BackupRecovery: React.FC = () => {
@@ -55,7 +57,7 @@ const BackupRecovery: React.FC = () => {
       <Tabs defaultValue="tenant-backups" className="space-y-6">
         <Card variant="professional">
           <CardContent className="p-6">
-            <TabsList className="grid w-full grid-cols-4 bg-gradient-to-r from-slate-50 via-slate-50 to-slate-50">
+            <TabsList className="grid w-full grid-cols-5 bg-gradient-to-r from-slate-50 via-slate-50 to-slate-50">
               <TabsTrigger 
                 value="tenant-backups" 
                 className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:border-2 data-[state=active]:border-blue-300"
@@ -84,6 +86,13 @@ const BackupRecovery: React.FC = () => {
                 <ActivityIcon className="w-4 h-4" />
                 نظارت عملیات
               </TabsTrigger>
+              <TabsTrigger 
+                value="advanced-monitoring"
+                className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:border-2 data-[state=active]:border-indigo-300"
+              >
+                <MonitorIcon className="w-4 h-4" />
+                نظارت پیشرفته
+              </TabsTrigger>
             </TabsList>
           </CardContent>
         </Card>
@@ -106,6 +115,11 @@ const BackupRecovery: React.FC = () => {
         {/* Operations Monitor Tab */}
         <TabsContent value="operations-monitor" className="space-y-6">
           <RestoreOperationsMonitor />
+        </TabsContent>
+
+        {/* Advanced Monitoring Tab */}
+        <TabsContent value="advanced-monitoring" className="space-y-6">
+          <AdvancedBackupMonitoring />
         </TabsContent>
       </Tabs>
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { performanceMonitor, performanceUtils } from '@/utils/performanceMonitor';
+import { performanceMonitor } from '@/utils/performanceMonitor';
 import { cn } from '@/lib/utils';
 
 interface PerformanceMetric {

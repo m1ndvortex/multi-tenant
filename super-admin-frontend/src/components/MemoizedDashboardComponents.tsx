@@ -1,7 +1,7 @@
 import React, { memo, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+// import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 // Memoized StatCard component
@@ -163,7 +163,7 @@ interface MiniChartProps {
 }
 
 export const MemoizedMiniChart = memo<MiniChartProps>(({ data, color, label }) => {
-  const { max, min, range, chartBars } = useMemo(() => {
+  const { chartBars } = useMemo(() => {
     const max = Math.max(...data);
     const min = Math.min(...data);
     const range = max - min || 1;
@@ -174,7 +174,7 @@ export const MemoizedMiniChart = memo<MiniChartProps>(({ data, color, label }) =
       minHeight: '2px'
     }));
 
-    return { max, min, range, chartBars };
+    return { chartBars };
   }, [data]);
 
   return (

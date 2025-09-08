@@ -31,9 +31,9 @@ const TenantForm: React.FC<TenantFormProps> = ({
       setFormData({
         name: tenant.name,
         domain: tenant.domain || '',
-        subscription_type: tenant.subscription_type === 'pending_payment' || tenant.subscription_type === 'expired' 
-          ? 'free' 
-          : tenant.subscription_type,
+        subscription_type: tenant.subscription_type === 'enterprise' 
+          ? 'pro' 
+          : tenant.subscription_type as 'free' | 'pro',
         subscription_expires_at: tenant.subscription_expires_at 
           ? new Date(tenant.subscription_expires_at).toISOString().split('T')[0]
           : '',

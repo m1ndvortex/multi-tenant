@@ -34,35 +34,21 @@ const QUERY_CONFIGS = {
 };
 
 export const useOptimizedDashboardStats = () => {
-  const { toast } = useToast();
+  // const { toast } = useToast();
   
   return useQuery({
     queryKey: ['optimized-dashboard-stats'],
     queryFn: () => optimizedDashboardService.getDashboardStats(),
     ...QUERY_CONFIGS.stats,
     retry: (failureCount, error) => {
-      const apiError = error as ApiError;
+      const apiError = error as unknown as ApiError;
       if (apiError.status === 401 || apiError.status === 403) {
         return false;
       }
       return failureCount < 3;
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    onError: (error: ApiError) => {
-      if (error.status === 401) {
-        toast({
-          title: 'Authentication Error',
-          description: 'Please log in again to continue',
-          variant: 'destructive',
-        });
-      } else if (!error.isTimeoutError && !error.isNetworkError) {
-        toast({
-          title: 'Error Loading Dashboard Stats',
-          description: error.message,
-          variant: 'destructive',
-        });
-      }
-    },
+    // onError callback removed - React Query v5 doesn't support it
     placeholderData: (previousData) => previousData,
   });
 };
@@ -181,7 +167,7 @@ export const useOptimizedDashboardData = () => {
     try {
       setLastRefresh(now);
       await queryClient.invalidateQueries({
-        predicate: (query) => query.queryKey[0]?.toString().startsWith('optimized-'),
+        predicate: (query) => Boolean(query.queryKey[0]?.toString().startsWith('optimized-')),
       });
       
       toast({

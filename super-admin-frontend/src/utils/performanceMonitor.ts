@@ -141,7 +141,7 @@ class PerformanceMonitor {
     metrics: PerformanceMetric[];
     renderMetrics: ComponentRenderMetric[];
     slowestComponents: Array<{ name: string; avgRenderTime: number; renderCount: number }>;
-    memoryUsage: ReturnType<typeof this.getMemoryUsage>;
+    memoryUsage: ReturnType<PerformanceMonitor['getMemoryUsage']>;
   } {
     // Calculate slowest components
     const componentStats = new Map<string, { totalTime: number; count: number }>();

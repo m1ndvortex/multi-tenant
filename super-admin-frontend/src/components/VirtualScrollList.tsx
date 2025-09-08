@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useRef, useMemo, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 
 interface VirtualScrollListProps<T> {
@@ -118,7 +118,7 @@ export const VirtualTenantList: React.FC<VirtualTenantListProps> = ({
   loading = false,
   className,
 }) => {
-  const renderTenant = useCallback((tenant: any, index: number) => (
+  const renderTenant = useCallback((tenant: any, _index: number) => (
     <div
       className="flex items-center justify-between p-4 border-b border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors"
       onClick={() => onTenantClick?.(tenant)}
@@ -208,7 +208,7 @@ export const VirtualLogList: React.FC<VirtualLogListProps> = ({
   loading = false,
   className,
 }) => {
-  const renderLog = useCallback((log: any, index: number) => (
+  const renderLog = useCallback((log: any, _index: number) => (
     <div
       className="flex items-start gap-3 p-3 border-b border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors"
       onClick={() => onLogClick?.(log)}

@@ -1,24 +1,25 @@
-import React, { useState, useMemo, useCallback, Suspense } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useOptimizedDashboardData } from '@/hooks/useOptimizedDashboard';
+import { DashboardStats } from '@/services/dashboardService';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { OfflineIndicator } from '@/components/OfflineIndicator';
-import { StatCardSkeleton, SystemHealthSkeleton } from '@/components/ui/skeleton';
+import { SystemHealthSkeleton } from '@/components/ui/skeleton';
 import { 
   MemoizedStatCard, 
   MemoizedQuickActionCard, 
   MemoizedMiniChart,
   MemoizedSystemHealthIndicator 
 } from '@/components/MemoizedDashboardComponents';
-import { VirtualTenantList, VirtualLogList } from '@/components/VirtualScrollList';
+// import { VirtualTenantList, VirtualLogList } from '@/components/VirtualScrollList';
 import { 
-  WhoIsOnlineWidgetLazy, 
-  AnalyticsChartLazy, 
-  SystemHealthWidgetLazy,
-  QuickActionsGridLazy 
+  WhoIsOnlineWidgetLazy
+  // AnalyticsChartLazy, 
+  // SystemHealthWidgetLazy,
+  // QuickActionsGridLazy 
 } from '@/components/LazyComponents';
 import { usePerformanceMonitor, performanceUtils } from '@/utils/performanceMonitor';
 import { cn } from '@/lib/utils';
@@ -48,13 +49,17 @@ const OptimizedDashboard: React.FC = () => {
     systemHealth,
     isInitialLoading,
     isRefreshing,
-    isAnyLoading,
+    // isAnyLoading,
     hasAnyError, 
     hasAllData, 
     isOffline, 
     refreshAll,
     cacheStats
   } = dashboardData;
+
+  // Type assertions for data
+  const statsData = stats.data as DashboardStats | undefined;
+  const systemHealthData = systemHealth.data as any;
 
   // Memoized sample data for charts (in real app, this would come from API)
   const sampleChartData = useMemo(() => ({
@@ -75,7 +80,7 @@ const OptimizedDashboard: React.FC = () => {
       ),
       gradient: 'from-blue-500 to-indigo-600',
       link: '/tenants',
-      badge: stats.data?.pending_payment_tenants ? `${stats.data.pending_payment_tenants} در انتظار` : undefined
+      badge: statsData?.pending_payment_tenants ? `${statsData.pending_payment_tenants} در انتظار` : undefined
     },
     {
       title: 'آنالیتیکس پلتفرم',
@@ -132,13 +137,22 @@ const OptimizedDashboard: React.FC = () => {
       gradient: 'from-red-500 to-pink-600',
       link: '/error-logging'
     }
-  ], [stats.data?.pending_payment_tenants]);
+  ], [statsData?.pending_payment_tenants]);
 
   // Debounced refresh function
   const debouncedRefresh = useCallback(
     performanceUtils.debounce(refreshAll, 1000),
     [refreshAll]
   );
+
+  // Properly typed wrapper functions
+  const handleRetry = useCallback(() => {
+    debouncedRefresh();
+  }, [debouncedRefresh]);
+
+  const handleRefreshClick = useCallback(() => {
+    debouncedRefresh();
+  }, [debouncedRefresh]);
 
   // Throttled layout change
   const throttledLayoutChange = useCallback(
@@ -157,11 +171,11 @@ const OptimizedDashboard: React.FC = () => {
   if (hasAnyError && !hasAllData && !isInitialLoading) {
     return (
       <div className="space-y-6">
-        {isOffline && <OfflineIndicator onRetry={debouncedRefresh} />}
+        {isOffline && <OfflineIndicator onRetry={handleRetry} />}
         <ErrorDisplay
           error={stats.error || onlineUsers.error || alerts.error || quickStats.error}
           title="خطا در دریافت اطلاعات داشبورد"
-          onRetry={debouncedRefresh}
+          onRetry={handleRetry}
           showDetails={import.meta.env.DEV}
         />
       </div>
@@ -172,7 +186,7 @@ const OptimizedDashboard: React.FC = () => {
     <ErrorBoundary>
       <div className="space-y-6">
         {/* Offline Indicator */}
-        {isOffline && <OfflineIndicator onRetry={debouncedRefresh} />}
+        {isOffline && <OfflineIndicator onRetry={handleRetry} />}
 
         {/* Error Banner for non-critical errors */}
         {hasAnyError && hasAllData && (
@@ -180,7 +194,7 @@ const OptimizedDashboard: React.FC = () => {
             error={stats.error || onlineUsers.error || alerts.error || quickStats.error}
             title="Some data may be outdated"
             variant="banner"
-            onRetry={debouncedRefresh}
+            onRetry={handleRetry}
             onDismiss={() => {/* Could implement dismiss logic */}}
           />
         )}
@@ -217,17 +231,17 @@ const OptimizedDashboard: React.FC = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={debouncedRefresh}
-              disabled={isRefreshing}
+              onClick={handleRefreshClick}
+              disabled={Boolean(isRefreshing)}
               className="flex items-center gap-2"
             >
               <svg className={cn(
                 "w-4 h-4",
-                isRefreshing && "animate-spin"
+                Boolean(isRefreshing) && "animate-spin"
               )} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              {isRefreshing ? 'در حال بروزرسانی...' : 'بروزرسانی'}
+              {Boolean(isRefreshing) ? 'در حال بروزرسانی...' : 'بروزرسانی'}
             </Button>
             {import.meta.env.DEV && (
               <div className="text-xs text-slate-500">
@@ -287,8 +301,8 @@ const OptimizedDashboard: React.FC = () => {
         )}>
           <MemoizedStatCard
             title="کل تنانت‌ها"
-            value={stats.data?.total_tenants || 0}
-            subtitle={`${stats.data?.active_tenants || 0} فعال`}
+            value={statsData?.total_tenants || 0}
+            subtitle={`${statsData?.active_tenants || 0} فعال`}
             gradient="from-blue-500 to-indigo-600"
             link="/tenants"
             isLoading={isInitialLoading}
@@ -301,8 +315,8 @@ const OptimizedDashboard: React.FC = () => {
 
           <MemoizedStatCard
             title="کاربران فعال امروز"
-            value={stats.data?.active_users_today || 0}
-            subtitle={`از ${stats.data?.total_users || 0} کل کاربر`}
+            value={statsData?.active_users_today || 0}
+            subtitle={`از ${statsData?.total_users || 0} کل کاربر`}
             gradient="from-green-500 to-teal-600"
             isLoading={isInitialLoading}
             trend={{ value: 12, isPositive: true }}
@@ -315,7 +329,7 @@ const OptimizedDashboard: React.FC = () => {
 
           <MemoizedStatCard
             title="فاکتورهای این ماه"
-            value={stats.data?.total_invoices_this_month || 0}
+            value={statsData?.total_invoices_this_month || 0}
             gradient="from-purple-500 to-violet-600"
             link="/analytics"
             isLoading={isInitialLoading}
@@ -329,7 +343,7 @@ const OptimizedDashboard: React.FC = () => {
 
           <MemoizedStatCard
             title="درآمد ماهانه (MRR)"
-            value={`${stats.data?.mrr || 0}`}
+            value={`${statsData?.mrr || 0}`}
             gradient="from-orange-500 to-red-600"
             link="/analytics"
             isLoading={isInitialLoading}
@@ -423,12 +437,12 @@ const OptimizedDashboard: React.FC = () => {
                     <div className="space-y-4">
                       <MemoizedSystemHealthIndicator
                         label="CPU Usage"
-                        value={systemHealth.data?.cpu_usage || stats.data?.system_health?.cpu_usage || 0}
+                        value={systemHealthData?.cpu_usage || statsData?.system_health?.cpu_usage || 0}
                         type="percentage"
                       />
                       <MemoizedSystemHealthIndicator
                         label="Memory Usage"
-                        value={systemHealth.data?.memory_usage || stats.data?.system_health?.memory_usage || 0}
+                        value={systemHealthData?.memory_usage || statsData?.system_health?.memory_usage || 0}
                         type="percentage"
                       />
                     </div>
@@ -436,14 +450,14 @@ const OptimizedDashboard: React.FC = () => {
                     <div className="space-y-4">
                       <MemoizedSystemHealthIndicator
                         label="Database"
-                        value={systemHealth.data?.database_status || stats.data?.system_health?.database_status || 'unknown'}
-                        status={systemHealth.data?.database_status || stats.data?.system_health?.database_status || 'unknown'}
+                        value={systemHealthData?.database_status || statsData?.system_health?.database_status || 'unknown'}
+                        status={systemHealthData?.database_status || statsData?.system_health?.database_status || 'unknown'}
                         type="status"
                       />
                       <MemoizedSystemHealthIndicator
                         label="Redis"
-                        value={systemHealth.data?.redis_status || stats.data?.system_health?.redis_status || 'unknown'}
-                        status={systemHealth.data?.redis_status || stats.data?.system_health?.redis_status || 'unknown'}
+                        value={systemHealthData?.redis_status || statsData?.system_health?.redis_status || 'unknown'}
+                        status={systemHealthData?.redis_status || statsData?.system_health?.redis_status || 'unknown'}
                         type="status"
                       />
                     </div>

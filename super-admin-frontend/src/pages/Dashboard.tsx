@@ -4,11 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import WhoIsOnlineWidget from '@/components/WhoIsOnlineWidget';
 import { useDashboardData } from '@/hooks/useDashboardStats';
+import { DashboardStats } from '@/services/dashboardService';
 import { usePlatformMetrics } from '@/hooks/useAnalytics';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { OfflineIndicator } from '@/components/OfflineIndicator';
-import { StatCardSkeleton, SystemHealthSkeleton } from '@/components/ui/skeleton';
+import { SystemHealthSkeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 interface StatCardProps {
@@ -190,6 +191,10 @@ const Dashboard: React.FC = () => {
     refreshAll 
   } = dashboardData;
 
+  // Type assertion for stats data
+  const statsData = stats.data as DashboardStats | undefined;
+  const systemHealthData = systemHealth.data as any;
+
   // Sample data for mini charts
   const sampleChartData = {
     signups: [12, 15, 8, 22, 18, 25, 30],
@@ -208,7 +213,7 @@ const Dashboard: React.FC = () => {
       ),
       gradient: 'from-blue-500 to-indigo-600',
       link: '/tenants',
-      badge: stats.data?.pending_payment_tenants ? `${stats.data.pending_payment_tenants} در انتظار` : undefined
+      badge: statsData?.pending_payment_tenants ? `${statsData.pending_payment_tenants} در انتظار` : undefined
     },
     {
       title: 'آنالیتیکس پلتفرم',
@@ -309,7 +314,7 @@ const Dashboard: React.FC = () => {
   if (hasError && !hasData) {
     return (
       <div className="space-y-6">
-        {isOffline && <OfflineIndicator onRetry={refreshAll} />}
+        {isOffline && <OfflineIndicator onRetry={() => refreshAll()} />}
         <ErrorDisplay
           error={stats.error || onlineUsers.error || alerts.error || quickStats.error}
           title="خطا در دریافت اطلاعات داشبورد"
@@ -324,7 +329,7 @@ const Dashboard: React.FC = () => {
     <ErrorBoundary>
       <div className="space-y-6">
         {/* Offline Indicator */}
-        {isOffline && <OfflineIndicator onRetry={refreshAll} />}
+        {isOffline && <OfflineIndicator onRetry={() => refreshAll()} />}
 
         {/* Error Banner for non-critical errors */}
         {hasError && hasData && (
@@ -434,8 +439,8 @@ const Dashboard: React.FC = () => {
       )}>
         <StatCard
           title="کل تنانت‌ها"
-          value={stats.data?.total_tenants || 0}
-          subtitle={`${stats.data?.active_tenants || 0} فعال`}
+          value={statsData?.total_tenants || 0}
+          subtitle={`${statsData?.active_tenants || 0} فعال`}
           gradient="from-blue-500 to-indigo-600"
           link="/tenants"
           isLoading={stats.isLoading}
@@ -448,8 +453,8 @@ const Dashboard: React.FC = () => {
 
         <StatCard
           title="کاربران فعال امروز"
-          value={stats.data?.active_users_today || 0}
-          subtitle={`از ${stats.data?.total_users || 0} کل کاربر`}
+          value={statsData?.active_users_today || 0}
+          subtitle={`از ${statsData?.total_users || 0} کل کاربر`}
           gradient="from-green-500 to-teal-600"
           isLoading={stats.isLoading}
           trend={{ value: 12, isPositive: true }}
@@ -462,7 +467,7 @@ const Dashboard: React.FC = () => {
 
         <StatCard
           title="فاکتورهای این ماه"
-          value={stats.data?.total_invoices_this_month || 0}
+          value={statsData?.total_invoices_this_month || 0}
           gradient="from-purple-500 to-violet-600"
           link="/analytics"
           isLoading={stats.isLoading}
@@ -476,7 +481,7 @@ const Dashboard: React.FC = () => {
 
         <StatCard
           title="درآمد ماهانه (MRR)"
-          value={`$${stats.data?.mrr || 0}`}
+          value={`$${statsData?.mrr || 0}`}
           gradient="from-orange-500 to-red-600"
           link="/analytics"
           isLoading={stats.isLoading}
@@ -492,7 +497,7 @@ const Dashboard: React.FC = () => {
           <>
             <StatCard
               title="اشتراک رایگان"
-              value={stats.data?.free_tier_tenants || 0}
+              value={statsData?.free_tier_tenants || 0}
               gradient="from-gray-500 to-slate-600"
               isLoading={stats.isLoading}
               icon={
@@ -504,7 +509,7 @@ const Dashboard: React.FC = () => {
 
             <StatCard
               title="اشتراک حرفه‌ای"
-              value={stats.data?.pro_tier_tenants || 0}
+              value={statsData?.pro_tier_tenants || 0}
               gradient="from-yellow-500 to-orange-600"
               isLoading={stats.isLoading}
               icon={
@@ -516,7 +521,7 @@ const Dashboard: React.FC = () => {
 
             <StatCard
               title="در انتظار پرداخت"
-              value={stats.data?.pending_payment_tenants || 0}
+              value={statsData?.pending_payment_tenants || 0}
               gradient="from-amber-500 to-yellow-600"
               isLoading={stats.isLoading}
               icon={
@@ -611,11 +616,11 @@ const Dashboard: React.FC = () => {
                     <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50">
                       <span className="text-sm font-medium text-slate-700">CPU Usage</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold">{systemHealth.data?.cpu_usage || stats.data?.system_health?.cpu_usage || 0}%</span>
+                        <span className="text-sm font-bold">{systemHealthData?.cpu_usage || statsData?.system_health?.cpu_usage || 0}%</span>
                         <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden">
                           <div
                             className="h-full bg-gradient-to-r from-green-500 to-teal-600 transition-all duration-300"
-                            style={{ width: `${Math.min(systemHealth.data?.cpu_usage || stats.data?.system_health?.cpu_usage || 0, 100)}%` }}
+                            style={{ width: `${Math.min(systemHealthData?.cpu_usage || statsData?.system_health?.cpu_usage || 0, 100)}%` }}
                           ></div>
                         </div>
                       </div>
@@ -624,11 +629,11 @@ const Dashboard: React.FC = () => {
                     <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50">
                       <span className="text-sm font-medium text-slate-700">Memory Usage</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold">{systemHealth.data?.memory_usage || stats.data?.system_health?.memory_usage || 0}%</span>
+                        <span className="text-sm font-bold">{systemHealthData?.memory_usage || statsData?.system_health?.memory_usage || 0}%</span>
                         <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden">
                           <div
                             className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-300"
-                            style={{ width: `${Math.min(systemHealth.data?.memory_usage || stats.data?.system_health?.memory_usage || 0, 100)}%` }}
+                            style={{ width: `${Math.min(systemHealthData?.memory_usage || statsData?.system_health?.memory_usage || 0, 100)}%` }}
                           ></div>
                         </div>
                       </div>
@@ -640,10 +645,10 @@ const Dashboard: React.FC = () => {
                       <span className="text-sm font-medium text-slate-700">Database</span>
                       <div className={cn(
                         "flex items-center gap-1 text-sm font-medium",
-                        getStatusColor(systemHealth.data?.database_status || stats.data?.system_health?.database_status || 'unknown')
+                        getStatusColor(systemHealthData?.database_status || statsData?.system_health?.database_status || 'unknown')
                       )}>
-                        {getStatusIcon(systemHealth.data?.database_status || stats.data?.system_health?.database_status || 'unknown')}
-                        <span className="capitalize">{systemHealth.data?.database_status || stats.data?.system_health?.database_status || 'Unknown'}</span>
+                        {getStatusIcon(systemHealthData?.database_status || statsData?.system_health?.database_status || 'unknown')}
+                        <span className="capitalize">{systemHealthData?.database_status || statsData?.system_health?.database_status || 'Unknown'}</span>
                       </div>
                     </div>
 
@@ -651,10 +656,10 @@ const Dashboard: React.FC = () => {
                       <span className="text-sm font-medium text-slate-700">Redis</span>
                       <div className={cn(
                         "flex items-center gap-1 text-sm font-medium",
-                        getStatusColor(systemHealth.data?.redis_status || stats.data?.system_health?.redis_status || 'unknown')
+                        getStatusColor(systemHealthData?.redis_status || statsData?.system_health?.redis_status || 'unknown')
                       )}>
-                        {getStatusIcon(systemHealth.data?.redis_status || stats.data?.system_health?.redis_status || 'unknown')}
-                        <span className="capitalize">{systemHealth.data?.redis_status || stats.data?.system_health?.redis_status || 'Unknown'}</span>
+                        {getStatusIcon(systemHealthData?.redis_status || statsData?.system_health?.redis_status || 'unknown')}
+                        <span className="capitalize">{systemHealthData?.redis_status || statsData?.system_health?.redis_status || 'Unknown'}</span>
                       </div>
                     </div>
 
@@ -662,10 +667,10 @@ const Dashboard: React.FC = () => {
                       <span className="text-sm font-medium text-slate-700">Celery</span>
                       <div className={cn(
                         "flex items-center gap-1 text-sm font-medium",
-                        getStatusColor(systemHealth.data?.celery_status || stats.data?.system_health?.celery_status || 'unknown')
+                        getStatusColor(systemHealthData?.celery_status || statsData?.system_health?.celery_status || 'unknown')
                       )}>
-                        {getStatusIcon(systemHealth.data?.celery_status || stats.data?.system_health?.celery_status || 'unknown')}
-                        <span className="capitalize">{systemHealth.data?.celery_status || stats.data?.system_health?.celery_status || 'Unknown'}</span>
+                        {getStatusIcon(systemHealthData?.celery_status || statsData?.system_health?.celery_status || 'unknown')}
+                        <span className="capitalize">{systemHealthData?.celery_status || statsData?.system_health?.celery_status || 'Unknown'}</span>
                       </div>
                     </div>
                   </div>
