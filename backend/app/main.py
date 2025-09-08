@@ -24,6 +24,7 @@ from app.core.error_logging_middleware import ErrorLoggingMiddleware, CriticalEr
 from app.api.health import router as health_router
 from app.api.auth import router as auth_router
 from app.api.tenant_management import router as tenant_router
+from app.api.enhanced_tenant_management import router as enhanced_tenant_router
 from app.api.user_management import router as user_management_router
 from app.api.super_admin import router as super_admin_router
 from app.api.analytics import router as analytics_router
@@ -195,6 +196,7 @@ async def add_process_time_header(request: Request, call_next):
 app.include_router(health_router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
 app.include_router(tenant_router, prefix="/api")
+app.include_router(enhanced_tenant_router, prefix="/api")
 app.include_router(user_management_router)
 app.include_router(super_admin_router, prefix="/api")
 app.include_router(analytics_router, prefix="/api")
