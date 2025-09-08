@@ -46,7 +46,7 @@ export const TenantProvider: React.FC<TenantProviderProps> = ({ children }) => {
 
   const fetchTenant = async () => {
     try {
-      const response = await axios.get('/api/tenants/current');
+  const response = await axios.get('/api/auth/tenant');
       setTenant(response.data);
     } catch (error) {
       console.error('Failed to fetch tenant:', error);

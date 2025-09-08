@@ -145,7 +145,7 @@ export interface CustomerStats {
 
 class CustomerService {
   private getAuthHeaders() {
-    const token = localStorage.getItem('token');
+  const token = localStorage.getItem('tenant_token');
     return {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -165,7 +165,7 @@ class CustomerService {
       }
     });
 
-    const response = await fetch(`${API_BASE_URL}/api/customers?${searchParams}`, {
+  const response = await fetch(`${API_BASE_URL}/api/customers/?${searchParams}`, {
       headers: this.getAuthHeaders(),
     });
 

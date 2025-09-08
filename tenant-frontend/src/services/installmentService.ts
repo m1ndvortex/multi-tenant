@@ -135,7 +135,7 @@ export interface InstallmentUpdate {
 
 class InstallmentService {
   private getAuthHeaders() {
-    const token = localStorage.getItem('token');
+  const token = localStorage.getItem('tenant_token');
     return {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',

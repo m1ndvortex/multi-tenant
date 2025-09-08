@@ -149,7 +149,7 @@ export interface Installment {
 
 class InvoiceService {
   private getAuthHeaders() {
-    const token = localStorage.getItem('token');
+  const token = localStorage.getItem('tenant_token');
     return {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -170,7 +170,7 @@ class InvoiceService {
       }
     });
 
-    const response = await fetch(`${API_BASE_URL}/api/invoices?${searchParams}`, {
+  const response = await fetch(`${API_BASE_URL}/api/invoices/?${searchParams}`, {
       headers: this.getAuthHeaders(),
     });
 
@@ -324,7 +324,7 @@ class InvoiceService {
 
   // Analytics
   async getInvoiceStats(): Promise<InvoiceStats> {
-    const response = await fetch(`${API_BASE_URL}/api/invoices/stats`, {
+  const response = await fetch(`${API_BASE_URL}/api/invoices/statistics`, {
       headers: this.getAuthHeaders(),
     });
 

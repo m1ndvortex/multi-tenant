@@ -18,6 +18,11 @@ export default defineConfig({
         target: 'http://backend:8000',
         changeOrigin: true,
       },
+      // Some services (dashboard) are mounted at root paths
+      '/dashboard': {
+        target: 'http://backend:8000',
+        changeOrigin: true,
+      },
     },
   },
   build: {

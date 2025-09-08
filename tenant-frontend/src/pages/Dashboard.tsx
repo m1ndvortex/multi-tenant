@@ -73,8 +73,9 @@ const Dashboard: React.FC = () => {
   };
 
   // Format growth rate
-  const formatGrowthRate = (rate: number) => {
-    const isPositive = rate >= 0;
+  const formatGrowthRate = (rate: any) => {
+    const n = typeof rate === 'number' ? rate : Number(rate ?? 0);
+    const isPositive = n >= 0;
     return (
       <div className={`flex items-center gap-1 ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
         {isPositive ? (
@@ -83,7 +84,7 @@ const Dashboard: React.FC = () => {
           <TrendingDown className="h-3 w-3" />
         )}
         <span className="text-xs font-medium">
-          {isPositive ? '+' : ''}{rate.toFixed(1)}%
+          {isPositive ? '+' : ''}{n.toFixed(1)}%
         </span>
       </div>
     );

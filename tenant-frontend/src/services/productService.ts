@@ -223,7 +223,7 @@ export interface LowStockAlert {
 
 class ProductService {
   private getAuthHeaders() {
-    const token = localStorage.getItem('token');
+  const token = localStorage.getItem('tenant_token');
     return {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -240,7 +240,7 @@ class ProductService {
       }
     });
 
-    const response = await fetch(`${API_BASE_URL}/api/products?${searchParams}`, {
+  const response = await fetch(`${API_BASE_URL}/api/products/?${searchParams}`, {
       headers: this.getAuthHeaders(),
     });
 
@@ -381,7 +381,7 @@ class ProductService {
     const formData = new FormData();
     formData.append('file', file);
 
-    const token = localStorage.getItem('token');
+  const token = localStorage.getItem('tenant_token');
     const response = await fetch(`${API_BASE_URL}/api/products/${productId}/images/upload`, {
       method: 'POST',
       headers: {

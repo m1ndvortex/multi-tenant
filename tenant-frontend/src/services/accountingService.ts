@@ -197,7 +197,7 @@ class AccountingService {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const token = localStorage.getItem('token');
+  const token = localStorage.getItem('tenant_token');
     
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       ...options,

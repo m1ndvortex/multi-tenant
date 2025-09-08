@@ -13,7 +13,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, tenantId?: string) => Promise<void>;
   logout: (reason?: string) => void;
   isLoading: boolean;
   isAuthenticated: boolean;
@@ -78,12 +78,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, tenantId?: string) => {
     try {
-      const response = await axios.post('/api/auth/login', {
-        email,
-        password,
-      });
+      // Prefer tenant login when tenantId is available
+      const url = tenantId ? '/api/auth/tenant/login' : '/api/auth/login';
+      const payload: any = { email, password };
+      if (tenantId) payload.tenant_id = tenantId;
+      const response = await axios.post(url, payload);
       
       const { access_token, user: userData } = response.data;
       

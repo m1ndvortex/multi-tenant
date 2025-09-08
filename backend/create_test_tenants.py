@@ -10,23 +10,19 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from datetime import datetime, timezone, timedelta
 from sqlalchemy.orm import Session
 from app.core.database import get_db, engine
+from app.core.auth import get_password_hash
 from app.models.tenant import Tenant, SubscriptionType, TenantStatus
-from app.models.user import User
+from app.models.user import User, UserRole, UserStatus
 import uuid
 
 def create_test_tenants():
-    """Create test tenants with various subscription types and statuses"""
+    """Create test tenants with various subscription types and statuses and ensure login users exist"""
     
     # Create database session
     db = Session(bind=engine)
     
     try:
-        # Check if test tenants already exist
-        existing_tenants = db.query(Tenant).filter(Tenant.email.like('%test%')).count()
-        if existing_tenants > 0:
-            print(f"Found {existing_tenants} existing test tenants. Skipping creation.")
-            return
-        
+        # Define desired test tenants (idempotent creation)
         test_tenants = [
             {
                 "name": "Gold Shop ABC",
@@ -103,9 +99,15 @@ def create_test_tenants():
         ]
         
         created_tenants = []
+        tenants_to_use = []
         
+        # Create tenants if they don't exist; collect existing ones
         for tenant_data in test_tenants:
-            # Create tenant
+            existing = db.query(Tenant).filter(Tenant.domain == tenant_data["domain"]).first()
+            if existing:
+                tenants_to_use.append(existing)
+                continue
+            
             tenant = Tenant(**tenant_data)
             
             # Set subscription dates for Pro tenants
@@ -130,7 +132,7 @@ def create_test_tenants():
                 tenant.max_monthly_invoices = 10
             
             # Set creation dates (spread over last 60 days)
-            days_ago = len(created_tenants) * 10  # Space them out
+            days_ago = (len(created_tenants)) * 10  # Space them out
             tenant.created_at = datetime.now(timezone.utc) - timedelta(days=days_ago)
             tenant.updated_at = tenant.created_at
             
@@ -140,66 +142,61 @@ def create_test_tenants():
             
             db.add(tenant)
             created_tenants.append(tenant)
+            tenants_to_use.append(tenant)
         
-        # Commit all tenants
-        db.commit()
+        # Commit all tenants (new ones)
+        if created_tenants:
+            db.commit()
+            print(f"Successfully created {len(created_tenants)} test tenants:")
+            for tenant in created_tenants:
+                print(f"  - {tenant.name} ({tenant.email}) - {tenant.subscription_type.value} - {tenant.status.value}")
+        else:
+            print("No new test tenants created (already exist).")
         
-        print(f"Successfully created {len(created_tenants)} test tenants:")
-        for tenant in created_tenants:
-            print(f"  - {tenant.name} ({tenant.email}) - {tenant.subscription_type.value} - {tenant.status.value}")
-        
-        # Create test users for some tenants
-        print("\nCreating test users...")
-        
-        test_users = [
-            {
-                "tenant_id": created_tenants[0].id,  # Gold Shop ABC
-                "email": "owner@goldshop.test.com",
-                "first_name": "John",
-                "last_name": "Doe",
-                "password_hash": "$2b$12$dummy_hash_for_testing",
-                "is_active": True,
-                "last_login_at": datetime.now(timezone.utc) - timedelta(minutes=30)
-            },
-            {
-                "tenant_id": created_tenants[1].id,  # Silver Jewelry Store
-                "email": "manager@silver.test.com",
-                "first_name": "Jane", 
-                "last_name": "Smith",
-                "password_hash": "$2b$12$dummy_hash_for_testing",
-                "is_active": True,
-                "last_login_at": datetime.now(timezone.utc) - timedelta(hours=2)
-            },
-            {
-                "tenant_id": created_tenants[4].id,  # Royal Jewelry House
-                "email": "admin@royal.test.com",
-                "first_name": "Mike",
-                "last_name": "Johnson",
-                "password_hash": "$2b$12$dummy_hash_for_testing", 
-                "is_active": True,
-                "last_login_at": datetime.now(timezone.utc) - timedelta(minutes=10),
-                "last_activity_at": datetime.now(timezone.utc) - timedelta(minutes=5)
-            }
-        ]
-        
-        created_users = []
-        for user_data in test_users:
-            user = User(**user_data)
-            user.created_at = datetime.now(timezone.utc) - timedelta(days=20)
-            user.updated_at = user.created_at
+        # Ensure a known admin user exists for each tenant with a known password
+        print("\nEnsuring per-tenant admin users exist...")
+        default_password = "test1234"
+        credentials = []
+        for tenant in tenants_to_use:
+            # Use a valid domain for email to pass email validation
+            admin_email = f"admin+{tenant.domain}@hesaabplus.com"
+            user = db.query(User).filter(User.tenant_id == tenant.id, User.email == admin_email).first()
+            if not user:
+                user = User(
+                    tenant_id=tenant.id,
+                    email=admin_email,
+                    first_name="Admin",
+                    last_name=tenant.name,
+                    role=UserRole.OWNER,
+                    status=UserStatus.ACTIVE,
+                    is_email_verified=True,
+                )
+                # Backdate creation a bit for realism
+                user.created_at = datetime.now(timezone.utc) - timedelta(days=7)
+                user.updated_at = user.created_at
+                db.add(user)
             
-            db.add(user)
-            created_users.append(user)
+            # Set/Reset password to known default
+            user.password_hash = get_password_hash(default_password)
+            user.last_login_at = datetime.now(timezone.utc) - timedelta(minutes=5)
+            user.last_activity_at = datetime.now(timezone.utc) - timedelta(minutes=2)
+            
+            credentials.append({
+                "tenant_name": tenant.name,
+                "tenant_id": str(tenant.id),
+                "email": admin_email,
+                "password": default_password,
+            })
         
         db.commit()
         
-        print(f"Successfully created {len(created_users)} test users:")
-        for user in created_users:
-            tenant = db.query(Tenant).filter(Tenant.id == user.tenant_id).first()
-            print(f"  - {user.email} for {tenant.name}")
+        print(f"Created/updated {len(credentials)} admin users with default password.")
+        print("\nUse the following test credentials to log in at http://localhost:3001:")
+        for cred in credentials:
+            print(f"  - Tenant: {cred['tenant_name']} | Tenant ID: {cred['tenant_id']} | Email: {cred['email']} | Password: {cred['password']}")
         
         print("\nTest data creation completed successfully!")
-        print("You can now test the Super Admin dashboard with real data.")
+        print("You can now test the Tenant app with the above credentials.")
         
     except Exception as e:
         print(f"Error creating test tenants: {e}")

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -14,6 +15,7 @@ import { Eye, EyeOff, Mail, Lock, AlertCircle, Crown, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Persian validation messages
+// Treat empty tenant_id as undefined so the field remains truly optional
 const loginSchema = z.object({
   email: z
     .string()
@@ -23,6 +25,10 @@ const loginSchema = z.object({
     .string()
     .min(1, 'رمز عبور الزامی است')
     .min(6, 'رمز عبور باید حداقل ۶ کاراکتر باشد'),
+  tenant_id: z
+    .preprocess((val) => (typeof val === 'string' && val.trim() === '' ? undefined : val),
+      z.string().uuid('شناسه مستاجر نامعتبر است').optional()
+    ),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -37,6 +43,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [error, setError] = useState<string | null>(null);
   const { login } = useAuth();
   const { tenant } = useTenant();
+  const navigate = useNavigate();
 
   const {
     register,
@@ -51,8 +58,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     setError(null);
 
     try {
-      await login(data.email, data.password);
-      onLoginSuccess?.();
+  await login(data.email, data.password, data.tenant_id || tenant?.id);
+  onLoginSuccess?.();
+  navigate('/');
     } catch (err: any) {
       console.error('Login error:', err);
       
@@ -225,6 +233,27 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 </div>
                 {errors.password && (
                   <p className="text-sm text-red-600">{errors.password.message}</p>
+                )}
+              </div>
+
+              {/* Optional Tenant ID Field for multi-tenant login */}
+              <div className="space-y-2">
+                <Label htmlFor="tenant_id" className="text-slate-700 font-medium">
+                  شناسه مستاجر (اختیاری)
+                </Label>
+                <Input
+                  id="tenant_id"
+                  type="text"
+                  placeholder={tenant?.id || 'مثال: 716e5d59-1a31-43f7-ab22-3ef14ca18e26'}
+                  className={cn(
+                    "transition-all duration-300",
+                    "focus:ring-2 focus:ring-green-500/20 focus:border-green-500",
+                    errors.tenant_id && "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                  )}
+                  {...register('tenant_id')}
+                />
+                {errors.tenant_id && (
+                  <p className="text-sm text-red-600">{errors.tenant_id.message}</p>
                 )}
               </div>
 
