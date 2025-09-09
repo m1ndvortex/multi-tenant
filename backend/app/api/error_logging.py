@@ -1,14 +1,17 @@
 """
-Super Admin API endpoints for error logging management
+Enhanced Real-Time Error Logging API endpoints for Super Admin
+Includes WebSocket support for real-time error monitoring
 """
 
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks, WebSocket, WebSocketDisconnect
 from fastapi import status
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 import uuid
 import logging
+import json
+import asyncio
 
 from ..core.database import get_db
 from ..core.auth import get_super_admin_user
@@ -19,12 +22,231 @@ from ..schemas.error_logging import (
     ErrorLogResponse, ErrorLogListResponse, ErrorLogFilters,
     ErrorResolutionRequest, ErrorStatisticsResponse, ErrorTrendsResponse,
     CriticalErrorAlert, BulkErrorActionRequest, BulkErrorActionResponse,
-    ErrorExportRequest, ErrorExportResponse, ErrorNotificationSettings
+    ErrorExportRequest, ErrorExportResponse, ErrorNotificationSettings,
+    RealTimeErrorStatistics
 )
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/super-admin/errors", tags=["Super Admin - Error Logging"])
+router = APIRouter(prefix="/super-admin/errors", tags=["Super Admin - Enhanced Error Logging"])
+
+
+class ErrorLogConnectionManager:
+    """
+    WebSocket connection manager for real-time error updates
+    """
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+        self.admin_connections: dict = {}  # Track admin user connections
+    
+    async def connect(self, websocket: WebSocket, admin_id: str):
+        """Accept WebSocket connection and track admin"""
+        await websocket.accept()
+        self.active_connections.append(websocket)
+        self.admin_connections[admin_id] = websocket
+        logger.info(f"Admin {admin_id} connected to error logging WebSocket")
+    
+    def disconnect(self, websocket: WebSocket, admin_id: str = None):
+        """Remove WebSocket connection"""
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+        if admin_id and admin_id in self.admin_connections:
+            del self.admin_connections[admin_id]
+        logger.info(f"Admin {admin_id} disconnected from error logging WebSocket")
+    
+    async def broadcast_error_update(self, error_data: dict):
+        """Broadcast error update to all connected admins"""
+        if not self.active_connections:
+            return
+        
+        message = json.dumps({
+            "type": "error_update",
+            "data": error_data,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+        
+        disconnected = []
+        for connection in self.active_connections:
+            try:
+                await connection.send_text(message)
+            except Exception as e:
+                logger.warning(f"Failed to send WebSocket message: {e}")
+                disconnected.append(connection)
+        
+        # Remove disconnected connections
+        for connection in disconnected:
+            if connection in self.active_connections:
+                self.active_connections.remove(connection)
+    
+    async def broadcast_error_resolved(self, error_id: str, resolved_by: str):
+        """Broadcast error resolution to all connected admins"""
+        await self.broadcast_error_update({
+            "action": "resolved",
+            "error_id": error_id,
+            "resolved_by": resolved_by
+        })
+    
+    async def broadcast_new_error(self, error_log: APIErrorLog):
+        """Broadcast new error to all connected admins"""
+        await self.broadcast_error_update({
+            "action": "new_error",
+            "error": {
+                "id": str(error_log.id),
+                "error_message": error_log.error_message,
+                "error_type": error_log.error_type,
+                "endpoint": error_log.endpoint,
+                "method": error_log.method,
+                "severity": error_log.severity.value,
+                "category": error_log.category.value,
+                "tenant_id": str(error_log.tenant_id) if error_log.tenant_id else None,
+                "occurred_at": error_log.created_at.isoformat(),
+                "occurrence_count": error_log.occurrence_count
+            }
+        })
+    
+    async def broadcast_statistics_update(self, statistics: dict):
+        """Broadcast updated error statistics"""
+        await self.broadcast_error_update({
+            "action": "statistics_update",
+            "statistics": statistics
+        })
+
+
+# Global connection manager instance
+error_connection_manager = ErrorLogConnectionManager()
+
+
+@router.websocket("/ws/{admin_id}")
+async def websocket_endpoint(websocket: WebSocket, admin_id: str):
+    """
+    WebSocket endpoint for real-time error updates
+    """
+    try:
+        await error_connection_manager.connect(websocket, admin_id)
+        
+        # Send initial connection confirmation
+        await websocket.send_text(json.dumps({
+            "type": "connection_established",
+            "admin_id": admin_id,
+            "timestamp": datetime.utcnow().isoformat()
+        }))
+        
+        # Keep connection alive and handle incoming messages
+        while True:
+            try:
+                # Wait for messages (ping/pong, requests, etc.)
+                data = await websocket.receive_text()
+                message = json.loads(data)
+                
+                # Handle different message types
+                if message.get("type") == "ping":
+                    await websocket.send_text(json.dumps({
+                        "type": "pong",
+                        "timestamp": datetime.utcnow().isoformat()
+                    }))
+                elif message.get("type") == "request_statistics":
+                    # Send current statistics
+                    from ..core.database import SessionLocal
+                    db = SessionLocal()
+                    try:
+                        error_service = ErrorLoggingService(db)
+                        stats = error_service.get_error_statistics()
+                        await websocket.send_text(json.dumps({
+                            "type": "statistics_update",
+                            "data": stats,
+                            "timestamp": datetime.utcnow().isoformat()
+                        }))
+                    finally:
+                        db.close()
+                        
+            except WebSocketDisconnect:
+                break
+            except Exception as e:
+                logger.error(f"WebSocket error for admin {admin_id}: {e}")
+                break
+                
+    except Exception as e:
+        logger.error(f"WebSocket connection error for admin {admin_id}: {e}")
+    finally:
+        error_connection_manager.disconnect(websocket, admin_id)
+
+
+@router.get("/active", response_model=ErrorLogListResponse)
+async def get_active_errors(
+    tenant_id: Optional[uuid.UUID] = Query(None, description="Filter by tenant ID"),
+    severity: Optional[ErrorSeverity] = Query(None, description="Filter by severity"),
+    category: Optional[ErrorCategory] = Query(None, description="Filter by category"),
+    endpoint: Optional[str] = Query(None, description="Filter by endpoint (partial match)"),
+    error_type: Optional[str] = Query(None, description="Filter by error type (partial match)"),
+    search_term: Optional[str] = Query(None, description="Search in error messages"),
+    skip: int = Query(0, ge=0, description="Number of records to skip"),
+    limit: int = Query(50, ge=1, le=100, description="Maximum number of records to return"),
+    current_user: User = Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get only currently active (unresolved) errors for real-time monitoring
+    """
+    try:
+        error_service = ErrorLoggingService(db)
+        
+        # Only get unresolved errors
+        errors, total = error_service.get_errors_with_filters(
+            tenant_id=tenant_id,
+            severity=severity,
+            category=category,
+            endpoint=endpoint,
+            error_type=error_type,
+            search_term=search_term,
+            is_resolved=False,  # Only active/unresolved errors
+            skip=skip,
+            limit=limit,
+            order_by="last_occurrence",  # Show most recent first
+            order_desc=True
+        )
+        
+        error_responses = [
+            ErrorLogResponse.from_orm(error) for error in errors
+        ]
+        
+        return ErrorLogListResponse(
+            errors=error_responses,
+            total=total,
+            skip=skip,
+            limit=limit,
+            has_more=(skip + limit) < total
+        )
+        
+    except Exception as e:
+        logger.error(f"Failed to get active errors: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve active errors: {str(e)}"
+        )
+
+
+@router.get("/statistics/real-time", response_model=RealTimeErrorStatistics)
+async def get_real_time_error_statistics(
+    current_user: User = Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get real-time error statistics for dashboard monitoring
+    """
+    try:
+        error_service = ErrorLoggingService(db)
+        
+        # Get statistics for active errors only
+        statistics = error_service.get_real_time_statistics()
+        
+        return RealTimeErrorStatistics(**statistics)
+        
+    except Exception as e:
+        logger.error(f"Failed to get real-time error statistics: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve real-time error statistics: {str(e)}"
+        )
 
 
 @router.get("/", response_model=ErrorLogListResponse)
@@ -129,7 +351,7 @@ async def resolve_error(
     db: Session = Depends(get_db)
 ):
     """
-    Mark an error as resolved
+    Mark an error as resolved with real-time broadcast
     """
     try:
         error_service = ErrorLoggingService(db)
@@ -147,6 +369,16 @@ async def resolve_error(
             )
         
         logger.info(f"Super admin {current_user.id} resolved error {error_id}")
+        
+        # Broadcast error resolution to all connected WebSocket clients
+        await error_connection_manager.broadcast_error_resolved(
+            error_id=str(error_id),
+            resolved_by=current_user.email
+        )
+        
+        # Broadcast updated statistics
+        updated_stats = error_service.get_real_time_statistics()
+        await error_connection_manager.broadcast_statistics_update(updated_stats)
         
         return ErrorLogResponse.from_orm(error_log)
         

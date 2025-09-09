@@ -103,6 +103,10 @@ class ErrorLoggingService:
             # Update error metrics in Redis
             self._update_error_metrics(error_log)
             
+            # Broadcast new error to WebSocket clients (if it's a new error, not a duplicate)
+            if error_log.occurrence_count == 1:
+                self._broadcast_new_error(error_log)
+            
             return error_log
             
         except Exception as e:
@@ -205,6 +209,90 @@ class ErrorLoggingService:
             start_date=start_date,
             end_date=end_date
         )
+    
+    def get_real_time_statistics(self) -> Dict[str, Any]:
+        """
+        Get real-time error statistics focused on active errors
+        """
+        try:
+            # Count active errors by severity
+            critical_count = self.db.query(APIErrorLog).filter(
+                APIErrorLog.is_resolved == False,
+                APIErrorLog.severity == ErrorSeverity.CRITICAL
+            ).count()
+            
+            high_count = self.db.query(APIErrorLog).filter(
+                APIErrorLog.is_resolved == False,
+                APIErrorLog.severity == ErrorSeverity.HIGH
+            ).count()
+            
+            medium_count = self.db.query(APIErrorLog).filter(
+                APIErrorLog.is_resolved == False,
+                APIErrorLog.severity == ErrorSeverity.MEDIUM
+            ).count()
+            
+            low_count = self.db.query(APIErrorLog).filter(
+                APIErrorLog.is_resolved == False,
+                APIErrorLog.severity == ErrorSeverity.LOW
+            ).count()
+            
+            total_active = critical_count + high_count + medium_count + low_count
+            
+            # Get recent error trend (last 24 hours)
+            twenty_four_hours_ago = datetime.utcnow() - timedelta(hours=24)
+            recent_errors = self.db.query(APIErrorLog).filter(
+                APIErrorLog.created_at >= twenty_four_hours_ago
+            ).count()
+            
+            # Get errors by category (active only)
+            category_stats = {}
+            for category in ErrorCategory:
+                count = self.db.query(APIErrorLog).filter(
+                    APIErrorLog.is_resolved == False,
+                    APIErrorLog.category == category
+                ).count()
+                category_stats[category.value] = count
+            
+            # Get top error endpoints (active only)
+            from sqlalchemy import func as sql_func
+            top_endpoints = self.db.query(
+                APIErrorLog.endpoint,
+                sql_func.count(APIErrorLog.id).label('error_count')
+            ).filter(
+                APIErrorLog.is_resolved == False
+            ).group_by(APIErrorLog.endpoint).order_by(
+                sql_func.count(APIErrorLog.id).desc()
+            ).limit(5).all()
+            
+            return {
+                "total_active_errors": total_active,
+                "critical_errors": critical_count,
+                "high_priority_errors": high_count,
+                "medium_priority_errors": medium_count,
+                "low_priority_errors": low_count,
+                "errors_last_24h": recent_errors,
+                "category_breakdown": category_stats,
+                "top_error_endpoints": [
+                    {"endpoint": endpoint, "count": count}
+                    for endpoint, count in top_endpoints
+                ],
+                "last_updated": datetime.utcnow().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to get real-time statistics: {e}")
+            return {
+                "total_active_errors": 0,
+                "critical_errors": 0,
+                "high_priority_errors": 0,
+                "medium_priority_errors": 0,
+                "low_priority_errors": 0,
+                "errors_last_24h": 0,
+                "category_breakdown": {},
+                "top_error_endpoints": [],
+                "last_updated": datetime.utcnow().isoformat(),
+                "error": str(e)
+            }
     
     def resolve_error(
         self,
@@ -483,3 +571,26 @@ class ErrorLoggingService:
             
         except Exception as e:
             logger.warning(f"Failed to update error metrics in Redis: {e}")
+    
+    def _broadcast_new_error(self, error_log: APIErrorLog):
+        """
+        Broadcast new error to WebSocket clients
+        """
+        try:
+            # Import here to avoid circular imports
+            from ..api.error_logging import error_connection_manager
+            
+            # Use asyncio to run the async broadcast method
+            import asyncio
+            
+            # Create a task to broadcast the error
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # If we're already in an async context, create a task
+                asyncio.create_task(error_connection_manager.broadcast_new_error(error_log))
+            else:
+                # If not in async context, run it
+                asyncio.run(error_connection_manager.broadcast_new_error(error_log))
+                
+        except Exception as e:
+            logger.warning(f"Failed to broadcast new error via WebSocket: {e}")

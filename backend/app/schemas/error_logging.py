@@ -214,3 +214,32 @@ class ErrorExportResponse(BaseModel):
     filename: str = Field(..., description="Generated filename")
     total_records: int = Field(..., description="Total number of exported records")
     expires_at: datetime = Field(..., description="Download URL expiration time")
+
+
+class RealTimeErrorStatistics(BaseModel):
+    """Schema for real-time error statistics"""
+    total_active_errors: int = Field(..., description="Total number of active (unresolved) errors")
+    critical_errors: int = Field(..., description="Number of critical errors")
+    high_priority_errors: int = Field(..., description="Number of high priority errors")
+    medium_priority_errors: int = Field(..., description="Number of medium priority errors")
+    low_priority_errors: int = Field(..., description="Number of low priority errors")
+    errors_last_24h: int = Field(..., description="Errors in the last 24 hours")
+    category_breakdown: Dict[str, int] = Field(..., description="Errors by category")
+    top_error_endpoints: List[Dict[str, Any]] = Field(..., description="Top error endpoints")
+    last_updated: str = Field(..., description="Last update timestamp")
+
+
+class WebSocketMessage(BaseModel):
+    """Schema for WebSocket messages"""
+    type: str = Field(..., description="Message type")
+    data: Optional[Dict[str, Any]] = Field(None, description="Message data")
+    timestamp: str = Field(..., description="Message timestamp")
+
+
+class ErrorUpdateMessage(BaseModel):
+    """Schema for error update WebSocket messages"""
+    action: str = Field(..., description="Action type (new_error, resolved, statistics_update)")
+    error_id: Optional[str] = Field(None, description="Error ID for specific actions")
+    error: Optional[Dict[str, Any]] = Field(None, description="Error data for new errors")
+    resolved_by: Optional[str] = Field(None, description="Admin who resolved the error")
+    statistics: Optional[Dict[str, Any]] = Field(None, description="Updated statistics")
