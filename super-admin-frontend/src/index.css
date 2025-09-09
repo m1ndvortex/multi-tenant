@@ -4,48 +4,95 @@
 
 @layer base {
   :root {
+    /* Enhanced color system with high contrast */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 220 13% 9%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 220 13% 9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 142.1 76.2% 36.3%;
-    --primary-foreground: 355.7 100% 97.3%;
+    --popover-foreground: 220 13% 9%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 84% 4.9%;
+    --secondary-foreground: 220 13% 9%;
     --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted-foreground: 215 16% 47%;
     --accent: 210 40% 96%;
-    --accent-foreground: 222.2 84% 4.9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 142.1 76.2% 36.3%;
+    --accent-foreground: 220 13% 9%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 221 83% 53%;
     --radius: 0.75rem;
+    
+    /* Enhanced typography colors */
+    --text-primary: 220 13% 9%;
+    --text-secondary: 215 25% 27%;
+    --text-muted: 215 16% 47%;
+    --text-accent: 221 83% 53%;
+    --text-tenant-name: 213 94% 68%;
+    
+    /* Enhanced background colors */
+    --bg-primary: 0 0% 100%;
+    --bg-secondary: 210 40% 98%;
+    --bg-tertiary: 210 40% 96%;
+    --bg-quaternary: 214 32% 91%;
+    
+    /* Enhanced border colors */
+    --border-light: 214 32% 91%;
+    --border-medium: 215 28% 84%;
+    --border-dark: 215 20% 65%;
+    
+    /* Status colors with high contrast */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --error: 0 84% 60%;
+    --error-foreground: 0 0% 100%;
+    --info: 221 83% 53%;
+    --info-foreground: 0 0% 100%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 142.1 70.6% 45.3%;
-    --primary-foreground: 144.9 80.4% 10%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 142.4 71.8% 29.2%;
+    --background: 220 13% 9%;
+    --foreground: 0 0% 100%;
+    --card: 220 13% 9%;
+    --card-foreground: 0 0% 100%;
+    --popover: 220 13% 9%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 215 25% 27%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 215 25% 27%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 215 25% 27%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 215 25% 27%;
+    --input: 215 25% 27%;
+    --ring: 221 83% 53%;
+    
+    /* Enhanced typography colors for dark mode */
+    --text-primary: 0 0% 100%;
+    --text-secondary: 214 32% 91%;
+    --text-muted: 215 20% 65%;
+    --text-accent: 213 94% 68%;
+    --text-tenant-name: 213 94% 68%;
+    
+    /* Enhanced background colors for dark mode */
+    --bg-primary: 220 13% 9%;
+    --bg-secondary: 215 25% 27%;
+    --bg-tertiary: 215 16% 47%;
+    --bg-quaternary: 215 20% 65%;
+    
+    /* Enhanced border colors for dark mode */
+    --border-light: 215 25% 27%;
+    --border-medium: 215 16% 47%;
+    --border-dark: 215 20% 65%;
   }
 }
 
@@ -53,9 +100,83 @@
   * {
     @apply border-border;
   }
+  
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Vazirmatn', 'Inter', system-ui, sans-serif;
+    font-weight: 400;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Enhanced typography hierarchy */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold text-gray-900;
+    line-height: 1.25;
+    letter-spacing: -0.025em;
+  }
+  
+  h1 { @apply text-4xl; }
+  h2 { @apply text-3xl; }
+  h3 { @apply text-2xl; }
+  h4 { @apply text-xl; }
+  h5 { @apply text-lg; }
+  h6 { @apply text-base; }
+  
+  p {
+    @apply text-gray-900 leading-relaxed;
+  }
+  
+  /* High contrast link styles */
+  a {
+    @apply text-blue-700 font-medium;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  
+  a:hover {
+    @apply text-blue-800;
+  }
+  
+  a:focus {
+    @apply outline-2 outline-blue-600 outline-offset-2;
+  }
+  
+  /* Enhanced form element defaults */
+  input, textarea, select {
+    @apply text-gray-900 font-medium;
+  }
+  
+  /* High contrast placeholder text */
+  ::placeholder {
+    @apply text-gray-500 font-normal;
+    opacity: 1;
+  }
+  
+  /* Dark mode text adjustments */
+  .dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+    @apply text-white;
+  }
+  
+  .dark p {
+    @apply text-gray-100;
+  }
+  
+  .dark a {
+    @apply text-blue-400;
+  }
+  
+  .dark a:hover {
+    @apply text-blue-300;
+  }
+  
+  .dark input, .dark textarea, .dark select {
+    @apply text-white;
+  }
+  
+  .dark ::placeholder {
+    @apply text-gray-400;
   }
 }
 
@@ -87,14 +208,18 @@
   background: linear-gradient(to bottom, #16a34a, #15803d);
 }
 
-/* Force tenant name visibility */
+/* Enhanced tenant name visibility with maximum contrast */
 .tenant-name-cell {
-  color: #1f2937 !important;
-  font-weight: 600 !important;
+  color: #1e40af !important;
+  font-weight: 700 !important;
+  background-color: rgba(219, 234, 254, 0.3) !important;
+  padding: 0.5rem !important;
+  border-radius: 0.375rem !important;
 }
 
 .dark .tenant-name-cell {
-  color: #ffffff !important;
+  color: #93c5fd !important;
+  background-color: rgba(30, 64, 175, 0.2) !important;
 }
 
 /* More specific selectors to override any table styles */
@@ -102,13 +227,138 @@ table .tenant-name-cell,
 tbody .tenant-name-cell,
 tr .tenant-name-cell,
 td .tenant-name-cell {
-  color: #000000 !important;
-  font-weight: 600 !important;
+  color: #1e40af !important;
+  font-weight: 700 !important;
+  background-color: rgba(219, 234, 254, 0.3) !important;
 }
 
 .dark table .tenant-name-cell,
 .dark tbody .tenant-name-cell,
 .dark tr .tenant-name-cell,
 .dark td .tenant-name-cell {
-  color: #ffffff !important;
+  color: #93c5fd !important;
+  background-color: rgba(30, 64, 175, 0.2) !important;
+}
+
+/* Enhanced search field visibility */
+.enhanced-search-field {
+  border: 2px solid #d1d5db !important;
+  background-color: #ffffff !important;
+  color: #111827 !important;
+  font-weight: 500 !important;
+}
+
+.enhanced-search-field:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+.enhanced-search-field::placeholder {
+  color: #6b7280 !important;
+  font-weight: 400 !important;
+}
+
+.dark .enhanced-search-field {
+  border-color: #4b5563 !important;
+  background-color: #1f2937 !important;
+  color: #f9fafb !important;
+}
+
+.dark .enhanced-search-field:focus {
+  border-color: #60a5fa !important;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1) !important;
+}
+
+.dark .enhanced-search-field::placeholder {
+  color: #9ca3af !important;
+}
+
+/* Enhanced form element visibility */
+.enhanced-form-element {
+  border: 2px solid #d1d5db !important;
+  background-color: #ffffff !important;
+  color: #111827 !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+.enhanced-form-element:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+  outline: none !important;
+}
+
+.enhanced-form-element:hover {
+  border-color: #9ca3af !important;
+}
+
+.dark .enhanced-form-element {
+  border-color: #4b5563 !important;
+  background-color: #1f2937 !important;
+  color: #f9fafb !important;
+}
+
+.dark .enhanced-form-element:focus {
+  border-color: #60a5fa !important;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1) !important;
+}
+
+.dark .enhanced-form-element:hover {
+  border-color: #6b7280 !important;
+}
+
+/* Enhanced table styling */
+.enhanced-table {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 0.5rem !important;
+  overflow: hidden !important;
+}
+
+.enhanced-table thead {
+  background: linear-gradient(to right, #f9fafb, #f3f4f6) !important;
+}
+
+.enhanced-table th {
+  color: #111827 !important;
+  font-weight: 700 !important;
+  font-size: 0.875rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  padding: 1rem 1.5rem !important;
+  border-bottom: 2px solid #e5e7eb !important;
+}
+
+.enhanced-table td {
+  color: #111827 !important;
+  font-weight: 500 !important;
+  padding: 1rem 1.5rem !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+}
+
+.enhanced-table tbody tr:hover {
+  background-color: rgba(249, 250, 251, 0.5) !important;
+}
+
+.dark .enhanced-table {
+  border-color: #374151 !important;
+}
+
+.dark .enhanced-table thead {
+  background: linear-gradient(to right, #1f2937, #374151) !important;
+}
+
+.dark .enhanced-table th {
+  color: #f9fafb !important;
+  border-bottom-color: #4b5563 !important;
+}
+
+.dark .enhanced-table td {
+  color: #f9fafb !important;
+  border-bottom-color: #374151 !important;
+}
+
+.dark .enhanced-table tbody tr:hover {
+  background-color: rgba(55, 65, 81, 0.3) !important;
 }
