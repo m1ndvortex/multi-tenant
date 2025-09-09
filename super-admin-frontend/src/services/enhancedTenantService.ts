@@ -66,11 +66,11 @@ class EnhancedTenantService {
 
   // Subscription management endpoints
   async getSubscriptionOverview(): Promise<any> {
-    return this.request('/api/subscription-management/subscriptions/overview');
+    return this.request('/api/subscription-management/overview');
   }
 
   async extendSubscription(tenantId: string, months: number, reason?: string): Promise<any> {
-    return this.request(`/api/subscription-management/subscriptions/${tenantId}/extend`, {
+    return this.request(`/api/subscription-management/tenants/${tenantId}/extend`, {
       method: 'POST',
       body: { months, reason },
     });
@@ -82,7 +82,7 @@ class EnhancedTenantService {
     subscriptionType?: 'free' | 'pro',
     reason?: string
   ): Promise<any> {
-    return this.request(`/api/subscription-management/subscriptions/${tenantId}/status`, {
+    return this.request(`/api/subscription-management/tenants/${tenantId}/status`, {
       method: 'PUT',
       body: { 
         activate, 
@@ -95,10 +95,18 @@ class EnhancedTenantService {
   async changeSubscriptionPlan(
     tenantId: string, 
     newPlan: 'free' | 'pro',
+    durationMonths?: number,
     reason?: string
   ): Promise<any> {
-    // This uses the status endpoint with plan change
-    return this.updateSubscriptionStatus(tenantId, true, newPlan, reason);
+    return this.request(`/api/subscription-management/tenants/${tenantId}/plan`, {
+      method: 'PUT',
+      body: { 
+        new_plan: newPlan,
+        duration_months: durationMonths,
+        reason,
+        immediate_effect: true
+      },
+    });
   }
 
   // Error logging endpoints (for future use)
