@@ -170,6 +170,7 @@ class Tenant(BaseModel):
     invoice_templates = relationship("InvoiceTemplate", back_populates="tenant", cascade="all, delete-orphan")
     invoice_branding_configs = relationship("InvoiceBranding", back_populates="tenant", cascade="all, delete-orphan")
     api_keys = relationship("ApiKey", back_populates="tenant", cascade="all, delete-orphan")
+    subscription_history = relationship("SubscriptionHistory", back_populates="tenant", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<Tenant(id={self.id}, name='{self.name}', subscription='{self.subscription_type.value}')>"
@@ -201,6 +202,10 @@ class Tenant(BaseModel):
         self.subscription_expires_at = datetime.now(timezone.utc) + timedelta(days=duration_months * 30)
         
         # Update limits for Pro tier
+        self.upgrade_to_pro_limits()
+    
+    def upgrade_to_pro_limits(self):
+        """Update tenant limits for Pro subscription"""
         self.max_users = 5
         self.max_products = -1  # Unlimited
         self.max_customers = -1  # Unlimited
@@ -212,6 +217,10 @@ class Tenant(BaseModel):
         self.subscription_expires_at = None
         
         # Reset limits for Free tier
+        self.downgrade_to_free_limits()
+    
+    def downgrade_to_free_limits(self):
+        """Update tenant limits for Free subscription"""
         self.max_users = 1
         self.max_products = 10
         self.max_customers = 10

@@ -1,318 +1,25 @@
 """
-Comprehensive tests for Subscription Management System
-Tests subscription limits, feature access, and usage tracking
+Unit Tests for Professional Subscription Management API
+Tests subscription management endpoints with real database scenarios
 """
 
 import pytest
 from datetime import datetime, timezone, timedelta
-from sqlalchemy.orm import Session
 from fastapi.testclient import TestClient
-from unittest.mock import patch, MagicMock
+from sqlalchemy.orm import Session
+import uuid
 
 from app.main import app
 from app.core.database import get_db
 from app.models.tenant import Tenant, SubscriptionType, TenantStatus
 from app.models.user import User, UserRole, UserStatus
-from app.models.customer import Customer
-from app.models.product import Product
-from app.models.invoice import Invoice, InvoiceType
-from app.services.subscription_service import SubscriptionService, SubscriptionLimits
+from app.models.subscription_history import SubscriptionHistory
 from app.core.auth import create_access_token
+from tests.conftest import TestDatabase
 
 
-class TestSubscriptionLimits:
-    """Test subscription limits configuration"""
-    
-    def test_free_limits(self):
-        """Test Free tier limits"""
-        limits = SubscriptionLimits.get_limits(SubscriptionType.FREE)
-        
-        assert limits['users'] == 1
-        assert limits['products'] == 10
-        assert limits['customers'] == 10
-        assert limits['monthly_invoices'] == 10
-        assert limits['api_access'] == False
-        assert limits['advanced_reporting'] == False
-        assert limits['role_based_permissions'] == False
-        assert limits['unlimited_storage'] == False
-    
-    def test_pro_limits(self):
-        """Test Pro tier limits"""
-        limits = SubscriptionLimits.get_limits(SubscriptionType.PRO)
-        
-        assert limits['users'] == 5
-        assert limits['products'] == -1  # Unlimited
-        assert limits['customers'] == -1  # Unlimited
-        assert limits['monthly_invoices'] == -1  # Unlimited
-        assert limits['api_access'] == True
-        assert limits['advanced_reporting'] == True
-        assert limits['role_based_permissions'] == True
-        assert limits['unlimited_storage'] == True
-
-
-class TestSubscriptionService:
-    """Test subscription service functionality"""
-    
-    @pytest.fixture
-    def db_session(self):
-        """Create test database session"""
-        from app.core.database import SessionLocal, engine
-        from app.models.base import BaseModel
-        
-        # Create tables
-        BaseModel.metadata.create_all(bind=engine)
-        
-        db = SessionLocal()
-        try:
-            yield db
-        finally:
-            db.close()
-    
-    @pytest.fixture
-    def free_tenant(self, db_session):
-        """Create a Free tier tenant"""
-        tenant = Tenant(
-            name="Test Free Tenant",
-            email="free@test.com",
-            subscription_type=SubscriptionType.FREE,
-            status=TenantStatus.ACTIVE
-        )
-        db_session.add(tenant)
-        db_session.commit()
-        db_session.refresh(tenant)
-        return tenant
-    
-    @pytest.fixture
-    def pro_tenant(self, db_session):
-        """Create a Pro tier tenant"""
-        tenant = Tenant(
-            name="Test Pro Tenant",
-            email="pro@test.com",
-            subscription_type=SubscriptionType.PRO,
-            status=TenantStatus.ACTIVE,
-            subscription_expires_at=datetime.now(timezone.utc) + timedelta(days=30)
-        )
-        tenant.upgrade_to_pro(12)
-        db_session.add(tenant)
-        db_session.commit()
-        db_session.refresh(tenant)
-        return tenant
-    
-    @pytest.fixture
-    def expired_tenant(self, db_session):
-        """Create an expired Pro tier tenant"""
-        tenant = Tenant(
-            name="Test Expired Tenant",
-            email="expired@test.com",
-            subscription_type=SubscriptionType.PRO,
-            status=TenantStatus.ACTIVE,
-            subscription_expires_at=datetime.now(timezone.utc) - timedelta(days=1)
-        )
-        db_session.add(tenant)
-        db_session.commit()
-        db_session.refresh(tenant)
-        return tenant
-    
-    def test_get_tenant_subscription_info_free(self, db_session, free_tenant):
-        """Test getting subscription info for Free tier"""
-        service = SubscriptionService(db_session)
-        info = service.get_tenant_subscription_info(str(free_tenant.id))
-        
-        assert info['subscription_type'] == 'free'
-        assert info['subscription_active'] == True
-        assert info['limits']['users'] == 1
-        assert info['limits']['products'] == 10
-        assert info['features']['api_access'] == False
-        assert info['features']['advanced_reporting'] == False
-    
-    def test_get_tenant_subscription_info_pro(self, db_session, pro_tenant):
-        """Test getting subscription info for Pro tier"""
-        service = SubscriptionService(db_session)
-        info = service.get_tenant_subscription_info(str(pro_tenant.id))
-        
-        assert info['subscription_type'] == 'pro'
-        assert info['subscription_active'] == True
-        assert info['limits']['users'] == 5
-        assert info['limits']['products'] == -1  # Unlimited
-        assert info['features']['api_access'] == True
-        assert info['features']['advanced_reporting'] == True
-    
-    def test_get_tenant_subscription_info_expired(self, db_session, expired_tenant):
-        """Test getting subscription info for expired tenant"""
-        service = SubscriptionService(db_session)
-        info = service.get_tenant_subscription_info(str(expired_tenant.id))
-        
-        assert info['subscription_type'] == 'pro'
-        assert info['subscription_active'] == False
-        assert info['days_until_expiry'] == 0
-    
-    def test_check_resource_limit_free_within_limits(self, db_session, free_tenant):
-        """Test resource limit check for Free tier within limits"""
-        service = SubscriptionService(db_session)
-        
-        # Create some test data
-        user = User(
-            tenant_id=free_tenant.id,
-            email="user@test.com",
-            password_hash="hashed",
-            first_name="Test",
-            last_name="User",
-            role=UserRole.USER,
-            status=UserStatus.ACTIVE
-        )
-        db_session.add(user)
-        db_session.commit()
-        
-        # Check if can add more users (should fail - Free tier allows only 1 user)
-        result = service.check_resource_limit(str(free_tenant.id), 'users', 1)
-        
-        assert result['allowed'] == False
-        assert result['reason'] == 'limit_exceeded'
-        assert result['current_usage'] == 1
-        assert result['limit'] == 1
-        assert result['remaining'] == 0
-    
-    def test_check_resource_limit_pro_unlimited(self, db_session, pro_tenant):
-        """Test resource limit check for Pro tier unlimited resources"""
-        service = SubscriptionService(db_session)
-        
-        # Check unlimited resource (products)
-        result = service.check_resource_limit(str(pro_tenant.id), 'products', 100)
-        
-        assert result['allowed'] == True
-        assert result['reason'] == 'unlimited'
-        assert result['limit'] == -1
-        assert result['remaining'] == -1
-    
-    def test_check_resource_limit_expired_subscription(self, db_session, expired_tenant):
-        """Test resource limit check for expired subscription"""
-        service = SubscriptionService(db_session)
-        
-        result = service.check_resource_limit(str(expired_tenant.id), 'users', 1)
-        
-        assert result['allowed'] == False
-        assert result['reason'] == 'subscription_expired'
-        assert 'expired' in result['message'].lower()
-    
-    def test_check_feature_access_free_tier(self, db_session, free_tenant):
-        """Test feature access check for Free tier"""
-        service = SubscriptionService(db_session)
-        
-        # Check feature not available in Free tier
-        result = service.check_feature_access(str(free_tenant.id), 'api_access')
-        
-        assert result['allowed'] == False
-        assert result['reason'] == 'feature_not_available'
-        assert result['subscription_type'] == 'free'
-        assert result['feature'] == 'api_access'
-    
-    def test_check_feature_access_pro_tier(self, db_session, pro_tenant):
-        """Test feature access check for Pro tier"""
-        service = SubscriptionService(db_session)
-        
-        # Check feature available in Pro tier
-        result = service.check_feature_access(str(pro_tenant.id), 'api_access')
-        
-        assert result['allowed'] == True
-        assert result['reason'] == 'feature_available'
-        assert result['subscription_type'] == 'pro'
-        assert result['feature'] == 'api_access'
-    
-    def test_upgrade_subscription_free_to_pro(self, db_session, free_tenant):
-        """Test upgrading subscription from Free to Pro"""
-        service = SubscriptionService(db_session)
-        
-        result = service.upgrade_subscription(str(free_tenant.id), SubscriptionType.PRO, 12)
-        
-        assert result['success'] == True
-        assert result['old_subscription'] == 'free'
-        assert result['new_subscription'] == 'pro'
-        assert result['expires_at'] is not None
-        
-        # Verify tenant was updated
-        db_session.refresh(free_tenant)
-        assert free_tenant.subscription_type == SubscriptionType.PRO
-        assert free_tenant.max_users == 5
-        assert free_tenant.max_products == -1
-    
-    def test_get_subscription_warnings_expiring_soon(self, db_session):
-        """Test subscription warnings for expiring subscription"""
-        # Create tenant expiring in 3 days
-        tenant = Tenant(
-            name="Expiring Tenant",
-            email="expiring@test.com",
-            subscription_type=SubscriptionType.PRO,
-            status=TenantStatus.ACTIVE,
-            subscription_expires_at=datetime.now(timezone.utc) + timedelta(days=3)
-        )
-        db_session.add(tenant)
-        db_session.commit()
-        
-        service = SubscriptionService(db_session)
-        warnings = service.get_subscription_warnings(str(tenant.id))
-        
-        assert len(warnings) > 0
-        expiry_warning = next((w for w in warnings if w['type'] == 'subscription_expiry'), None)
-        assert expiry_warning is not None
-        assert expiry_warning['severity'] == 'high'
-        assert '3 days' in expiry_warning['message']
-    
-    def test_get_subscription_warnings_usage_limits(self, db_session, free_tenant):
-        """Test subscription warnings for usage limits"""
-        service = SubscriptionService(db_session)
-        
-        # Create customers near the limit (9 out of 10)
-        for i in range(9):
-            customer = Customer(
-                tenant_id=free_tenant.id,
-                name=f"Customer {i}",
-                email=f"customer{i}@test.com"
-            )
-            db_session.add(customer)
-        db_session.commit()
-        
-        warnings = service.get_subscription_warnings(str(free_tenant.id))
-        
-        usage_warning = next((w for w in warnings if w['type'] == 'usage_limit' and w['resource'] == 'customers'), None)
-        assert usage_warning is not None
-        assert usage_warning['severity'] == 'medium'
-        assert '90%' in usage_warning['message']
-    
-    def test_validate_subscription_status_active(self, db_session, pro_tenant):
-        """Test subscription status validation for active subscription"""
-        service = SubscriptionService(db_session)
-        
-        result = service.validate_subscription_status(str(pro_tenant.id))
-        
-        assert result['valid'] == True
-        assert result['reason'] == 'active'
-        assert result['subscription_type'] == 'pro'
-    
-    def test_validate_subscription_status_expired(self, db_session, expired_tenant):
-        """Test subscription status validation for expired subscription"""
-        service = SubscriptionService(db_session)
-        
-        result = service.validate_subscription_status(str(expired_tenant.id))
-        
-        assert result['valid'] == False
-        assert result['reason'] == 'subscription_expired'
-        assert result['expired_at'] is not None
-    
-    def test_validate_subscription_status_suspended_tenant(self, db_session, free_tenant):
-        """Test subscription status validation for suspended tenant"""
-        free_tenant.suspend("Test suspension")
-        db_session.commit()
-        
-        service = SubscriptionService(db_session)
-        result = service.validate_subscription_status(str(free_tenant.id))
-        
-        assert result['valid'] == False
-        assert result['reason'] == 'tenant_inactive'
-        assert result['status'] == 'suspended'
-
-
-class TestSubscriptionAPI:
-    """Test subscription API endpoints"""
+class TestSubscriptionManagement:
+    """Test suite for subscription management API endpoints"""
     
     @pytest.fixture
     def client(self):
@@ -321,335 +28,525 @@ class TestSubscriptionAPI:
     
     @pytest.fixture
     def db_session(self):
-        """Create test database session"""
-        from app.core.database import SessionLocal, engine
-        from app.models.base import BaseModel
+        """Create database session for testing"""
+        test_db = TestDatabase()
+        session = test_db.get_session()
         
-        BaseModel.metadata.create_all(bind=engine)
+        # Override the dependency to use the same session
+        def override_get_db():
+            try:
+                yield session
+            finally:
+                pass  # Don't close the session here
         
-        db = SessionLocal()
+        app.dependency_overrides[get_db] = override_get_db
+        
+        yield session
+        
+        # Cleanup
         try:
-            yield db
+            session.rollback()
+        except:
+            pass
         finally:
-            db.close()
+            session.close()
+            app.dependency_overrides.clear()
     
     @pytest.fixture
-    def test_tenant_and_user(self, db_session):
-        """Create test tenant and user"""
-        tenant = Tenant(
-            name="API Test Tenant",
-            email="api@test.com",
-            subscription_type=SubscriptionType.FREE,
-            status=TenantStatus.ACTIVE
-        )
-        db_session.add(tenant)
-        db_session.commit()
-        
+    def super_admin_user(self, db_session: Session):
+        """Create super admin user for testing"""
         user = User(
-            tenant_id=tenant.id,
-            email="user@test.com",
-            password_hash="hashed",
-            first_name="Test",
-            last_name="User",
-            role=UserRole.ADMIN,
-            status=UserStatus.ACTIVE
+            id=uuid.uuid4(),
+            email="superadmin@test.com",
+            first_name="Super",
+            last_name="Admin",
+            password_hash="hashed_password",
+            role=UserRole.OWNER,
+            status=UserStatus.ACTIVE,
+            is_super_admin=True,
+            is_active=True,
+            is_email_verified=True
         )
         db_session.add(user)
         db_session.commit()
-        
-        return tenant, user
+        db_session.refresh(user)
+        return user
     
     @pytest.fixture
-    def auth_headers(self, test_tenant_and_user):
-        """Create authentication headers"""
-        tenant, user = test_tenant_and_user
-        token = create_access_token(
-            data={
-                "user_id": str(user.id),
-                "tenant_id": str(tenant.id),
-                "email": user.email
-            }
+    def test_tenant(self, db_session: Session):
+        """Create test tenant"""
+        tenant = Tenant(
+            id=uuid.uuid4(),
+            name="Test Company",
+            email="test@company.com",
+            phone="1234567890",
+            address="123 Test St",
+            subscription_type=SubscriptionType.FREE,
+            status=TenantStatus.ACTIVE,
+            max_users=1,
+            max_products=10,
+            max_customers=10,
+            max_monthly_invoices=10
         )
+        db_session.add(tenant)
+        db_session.commit()
+        db_session.refresh(tenant)
+        return tenant
+    
+    @pytest.fixture
+    def pro_tenant(self, db_session: Session):
+        """Create Pro tenant for testing"""
+        tenant = Tenant(
+            id=uuid.uuid4(),
+            name="Pro Company",
+            email="pro@company.com",
+            phone="1234567890",
+            address="456 Pro St",
+            subscription_type=SubscriptionType.PRO,
+            status=TenantStatus.ACTIVE,
+            subscription_starts_at=datetime.now(timezone.utc),
+            subscription_expires_at=datetime.now(timezone.utc) + timedelta(days=365),
+            max_users=5,
+            max_products=-1,
+            max_customers=-1,
+            max_monthly_invoices=-1
+        )
+        db_session.add(tenant)
+        db_session.commit()
+        db_session.refresh(tenant)
+        return tenant
+    
+    @pytest.fixture
+    def auth_headers(self, super_admin_user: User):
+        """Create authentication headers"""
+        from app.core.auth import create_super_admin_access_token
+        token = create_super_admin_access_token(data={
+            "sub": super_admin_user.email,
+            "user_id": str(super_admin_user.id)
+        })
         return {"Authorization": f"Bearer {token}"}
     
-    def test_get_subscription_info(self, client, auth_headers, db_session):
-        """Test GET /api/subscription/info endpoint"""
-        with patch('app.core.database.get_db', return_value=db_session):
-            response = client.get("/api/subscription/info", headers=auth_headers)
+    def test_get_subscription_overview(self, client: TestClient, auth_headers: dict, 
+                                     test_tenant: Tenant, pro_tenant: Tenant, db_session: Session):
+        """Test subscription overview endpoint"""
+        response = client.get("/api/subscription-management/overview", headers=auth_headers)
         
         assert response.status_code == 200
         data = response.json()
         
-        assert 'subscription_type' in data
-        assert 'subscription_active' in data
-        assert 'usage' in data
-        assert 'limits' in data
-        assert 'features' in data
+        assert "total_tenants" in data
+        assert "free_subscriptions" in data
+        assert "pro_subscriptions" in data
+        assert "expiring_soon" in data
+        assert "expired" in data
+        assert "conversion_rate" in data
+        
+        assert data["total_tenants"] >= 2
+        assert data["free_subscriptions"] >= 1
+        assert data["pro_subscriptions"] >= 1
     
-    def test_check_resource_limit(self, client, auth_headers, db_session):
-        """Test POST /api/subscription/check-limit endpoint"""
-        request_data = {
-            "resource_type": "users",
-            "increment": 1
+    def test_extend_subscription_success(self, client: TestClient, auth_headers: dict,
+                                       test_tenant: Tenant, db_session: Session):
+        """Test successful subscription extension"""
+        extension_data = {
+            "months": 12,
+            "reason": "Customer requested extension"
         }
         
-        with patch('app.core.database.get_db', return_value=db_session):
-            response = client.post(
-                "/api/subscription/check-limit",
-                json=request_data,
-                headers=auth_headers
-            )
+        response = client.post(
+            f"/api/subscription-management/tenants/{test_tenant.id}/extend",
+            json=extension_data,
+            headers=auth_headers
+        )
         
         assert response.status_code == 200
         data = response.json()
         
-        assert 'allowed' in data
-        assert 'reason' in data
-        assert 'current_usage' in data
-        assert 'limit' in data
-        assert 'remaining' in data
+        assert data["success"] is True
+        assert data["tenant_id"] == str(test_tenant.id)
+        assert data["months_added"] == 12
+        assert data["days_added"] == 360
+        assert "new_expiration_date" in data
+        
+        # Verify database changes by re-querying
+        updated_tenant = db_session.query(Tenant).filter(Tenant.id == test_tenant.id).first()
+        assert updated_tenant.subscription_type == SubscriptionType.PRO
+        assert updated_tenant.subscription_expires_at is not None
+        assert updated_tenant.status == TenantStatus.ACTIVE
+        
+        # Verify history entry was created
+        history = db_session.query(SubscriptionHistory).filter(
+            SubscriptionHistory.tenant_id == test_tenant.id
+        ).first()
+        assert history is not None
+        assert history.action == "EXTENDED"
+        assert history.duration_months == 12
     
-    def test_check_feature_access(self, client, auth_headers, db_session):
-        """Test POST /api/subscription/check-feature endpoint"""
-        request_data = {
-            "feature": "api_access"
+    def test_extend_subscription_invalid_tenant(self, client: TestClient, auth_headers: dict):
+        """Test extension with invalid tenant ID"""
+        extension_data = {
+            "months": 6,
+            "reason": "Test extension"
         }
         
-        with patch('app.core.database.get_db', return_value=db_session):
-            response = client.post(
-                "/api/subscription/check-feature",
-                json=request_data,
-                headers=auth_headers
-            )
-        
-        assert response.status_code == 200
-        data = response.json()
-        
-        assert 'allowed' in data
-        assert 'reason' in data
-        assert 'subscription_type' in data
-        assert 'feature' in data
-    
-    def test_get_subscription_warnings(self, client, auth_headers, db_session):
-        """Test GET /api/subscription/warnings endpoint"""
-        with patch('app.core.database.get_db', return_value=db_session):
-            response = client.get("/api/subscription/warnings", headers=auth_headers)
-        
-        assert response.status_code == 200
-        data = response.json()
-        
-        assert 'warnings' in data
-        assert 'total_warnings' in data
-        assert 'has_critical_warnings' in data
-        assert isinstance(data['warnings'], list)
-    
-    def test_validate_subscription(self, client, auth_headers, db_session):
-        """Test GET /api/subscription/validate endpoint"""
-        with patch('app.core.database.get_db', return_value=db_session):
-            response = client.get("/api/subscription/validate", headers=auth_headers)
-        
-        assert response.status_code == 200
-        data = response.json()
-        
-        assert 'valid' in data
-        assert 'reason' in data
-        assert 'message' in data
-    
-    def test_get_usage_stats(self, client, auth_headers, db_session):
-        """Test GET /api/subscription/usage endpoint"""
-        with patch('app.core.database.get_db', return_value=db_session):
-            response = client.get("/api/subscription/usage", headers=auth_headers)
-        
-        assert response.status_code == 200
-        data = response.json()
-        
-        assert 'tenant_id' in data
-        assert 'period' in data
-        assert 'usage' in data
-        assert 'limits' in data
-        assert 'usage_percentages' in data
-    
-    def test_get_subscription_limits(self, client, auth_headers, db_session):
-        """Test GET /api/subscription/limits endpoint"""
-        with patch('app.core.database.get_db', return_value=db_session):
-            response = client.get("/api/subscription/limits", headers=auth_headers)
-        
-        assert response.status_code == 200
-        data = response.json()
-        
-        assert 'subscription_type' in data
-        assert 'limits' in data
-        assert 'features' in data
-    
-    def test_can_create_resource(self, client, auth_headers, db_session):
-        """Test GET /api/subscription/can-create/{resource_type} endpoint"""
-        with patch('app.core.database.get_db', return_value=db_session):
-            response = client.get("/api/subscription/can-create/users", headers=auth_headers)
-        
-        assert response.status_code == 200
-        data = response.json()
-        
-        assert 'can_create' in data
-        assert 'reason' in data
-        assert 'remaining' in data
-    
-    def test_has_feature_access(self, client, auth_headers, db_session):
-        """Test GET /api/subscription/has-feature/{feature} endpoint"""
-        with patch('app.core.database.get_db', return_value=db_session):
-            response = client.get("/api/subscription/has-feature/api_access", headers=auth_headers)
-        
-        assert response.status_code == 200
-        data = response.json()
-        
-        assert 'has_access' in data
-        assert 'reason' in data
-        assert 'subscription_type' in data
-    
-    def test_unauthorized_access(self, client, db_session):
-        """Test API endpoints without authentication"""
-        response = client.get("/api/subscription/info")
-        assert response.status_code == 401
-
-
-class TestSubscriptionIntegration:
-    """Integration tests for subscription system"""
-    
-    @pytest.fixture
-    def db_session(self):
-        """Create test database session"""
-        from app.core.database import SessionLocal, engine
-        from app.models.base import BaseModel
-        
-        BaseModel.metadata.create_all(bind=engine)
-        
-        db = SessionLocal()
-        try:
-            yield db
-        finally:
-            db.close()
-    
-    def test_free_tier_user_limit_enforcement(self, db_session):
-        """Test that Free tier enforces 1 user limit"""
-        # Create Free tier tenant
-        tenant = Tenant(
-            name="Free Limit Test",
-            email="freelimit@test.com",
-            subscription_type=SubscriptionType.FREE,
-            status=TenantStatus.ACTIVE
-        )
-        db_session.add(tenant)
-        db_session.commit()
-        
-        # Add first user (should succeed)
-        user1 = User(
-            tenant_id=tenant.id,
-            email="user1@test.com",
-            password_hash="hashed",
-            first_name="Test",
-            last_name="User1",
-            role=UserRole.USER,
-            status=UserStatus.ACTIVE
-        )
-        db_session.add(user1)
-        db_session.commit()
-        
-        # Check if can add second user (should fail)
-        service = SubscriptionService(db_session)
-        result = service.check_resource_limit(str(tenant.id), 'users', 1)
-        
-        assert result['allowed'] == False
-        assert result['current_usage'] == 1
-        assert result['limit'] == 1
-    
-    def test_pro_tier_unlimited_resources(self, db_session):
-        """Test that Pro tier allows unlimited resources"""
-        # Create Pro tier tenant
-        tenant = Tenant(
-            name="Pro Unlimited Test",
-            email="prounlimited@test.com",
-            subscription_type=SubscriptionType.PRO,
-            status=TenantStatus.ACTIVE,
-            subscription_expires_at=datetime.now(timezone.utc) + timedelta(days=30)
-        )
-        tenant.upgrade_to_pro(12)
-        db_session.add(tenant)
-        db_session.commit()
-        
-        # Add many products (should all succeed)
-        for i in range(50):
-            product = Product(
-                tenant_id=tenant.id,
-                name=f"Product {i}",
-                price=100.00
-            )
-            db_session.add(product)
-        db_session.commit()
-        
-        # Check if can add more products (should succeed - unlimited)
-        service = SubscriptionService(db_session)
-        result = service.check_resource_limit(str(tenant.id), 'products', 100)
-        
-        assert result['allowed'] == True
-        assert result['reason'] == 'unlimited'
-        assert result['limit'] == -1
-    
-    def test_subscription_expiry_blocks_access(self, db_session):
-        """Test that expired subscription blocks resource creation"""
-        # Create expired Pro tier tenant
-        tenant = Tenant(
-            name="Expired Test",
-            email="expired@test.com",
-            subscription_type=SubscriptionType.PRO,
-            status=TenantStatus.ACTIVE,
-            subscription_expires_at=datetime.now(timezone.utc) - timedelta(days=1)
-        )
-        db_session.add(tenant)
-        db_session.commit()
-        
-        # Try to create resource (should fail due to expiry)
-        service = SubscriptionService(db_session)
-        result = service.check_resource_limit(str(tenant.id), 'users', 1)
-        
-        assert result['allowed'] == False
-        assert result['reason'] == 'subscription_expired'
-    
-    def test_feature_access_by_subscription_tier(self, db_session):
-        """Test feature access based on subscription tier"""
-        # Create Free and Pro tenants
-        free_tenant = Tenant(
-            name="Free Feature Test",
-            email="freefeature@test.com",
-            subscription_type=SubscriptionType.FREE,
-            status=TenantStatus.ACTIVE
+        fake_tenant_id = str(uuid.uuid4())
+        response = client.post(
+            f"/api/subscription-management/tenants/{fake_tenant_id}/extend",
+            json=extension_data,
+            headers=auth_headers
         )
         
-        pro_tenant = Tenant(
-            name="Pro Feature Test",
-            email="profeature@test.com",
-            subscription_type=SubscriptionType.PRO,
-            status=TenantStatus.ACTIVE,
-            subscription_expires_at=datetime.now(timezone.utc) + timedelta(days=30)
-        )
-        pro_tenant.upgrade_to_pro(12)
+        assert response.status_code == 404
+        assert "Tenant not found" in response.json()["detail"]
+    
+    def test_extend_subscription_invalid_months(self, client: TestClient, auth_headers: dict,
+                                              test_tenant: Tenant):
+        """Test extension with invalid month count"""
+        extension_data = {
+            "months": 50,  # Invalid: > 36
+            "reason": "Test extension"
+        }
         
-        db_session.add_all([free_tenant, pro_tenant])
+        response = client.post(
+            f"/api/subscription-management/tenants/{test_tenant.id}/extend",
+            json=extension_data,
+            headers=auth_headers
+        )
+        
+        assert response.status_code == 422  # Validation error
+    
+    def test_update_subscription_status_activate(self, client: TestClient, auth_headers: dict,
+                                                test_tenant: Tenant, db_session: Session):
+        """Test activating subscription status"""
+        # First suspend the tenant
+        test_tenant.status = TenantStatus.SUSPENDED
         db_session.commit()
         
-        service = SubscriptionService(db_session)
+        status_data = {
+            "activate": True,
+            "subscription_type": "pro",
+            "reason": "Customer payment received"
+        }
         
-        # Test API access feature
-        free_result = service.check_feature_access(str(free_tenant.id), 'api_access')
-        pro_result = service.check_feature_access(str(pro_tenant.id), 'api_access')
+        response = client.put(
+            f"/api/subscription-management/tenants/{test_tenant.id}/status",
+            json=status_data,
+            headers=auth_headers
+        )
         
-        assert free_result['allowed'] == False
-        assert pro_result['allowed'] == True
+        assert response.status_code == 200
+        data = response.json()
         
-        # Test advanced reporting feature
-        free_result = service.check_feature_access(str(free_tenant.id), 'advanced_reporting')
-        pro_result = service.check_feature_access(str(pro_tenant.id), 'advanced_reporting')
+        assert data["success"] is True
+        assert data["new_status"] == "active"
+        assert data["new_subscription_type"] == "pro"
         
-        assert free_result['allowed'] == False
-        assert pro_result['allowed'] == True
+        # Verify database changes by re-querying
+        updated_tenant = db_session.query(Tenant).filter(Tenant.id == test_tenant.id).first()
+        assert updated_tenant.status == TenantStatus.ACTIVE
+        assert updated_tenant.subscription_type == SubscriptionType.PRO
+        assert updated_tenant.subscription_expires_at is not None
+    
+    def test_update_subscription_status_deactivate(self, client: TestClient, auth_headers: dict,
+                                                  test_tenant: Tenant, db_session: Session):
+        """Test deactivating subscription status"""
+        status_data = {
+            "activate": False,
+            "reason": "Payment failed"
+        }
+        
+        response = client.put(
+            f"/api/subscription-management/tenants/{test_tenant.id}/status",
+            json=status_data,
+            headers=auth_headers
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        
+        assert data["success"] is True
+        assert data["new_status"] == "suspended"
+        
+        # Verify database changes by re-querying
+        updated_tenant = db_session.query(Tenant).filter(Tenant.id == test_tenant.id).first()
+        assert updated_tenant.status == TenantStatus.SUSPENDED
+    
+    def test_switch_subscription_plan_upgrade(self, client: TestClient, auth_headers: dict,
+                                            test_tenant: Tenant, db_session: Session):
+        """Test upgrading subscription plan"""
+        plan_data = {
+            "new_plan": "pro",
+            "duration_months": 12,
+            "reason": "Customer upgrade request",
+            "immediate_effect": True
+        }
+        
+        response = client.put(
+            f"/api/subscription-management/tenants/{test_tenant.id}/plan",
+            json=plan_data,
+            headers=auth_headers
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        
+        assert data["success"] is True
+        assert data["old_plan"] == "free"
+        assert data["new_plan"] == "pro"
+        assert data["limits_updated"] is True
+        
+        # Verify database changes by re-querying
+        updated_tenant = db_session.query(Tenant).filter(Tenant.id == test_tenant.id).first()
+        assert updated_tenant.subscription_type == SubscriptionType.PRO
+        assert updated_tenant.max_users == 5
+        assert updated_tenant.max_products == -1  # Unlimited
+        assert updated_tenant.subscription_expires_at is not None
+    
+    def test_switch_subscription_plan_downgrade(self, client: TestClient, auth_headers: dict,
+                                               pro_tenant: Tenant, db_session: Session):
+        """Test downgrading subscription plan"""
+        plan_data = {
+            "new_plan": "free",
+            "reason": "Customer downgrade request",
+            "immediate_effect": True
+        }
+        
+        response = client.put(
+            f"/api/subscription-management/tenants/{pro_tenant.id}/plan",
+            json=plan_data,
+            headers=auth_headers
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        
+        assert data["success"] is True
+        assert data["old_plan"] == "pro"
+        assert data["new_plan"] == "free"
+        
+        # Verify database changes by re-querying
+        updated_tenant = db_session.query(Tenant).filter(Tenant.id == pro_tenant.id).first()
+        assert updated_tenant.subscription_type == SubscriptionType.FREE
+        assert updated_tenant.max_users == 1
+        assert updated_tenant.max_products == 10
+        assert updated_tenant.subscription_expires_at is None
+    
+    def test_get_subscription_history(self, client: TestClient, auth_headers: dict,
+                                    test_tenant: Tenant, super_admin_user: User, db_session: Session):
+        """Test getting subscription history"""
+        # Create some history entries
+        history1 = SubscriptionHistory.create_history_entry(
+            tenant_id=str(test_tenant.id),
+            action="CREATED",
+            new_subscription_type="free",
+            admin_id=str(super_admin_user.id),
+            reason="Initial tenant creation"
+        )
+        
+        history2 = SubscriptionHistory.create_history_entry(
+            tenant_id=str(test_tenant.id),
+            action="UPGRADED",
+            old_subscription_type="free",
+            new_subscription_type="pro",
+            duration_months=12,
+            admin_id=str(super_admin_user.id),
+            reason="Customer upgrade"
+        )
+        
+        db_session.add(history1)
+        db_session.add(history2)
+        db_session.commit()
+        
+        response = client.get(
+            f"/api/subscription-management/tenants/{test_tenant.id}/history",
+            headers=auth_headers
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        
+        assert data["tenant_id"] == str(test_tenant.id)
+        assert data["tenant_name"] == test_tenant.name
+        assert len(data["history"]) >= 2
+        assert data["total_entries"] >= 2
+        
+        # Check history entry structure
+        history_entry = data["history"][0]
+        assert "id" in history_entry
+        assert "action" in history_entry
+        assert "change_date" in history_entry
+        assert "admin_email" in history_entry
+    
+    def test_get_tenant_subscription_details(self, client: TestClient, auth_headers: dict,
+                                           pro_tenant: Tenant, db_session: Session):
+        """Test getting detailed tenant subscription information"""
+        response = client.get(
+            f"/api/subscription-management/tenants/{pro_tenant.id}/details",
+            headers=auth_headers
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        
+        assert data["tenant_id"] == str(pro_tenant.id)
+        assert data["tenant_name"] == pro_tenant.name
+        assert data["subscription_type"] == "pro"
+        assert data["subscription_status"] == "active"
+        assert data["is_active"] is True
+        assert "usage_stats" in data
+        assert "limits" in data
+        assert data["limits"]["users"] == 5
+        assert data["limits"]["products"] == -1  # Unlimited
+    
+    def test_get_subscription_statistics(self, client: TestClient, auth_headers: dict,
+                                       test_tenant: Tenant, pro_tenant: Tenant, db_session: Session):
+        """Test getting subscription statistics"""
+        response = client.get("/api/subscription-management/stats", headers=auth_headers)
+        
+        assert response.status_code == 200
+        data = response.json()
+        
+        assert "total_active_subscriptions" in data
+        assert "subscriptions_by_type" in data
+        assert "expiring_this_month" in data
+        assert "expired_count" in data
+        assert "new_subscriptions_this_month" in data
+        assert "churn_rate" in data
+        assert "revenue_metrics" in data
+        
+        assert data["subscriptions_by_type"]["free"] >= 1
+        assert data["subscriptions_by_type"]["pro"] >= 1
+    
+    def test_unauthorized_access(self, client: TestClient, test_tenant: Tenant):
+        """Test unauthorized access to subscription management endpoints"""
+        # Test without authentication
+        response = client.get("/api/subscription-management/overview")
+        assert response.status_code == 403  # FastAPI returns 403 for missing auth
+        
+        # Test extension without auth
+        response = client.post(
+            f"/api/subscription-management/tenants/{test_tenant.id}/extend",
+            json={"months": 6}
+        )
+        assert response.status_code == 403
+    
+    def test_subscription_extension_with_existing_expiry(self, client: TestClient, auth_headers: dict,
+                                                       pro_tenant: Tenant, db_session: Session):
+        """Test extending subscription that already has expiry date"""
+        original_expiry = pro_tenant.subscription_expires_at
+        
+        extension_data = {
+            "months": 6,
+            "reason": "Extension test"
+        }
+        
+        response = client.post(
+            f"/api/subscription-management/tenants/{pro_tenant.id}/extend",
+            json=extension_data,
+            headers=auth_headers
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        
+        assert data["success"] is True
+        assert data["months_added"] == 6
+        
+        # Verify the extension was added to existing expiry by re-querying
+        updated_tenant = db_session.query(Tenant).filter(Tenant.id == pro_tenant.id).first()
+        expected_new_expiry = original_expiry + timedelta(days=180)  # 6 months
+        
+        # Allow for small time differences due to processing
+        time_diff = abs((updated_tenant.subscription_expires_at - expected_new_expiry).total_seconds())
+        assert time_diff < 60  # Less than 1 minute difference
+    
+    def test_subscription_history_tracking(self, client: TestClient, auth_headers: dict,
+                                         test_tenant: Tenant, db_session: Session):
+        """Test that all subscription changes are properly tracked in history"""
+        # Perform multiple subscription operations
+        
+        # 1. Extend subscription
+        client.post(
+            f"/api/subscription-management/tenants/{test_tenant.id}/extend",
+            json={"months": 12, "reason": "Initial extension"},
+            headers=auth_headers
+        )
+        
+        # 2. Change status
+        client.put(
+            f"/api/subscription-management/tenants/{test_tenant.id}/status",
+            json={"activate": False, "reason": "Test deactivation"},
+            headers=auth_headers
+        )
+        
+        # 3. Switch plan
+        client.put(
+            f"/api/subscription-management/tenants/{test_tenant.id}/plan",
+            json={"new_plan": "free", "reason": "Test downgrade"},
+            headers=auth_headers
+        )
+        
+        # Check history
+        history_entries = db_session.query(SubscriptionHistory).filter(
+            SubscriptionHistory.tenant_id == test_tenant.id
+        ).order_by(SubscriptionHistory.change_date.desc()).all()
+        
+        assert len(history_entries) >= 3
+        
+        # Verify action types
+        actions = [entry.action for entry in history_entries]
+        assert "EXTENDED" in actions
+        assert "DEACTIVATED" in actions
+        assert "DOWNGRADED" in actions
+        
+        # Verify all entries have required fields
+        for entry in history_entries:
+            assert entry.tenant_id == test_tenant.id
+            assert entry.admin_id is not None
+            assert entry.action is not None
+            assert entry.new_subscription_type is not None
+            assert entry.change_date is not None
+    
+    def test_subscription_limits_update_on_plan_change(self, client: TestClient, auth_headers: dict,
+                                                     test_tenant: Tenant, db_session: Session):
+        """Test that tenant limits are properly updated when changing plans"""
+        # Verify initial Free limits
+        assert test_tenant.max_users == 1
+        assert test_tenant.max_products == 10
+        assert test_tenant.max_customers == 10
+        assert test_tenant.max_monthly_invoices == 10
+        
+        # Upgrade to Pro
+        response = client.put(
+            f"/api/subscription-management/tenants/{test_tenant.id}/plan",
+            json={"new_plan": "pro", "duration_months": 12, "reason": "Upgrade test"},
+            headers=auth_headers
+        )
+        
+        assert response.status_code == 200
+        
+        # Verify Pro limits by re-querying
+        updated_tenant = db_session.query(Tenant).filter(Tenant.id == test_tenant.id).first()
+        assert updated_tenant.max_users == 5
+        assert updated_tenant.max_products == -1  # Unlimited
+        assert updated_tenant.max_customers == -1  # Unlimited
+        assert updated_tenant.max_monthly_invoices == -1  # Unlimited
+        
+        # Downgrade back to Free
+        response = client.put(
+            f"/api/subscription-management/tenants/{test_tenant.id}/plan",
+            json={"new_plan": "free", "reason": "Downgrade test"},
+            headers=auth_headers
+        )
+        
+        assert response.status_code == 200
+        
+        # Verify Free limits restored by re-querying
+        updated_tenant = db_session.query(Tenant).filter(Tenant.id == test_tenant.id).first()
+        assert updated_tenant.max_users == 1
+        assert updated_tenant.max_products == 10
+        assert updated_tenant.max_customers == 10
+        assert updated_tenant.max_monthly_invoices == 10
 
 
 if __name__ == "__main__":

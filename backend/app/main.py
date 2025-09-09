@@ -34,6 +34,7 @@ from app.api.restore import router as restore_router
 from app.api.disaster_recovery import router as disaster_recovery_router
 from app.api.customer_backup import router as customer_backup_router
 from app.api.subscription import router as subscription_router
+from app.api.subscription_management import router as subscription_management_router
 from app.api.customers import router as customers_router
 from app.api.products import router as products_router
 from app.api.invoices import router as invoices_router
@@ -206,6 +207,7 @@ app.include_router(restore_router)
 app.include_router(disaster_recovery_router, prefix="/api/super-admin")
 app.include_router(customer_backup_router)
 app.include_router(subscription_router)
+app.include_router(subscription_management_router)
 app.include_router(customers_router)
 app.include_router(products_router)
 app.include_router(invoices_router)
