@@ -27,15 +27,21 @@ export const useSubscriptionManagement = () => {
   
   const [selectedTenant, setSelectedTenant] = useState<TenantSubscription | null>(null);
 
-  // Query Keys
+  // Query Keys with stable filters dependency - ensure no undefined values
   const QUERY_KEYS = {
     overview: ['subscription', 'overview'],
-    tenants: ['subscription', 'tenants', filters],
+    tenants: [
+      'subscription',
+      'tenants',
+      filters.subscriptionType ?? '',
+      filters.statusFilter ?? '',
+      filters.search ?? '',
+      String(filters.limit ?? 50),
+      String(filters.skip ?? 0)
+    ],
     history: (tenantId: string) => ['subscription', 'history', tenantId],
     stats: (period: string) => ['subscription', 'stats', period]
-  };
-
-  // Get subscription overview
+  };  // Get subscription overview
   const {
     data: overview,
     isLoading: overviewLoading,
@@ -45,6 +51,10 @@ export const useSubscriptionManagement = () => {
     queryKey: QUERY_KEYS.overview,
     queryFn: () => subscriptionService.getOverview(),
     staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: false, // Completely disable retries
+    retryOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   // Get tenant subscriptions
@@ -57,6 +67,10 @@ export const useSubscriptionManagement = () => {
     queryKey: QUERY_KEYS.tenants,
     queryFn: () => subscriptionService.getTenantSubscriptions(filters),
     staleTime: 2 * 60 * 1000, // 2 minutes
+    retry: false, // Completely disable retries
+    retryOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   // Get subscription history for selected tenant
@@ -70,6 +84,10 @@ export const useSubscriptionManagement = () => {
     queryFn: () => subscriptionService.getSubscriptionHistory(selectedTenant!.id),
     enabled: !!selectedTenant,
     staleTime: 1 * 60 * 1000, // 1 minute
+    retry: false, // Completely disable retries
+    retryOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   // Extend subscription mutation

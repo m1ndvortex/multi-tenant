@@ -109,7 +109,7 @@ const SubscriptionManagement: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir="rtl">
       {/* Overview Dashboard */}
       <SubscriptionOverviewDashboard 
         overview={overview} 
@@ -210,8 +210,8 @@ const SubscriptionManagement: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
+                <div className="overflow-x-auto" dir="rtl">
+                  <table className="w-full text-right">
                     <thead>
                       <tr className="border-b">
                         <th className="text-right py-3 px-4 font-semibold">تنانت</th>
@@ -256,7 +256,7 @@ const SubscriptionManagement: React.FC = () => {
                               </div>
                             </td>
                             <td className="py-3 px-4">
-                              <div className="flex gap-2">
+                              <div className="flex gap-2 justify-start">
                                 <Button
                                   size="sm"
                                   variant="outline"

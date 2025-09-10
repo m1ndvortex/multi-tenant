@@ -193,14 +193,14 @@ const SubscriptionFullControlDialog: React.FC<SubscriptionFullControlDialogProps
                 <div>
                   <Label htmlFor="subscriptionType">نوع اشتراک</Label>
                   <Select 
-                    value={subscriptionType || ''} 
-                    onValueChange={(value) => setSubscriptionType(value as SubscriptionType || undefined)}
+                    value={subscriptionType || 'none'} 
+                    onValueChange={(value) => setSubscriptionType(value === 'none' ? undefined : value as SubscriptionType)}
                   >
                     <SelectTrigger className="mt-1">
                       <SelectValue placeholder="انتخاب کنید (بدون تغییر)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">بدون تغییر</SelectItem>
+                      <SelectItem value="none">بدون تغییر</SelectItem>
                       <SelectItem value={SubscriptionType.FREE}>رایگان</SelectItem>
                       <SelectItem value={SubscriptionType.PRO}>حرفه‌ای</SelectItem>
                     </SelectContent>
@@ -291,14 +291,14 @@ const SubscriptionFullControlDialog: React.FC<SubscriptionFullControlDialogProps
               <div>
                 <Label htmlFor="status">وضعیت تنانت</Label>
                 <Select 
-                  value={status || ''} 
-                  onValueChange={(value) => setStatus(value as TenantStatus || undefined)}
+                  value={status || 'none'} 
+                  onValueChange={(value) => setStatus(value === 'none' ? undefined : value as TenantStatus)}
                 >
                   <SelectTrigger className="mt-1">
                     <SelectValue placeholder="انتخاب کنید (بدون تغییر)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">بدون تغییر</SelectItem>
+                    <SelectItem value="none">بدون تغییر</SelectItem>
                     <SelectItem value={TenantStatus.ACTIVE}>فعال</SelectItem>
                     <SelectItem value={TenantStatus.SUSPENDED}>تعلیق</SelectItem>
                     <SelectItem value={TenantStatus.CANCELLED}>لغو شده</SelectItem>

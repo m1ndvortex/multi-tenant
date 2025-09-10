@@ -21,7 +21,7 @@ import {
 } from '@/types/subscription';
 
 class SubscriptionService {
-  private baseUrl = '/subscription-management';
+  private baseUrl = '/api/subscription-management';
 
   /**
    * Get subscription overview and statistics
