@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -119,17 +120,35 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50/30 to-white flex items-center justify-center p-4" dir="rtl">
-      <div className="w-full max-w-md space-y-6">
+    <div className="relative min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 overflow-hidden" dir="rtl">
+      {/* Animated background */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-700/10 via-slate-900 to-slate-950" />
+        <div className="absolute inset-0 opacity-[0.08]" style={{backgroundImage:"linear-gradient(to right, rgba(255,255,255,.12) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,.12) 1px, transparent 1px)", backgroundSize:"24px 24px"}} />
+        <motion.div
+          aria-hidden
+          className="absolute -inset-x-20 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/40 to-transparent"
+          initial={{ y: -200, opacity: 0 }}
+          animate={{ y: [0, 800], opacity: [0, 1, 0] }}
+          transition={{ duration: 5, repeat: Infinity, ease: 'linear' }}
+        />
+      </div>
+
+      <div className="relative w-full max-w-md space-y-6">
         {/* Logo and Title */}
         <div className="text-center">
-          <div className="h-20 w-20 rounded-xl bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center mx-auto mb-6 shadow-lg">
-            <span className="text-white font-bold text-3xl">ح</span>
-          </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-green-600 to-teal-700 bg-clip-text text-transparent mb-2">
-            حساب پلاس
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 140, damping: 14 }}
+            className="h-20 w-20 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mx-auto mb-6 shadow-[0_0_24px_rgba(16,185,129,0.35)]"
+          >
+            <span className="text-white font-bold text-3xl drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]">ح</span>
+          </motion.div>
+          <h1 className="text-4xl font-bold mb-2">
+            <span className="bg-gradient-to-r from-emerald-300 via-teal-300 to-cyan-300 bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(45,212,191,0.25)]">حساب پلاس</span>
           </h1>
-          <p className="text-slate-600 text-lg">سیستم مدیریت کسب و کار</p>
+          <p className="text-slate-300 text-lg">سیستم مدیریت کسب و کار</p>
           
           {/* Subscription Status */}
           {tenant && (
@@ -141,15 +160,15 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
         {/* Upgrade Prompt */}
         {showUpgradePrompt() && (
-          <Card variant="gradient-purple" className="border-0">
+          <Card className="border border-emerald-500/20 bg-emerald-400/5 backdrop-blur-xl">
             <CardContent className="p-4">
               <div className="flex items-center space-x-3 space-x-reverse">
-                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center">
+                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center shadow-[0_0_20px_rgba(168,85,247,0.35)]">
                   <Crown className="w-5 h-5 text-white" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-slate-800">ارتقاء به اشتراک طلایی</h3>
-                  <p className="text-sm text-slate-600">
+                  <h3 className="font-semibold text-emerald-200">ارتقاء به اشتراک طلایی</h3>
+                  <p className="text-sm text-emerald-300/80">
                     دسترسی به امکانات پیشرفته و گزارش‌های تحلیلی
                   </p>
                 </div>
@@ -159,10 +178,12 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         )}
 
         {/* Login Form */}
-        <Card variant="professional" className="border-0">
+        <Card className="border border-emerald-500/20 bg-slate-900/60 backdrop-blur-xl shadow-[0_0_0_1px_rgba(16,185,129,0.15),0_20px_60px_-20px_rgba(16,185,129,0.25)]">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl text-slate-800">ورود به حساب کاربری</CardTitle>
-            <CardDescription className="text-slate-600">
+            <CardTitle className="text-2xl">
+              <span className="bg-gradient-to-r from-emerald-300 via-teal-300 to-cyan-300 bg-clip-text text-transparent">ورود به حساب کاربری</span>
+            </CardTitle>
+            <CardDescription className="text-slate-300">
               برای ادامه، لطفاً اطلاعات خود را وارد کنید
             </CardDescription>
           </CardHeader>
@@ -170,75 +191,83 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               {/* Error Alert */}
-              {error && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
+              <AnimatePresence>
+                {error && (
+                  <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}>
+                    <Alert className="border-red-500/30 bg-red-500/10 text-red-200">
+                      <AlertCircle className="h-4 w-4 text-red-300" />
+                      <AlertDescription className="text-red-200">{error}</AlertDescription>
+                    </Alert>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Email Field */}
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-slate-700 font-medium">
+                <Label htmlFor="email" className="text-slate-200 font-medium">
                   آدرس ایمیل
                 </Label>
                 <div className="relative">
-                  <Mail className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+                  <Mail className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
                   <Input
                     id="email"
                     type="email"
                     placeholder="example@domain.com"
                     className={cn(
-                      "pr-10 transition-all duration-300",
-                      "focus:ring-2 focus:ring-green-500/20 focus:border-green-500",
-                      errors.email && "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                      "pr-10 transition-all duration-300 bg-slate-900/40 border-slate-700 text-slate-100 placeholder:text-slate-400",
+                      "focus:ring-2 focus:ring-emerald-400/20 focus:border-emerald-400",
+                      errors.email && "border-red-500/60 focus:border-red-400 focus:ring-red-400/20"
                     )}
                     {...register('email')}
                   />
                 </div>
                 {errors.email && (
-                  <p className="text-sm text-red-600">{errors.email.message}</p>
+                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-sm text-red-300">{errors.email.message}</motion.p>
                 )}
               </div>
 
               {/* Password Field */}
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-slate-700 font-medium">
+                <Label htmlFor="password" className="text-slate-200 font-medium">
                   رمز عبور
                 </Label>
                 <div className="relative">
-                  <Lock className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+                  <Lock className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="رمز عبور خود را وارد کنید"
                     className={cn(
-                      "pr-10 pl-10 transition-all duration-300",
-                      "focus:ring-2 focus:ring-green-500/20 focus:border-green-500",
-                      errors.password && "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                      "pr-10 pl-10 transition-all duration-300 bg-slate-900/40 border-slate-700 text-slate-100 placeholder:text-slate-400",
+                      "focus:ring-2 focus:ring-emerald-400/20 focus:border-emerald-400",
+                      errors.password && "border-red-500/60 focus:border-red-400 focus:ring-red-400/20"
                     )}
                     {...register('password')}
                   />
-                  <button
+                  <motion.button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    whileTap={{ scale: 0.95 }}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
+                    aria-label={showPassword ? 'پنهان کردن رمز' : 'نمایش رمز'}
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </button>
+                    <motion.span animate={{ rotate: showPassword ? 180 : 0 }} transition={{ type: 'spring', stiffness: 260, damping: 18 }}>
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </motion.span>
+                  </motion.button>
                 </div>
                 {errors.password && (
-                  <p className="text-sm text-red-600">{errors.password.message}</p>
+                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-sm text-red-300">{errors.password.message}</motion.p>
                 )}
               </div>
 
               {/* Optional Tenant ID Field for multi-tenant login */}
               <div className="space-y-2">
-                <Label htmlFor="tenant_id" className="text-slate-700 font-medium">
+                <Label htmlFor="tenant_id" className="text-slate-200 font-medium">
                   شناسه مستاجر (اختیاری)
                 </Label>
                 <Input
@@ -246,40 +275,52 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   type="text"
                   placeholder={tenant?.id || 'مثال: 716e5d59-1a31-43f7-ab22-3ef14ca18e26'}
                   className={cn(
-                    "transition-all duration-300",
-                    "focus:ring-2 focus:ring-green-500/20 focus:border-green-500",
-                    errors.tenant_id && "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                    "transition-all duration-300 bg-slate-900/40 border-slate-700 text-slate-100 placeholder:text-slate-400",
+                    "focus:ring-2 focus:ring-emerald-400/20 focus:border-emerald-400",
+                    errors.tenant_id && "border-red-500/60 focus:border-red-400 focus:ring-red-400/20"
                   )}
                   {...register('tenant_id')}
                 />
                 {errors.tenant_id && (
-                  <p className="text-sm text-red-600">{errors.tenant_id.message}</p>
+                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-sm text-red-300">{errors.tenant_id.message}</motion.p>
                 )}
               </div>
 
               {/* Login Button */}
-              <Button
-                type="submit"
-                variant="gradient-green"
-                size="lg"
-                className="w-full"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <div className="flex items-center space-x-2 space-x-reverse">
-                    <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>در حال ورود...</span>
-                  </div>
-                ) : (
-                  'ورود به سیستم'
-                )}
-              </Button>
+              <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
+                <Button
+                  type="submit"
+                  variant="gradient-green"
+                  size="lg"
+                  className="relative w-full shadow-[0_0_20px_rgba(16,185,129,0.25)]"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <div className="flex items-center space-x-2 space-x-reverse">
+                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>در حال ورود...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <span>ورود به سیستم</span>
+                      <span className="pointer-events-none absolute inset-0 overflow-hidden rounded-lg [mask-image:linear-gradient(0deg,transparent,black,transparent)]">
+                        <motion.div
+                          initial={{ x: '-100%' }}
+                          animate={{ x: '100%' }}
+                          transition={{ duration: 1.8, repeat: Infinity, ease: 'linear' }}
+                          className="h-full w-1/3 bg-gradient-to-r from-transparent via-white/25 to-transparent"
+                        />
+                      </span>
+                    </>
+                  )}
+                </Button>
+              </motion.div>
             </form>
           </CardContent>
         </Card>
 
         {/* Footer */}
-        <div className="text-center text-sm text-slate-500">
+        <div className="text-center text-sm text-slate-400">
           <p>© ۱۴۰۳ حساب پلاس. تمامی حقوق محفوظ است.</p>
         </div>
       </div>

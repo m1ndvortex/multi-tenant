@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -128,65 +129,101 @@ const Login: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center" dir="rtl">
+        <div className="relative">
+          <div className="absolute inset-0 blur-md bg-emerald-500/30 rounded-full animate-pulse"></div>
+          <div className="relative animate-spin rounded-full h-10 w-10 border-2 border-emerald-400 border-t-transparent"></div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-100/50 flex items-center justify-center p-4" dir="rtl">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-green-400/20 to-teal-600/20 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-indigo-600/20 rounded-full blur-3xl"></div>
+    <div className="relative min-h-screen flex items-center justify-center p-4 bg-slate-950 text-slate-100 overflow-hidden" dir="rtl">
+      {/* Animated background grid + glow */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-700/10 via-slate-900 to-slate-950" />
+        <div className="absolute inset-0 opacity-[0.08]" style={{backgroundImage:"linear-gradient(to right, rgba(255,255,255,.12) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,.12) 1px, transparent 1px)", backgroundSize:"24px 24px"}} />
+        <motion.div
+          aria-hidden
+          className="absolute -inset-x-20 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/40 to-transparent"
+          initial={{ y: -200, opacity: 0 }}
+          animate={{ y: [0, 800], opacity: [0, 1, 0] }}
+          transition={{ duration: 5, repeat: Infinity, ease: 'linear' }}
+        />
       </div>
 
       <div className="relative w-full max-w-md">
         {/* Session expired alert */}
-        {sessionExpired && (
-          <Alert className="mb-6 border-amber-200 bg-amber-50">
-            <AlertCircle className="h-4 w-4 text-amber-600" />
-            <AlertDescription className="text-amber-800">
-              جلسه شما منقضی شده است. لطفاً مجدداً وارد شوید.
-            </AlertDescription>
-          </Alert>
-        )}
+        <AnimatePresence>
+          {sessionExpired && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+            >
+              <Alert className="mb-6 border-amber-400/30 bg-amber-500/10 text-amber-200">
+                <AlertCircle className="h-4 w-4 text-amber-300" />
+                <AlertDescription className="text-amber-200">
+                  جلسه شما منقضی شده است. لطفاً مجدداً وارد شوید.
+                </AlertDescription>
+              </Alert>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        <Card variant="professional" className="shadow-2xl border-0">
-          <CardHeader className="text-center pb-2">
-            {/* Logo/Icon */}
-            <div className="mx-auto mb-4 w-16 h-16 bg-gradient-to-br from-green-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg">
-              <Shield className="w-8 h-8 text-white" />
-            </div>
-            
-            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-              پنل مدیریت سوپر ادمین
-            </CardTitle>
-            <p className="text-slate-600 mt-2">
-              برای ورود به سیستم مدیریت، اطلاعات خود را وارد کنید
-            </p>
-          </CardHeader>
+        <motion.div
+          initial={{ opacity: 0, y: 20, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.4 }}
+        >
+          <Card className="border border-emerald-500/20 bg-slate-900/60 backdrop-blur-xl shadow-[0_0_0_1px_rgba(16,185,129,0.15),0_20px_60px_-20px_rgba(16,185,129,0.25)]">
+            <CardHeader className="text-center pb-2">
+              {/* Logo/Icon */}
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 140, damping: 14 }}
+                className="mx-auto mb-4 w-16 h-16 rounded-2xl flex items-center justify-center shadow-[0_0_24px_rgba(16,185,129,0.35)] bg-gradient-to-br from-emerald-500 to-teal-600"
+              >
+                <Shield className="w-8 h-8 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]" />
+              </motion.div>
+              
+              <CardTitle className="text-2xl font-bold">
+                <span className="bg-gradient-to-r from-emerald-300 via-teal-300 to-cyan-300 bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(45,212,191,0.25)]">
+                  پنل مدیریت سوپر ادمین
+                </span>
+              </CardTitle>
+              <p className="text-slate-300 mt-2">برای ورود به سیستم مدیریت، اطلاعات خود را وارد کنید</p>
+            </CardHeader>
 
-          <CardContent className="pt-6">
+            <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* General error */}
-              {errors.general && (
-                <Alert className="border-red-200 bg-red-50">
-                  <AlertCircle className="h-4 w-4 text-red-600" />
-                  <AlertDescription className="text-red-800">
-                    {errors.general}
-                  </AlertDescription>
-                </Alert>
-              )}
+              <AnimatePresence>
+                {errors.general && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                  >
+                    <Alert className="border-red-500/30 bg-red-500/10 text-red-200">
+                      <AlertCircle className="h-4 w-4 text-red-300" />
+                      <AlertDescription className="text-red-200">
+                        {errors.general}
+                      </AlertDescription>
+                    </Alert>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Email field */}
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium text-slate-700">
+                <Label htmlFor="email" className="text-sm font-medium text-slate-200">
                   ایمیل
                 </Label>
                 <div className="relative">
-                  <Mail className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                  <Mail className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                   <Input
                     id="email"
                     name="email"
@@ -195,24 +232,27 @@ const Login: React.FC = () => {
                     onChange={handleInputChange}
                     placeholder="admin@example.com"
                     className={cn(
-                      "pr-10 h-12 border-slate-200 focus:border-green-500 focus:ring-green-500/20",
-                      errors.email && "border-red-300 focus:border-red-500 focus:ring-red-500/20"
+                      "pr-10 h-12 bg-slate-900/40 border-slate-700 text-slate-100 placeholder:text-slate-400",
+                      "focus:border-emerald-400 focus:ring-emerald-400/20",
+                      errors.email && "border-red-500/60 focus:border-red-400 focus:ring-red-400/20"
                     )}
                     disabled={isSubmitting}
                   />
                 </div>
                 {errors.email && (
-                  <p className="text-sm text-red-600">{errors.email}</p>
+                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-sm text-red-300">
+                    {errors.email}
+                  </motion.p>
                 )}
               </div>
 
               {/* Password field */}
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-medium text-slate-700">
+                <Label htmlFor="password" className="text-sm font-medium text-slate-200">
                   رمز عبور
                 </Label>
                 <div className="relative">
-                  <Lock className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                  <Lock className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                   <Input
                     id="password"
                     name="password"
@@ -221,62 +261,82 @@ const Login: React.FC = () => {
                     onChange={handleInputChange}
                     placeholder="رمز عبور خود را وارد کنید"
                     className={cn(
-                      "pr-10 pl-10 h-12 border-slate-200 focus:border-green-500 focus:ring-green-500/20",
-                      errors.password && "border-red-300 focus:border-red-500 focus:ring-red-500/20"
+                      "pr-10 pl-10 h-12 bg-slate-900/40 border-slate-700 text-slate-100 placeholder:text-slate-400",
+                      "focus:border-emerald-400 focus:ring-emerald-400/20",
+                      errors.password && "border-red-500/60 focus:border-red-400 focus:ring-red-400/20"
                     )}
                     disabled={isSubmitting}
                   />
-                  <button
+                  <motion.button
                     type="button"
                     onClick={togglePasswordVisibility}
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    whileTap={{ scale: 0.95 }}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
                     disabled={isSubmitting}
+                    aria-label={showPassword ? 'پنهان کردن رمز' : 'نمایش رمز'}
                   >
-                    {showPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </button>
+                    <motion.span animate={{ rotate: showPassword ? 180 : 0 }} transition={{ type: 'spring', stiffness: 260, damping: 18 }}>
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </motion.span>
+                  </motion.button>
                 </div>
                 {errors.password && (
-                  <p className="text-sm text-red-600">{errors.password}</p>
+                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-sm text-red-300">
+                    {errors.password}
+                  </motion.p>
                 )}
               </div>
 
               {/* Submit button */}
-              <Button
-                type="submit"
-                variant="gradient-green"
-                size="lg"
-                className="w-full h-12 text-base font-medium"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <div className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    در حال ورود...
-                  </div>
-                ) : (
-                  'ورود به سیستم'
-                )}
-              </Button>
+              <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
+                <Button
+                  type="submit"
+                  variant="gradient-green"
+                  size="lg"
+                  className="relative w-full h-12 text-base font-medium shadow-[0_0_20px_rgba(16,185,129,0.25)]"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      در حال ورود...
+                    </div>
+                  ) : (
+                    <>
+                      <span>ورود به سیستم</span>
+                      <span className="pointer-events-none absolute inset-0 overflow-hidden rounded-lg [mask-image:linear-gradient(0deg,transparent,black,transparent)]">
+                        <motion.div
+                          initial={{ x: '-100%' }}
+                          animate={{ x: '100%' }}
+                          transition={{ duration: 1.8, repeat: Infinity, ease: 'linear' }}
+                          className="h-full w-1/3 bg-gradient-to-r from-transparent via-white/25 to-transparent"
+                        />
+                      </span>
+                    </>
+                  )}
+                </Button>
+              </motion.div>
             </form>
 
             {/* Security notice */}
-            <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
-              <div className="flex items-start gap-3">
-                <Shield className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-blue-900">اطلاعات امنیتی</p>
-                  <p className="text-xs text-blue-700 mt-1">
-                    این صفحه فقط برای مدیران سیستم است. تمام فعالیت‌ها ثبت و نظارت می‌شوند.
-                  </p>
+              <div className="mt-6 p-4 rounded-lg border border-emerald-500/20 bg-emerald-400/5">
+                <div className="flex items-start gap-3">
+                  <Shield className="w-5 h-5 text-emerald-300 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-emerald-200">اطلاعات امنیتی</p>
+                    <p className="text-xs text-emerald-300/80 mt-1">
+                      این صفحه فقط برای مدیران سیستم است. تمام فعالیت‌ها ثبت و نظارت می‌شوند.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     </div>
   );
