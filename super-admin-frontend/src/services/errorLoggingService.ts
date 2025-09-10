@@ -1,216 +1,418 @@
-import { apiClient } from './apiClient';
+/**
+ * Real-Time Error Logging Service
+ * Handles API calls and WebSocket connections for error logging dashboard
+ */
 
-export enum ErrorSeverity {
-  LOW = 'low',
-  MEDIUM = 'medium',
-  HIGH = 'high',
-  CRITICAL = 'critical'
-}
+import { 
+  ErrorLog, 
+  ErrorStatistics, 
+  ErrorFilters, 
+  ErrorListResponse, 
+  CriticalErrorAlert,
+  ErrorResolutionRequest,
+  WebSocketConnectionStatus,
+  WebSocketMessage,
+  WebSocketMessageType
+} from '../types/errorLogging';
 
-export enum ErrorCategory {
-  AUTHENTICATION = 'authentication',
-  AUTHORIZATION = 'authorization',
-  VALIDATION = 'validation',
-  DATABASE = 'database',
-  EXTERNAL_API = 'external_api',
-  BUSINESS_LOGIC = 'business_logic',
-  SYSTEM = 'system',
-  NETWORK = 'network',
-  PERFORMANCE = 'performance',
-  SECURITY = 'security',
-  UNKNOWN = 'unknown'
-}
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const WS_BASE_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000';
 
-export interface ErrorLog {
-  id: string;
-  tenant_id?: string;
-  user_id?: string;
-  session_id?: string;
-  error_message: string;
-  error_type: string;
-  error_code?: string;
-  endpoint: string;
-  method: string;
-  status_code: number;
-  severity: ErrorSeverity;
-  category: ErrorCategory;
-  request_id?: string;
-  user_agent?: string;
-  ip_address?: string;
-  stack_trace?: string;
-  request_data?: Record<string, any>;
-  response_data?: Record<string, any>;
-  additional_context?: Record<string, any>;
-  is_resolved: boolean;
-  resolved_at?: string;
-  resolved_by?: string;
-  resolution_notes?: string;
-  notification_sent: boolean;
-  notification_sent_at?: string;
-  occurrence_count: number;
-  first_occurrence: string;
-  last_occurrence: string;
-  created_at: string;
-  updated_at: string;
-}
+class ErrorLoggingService {
+  private baseUrl: string;
+  private wsUrl: string;
+  private websocket: WebSocket | null = null;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
+  private reconnectDelay = 1000;
+  private messageHandlers: Map<WebSocketMessageType, ((data: any) => void)[]> = new Map();
+  private connectionStateHandlers: ((connected: boolean, error?: string) => void)[] = [];
 
-export interface ErrorLogFilters {
-  tenant_id?: string;
-  user_id?: string;
-  severity?: ErrorSeverity;
-  category?: ErrorCategory;
-  endpoint?: string;
-  error_type?: string;
-  status_code?: number;
-  is_resolved?: boolean;
-  start_date?: string;
-  end_date?: string;
-  search_term?: string;
-  skip?: number;
-  limit?: number;
-  order_by?: string;
-  order_desc?: boolean;
-}
+  constructor() {
+    this.baseUrl = `${API_BASE_URL}/api/enhanced-error-logging`;
+    this.wsUrl = `${WS_BASE_URL}/api/enhanced-error-logging/ws/real-time-errors`;
+  }
 
-export interface ErrorLogListResponse {
-  errors: ErrorLog[];
-  total: number;
-  skip: number;
-  limit: number;
-  has_more: boolean;
-}
+  /**
+   * Get authentication headers
+   */
+  private getAuthHeaders(): HeadersInit {
+    const token = localStorage.getItem('adminToken');
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : '',
+    };
+  }
 
-export interface ErrorStatistics {
-  total_errors: number;
-  severity_breakdown: Record<string, number>;
-  category_breakdown: Record<string, number>;
-  recent_critical_errors: number;
-  unresolved_errors: number;
-  top_error_endpoints: Array<{
-    endpoint: string;
-    count: number;
-  }>;
-}
+  /**
+   * Handle API errors
+   */
+  private handleApiError(error: any): never {
+    console.error('Error Logging API Error:', error);
+    if (error.response?.data?.detail) {
+      throw new Error(error.response.data.detail);
+    }
+    throw new Error(error.message || 'An error occurred while communicating with the server');
+  }
 
-export interface ErrorTrends {
-  daily_counts: Array<{
-    date: string;
-    count: number;
-    severity_breakdown: Record<string, number>;
-  }>;
-  severity_trends: Record<string, Array<{
-    date: string;
-    count: number;
-  }>>;
-  period: {
-    start_date: string;
-    end_date: string;
-    days: number;
-  };
-}
+  /**
+   * Get active (unresolved) errors with filtering
+   */
+  async getActiveErrors(filters: ErrorFilters): Promise<ErrorListResponse> {
+    try {
+      const params = new URLSearchParams();
+      
+      if (filters.tenant_id) params.append('tenant_id', filters.tenant_id);
+      if (filters.severity) params.append('severity', filters.severity);
+      if (filters.category) params.append('category', filters.category);
+      if (filters.endpoint) params.append('endpoint', filters.endpoint);
+      if (filters.error_type) params.append('error_type', filters.error_type);
+      params.append('hours_back', filters.hours_back.toString());
+      params.append('limit', filters.limit.toString());
 
-export interface CriticalErrorAlert {
-  id: string;
-  error_message: string;
-  error_type: string;
-  endpoint: string;
-  severity: ErrorSeverity;
-  category: ErrorCategory;
-  tenant_id?: string;
-  occurrence_count: number;
-  first_occurrence: string;
-  last_occurrence: string;
-}
+      const response = await fetch(`${this.baseUrl}/active-errors?${params}`, {
+        method: 'GET',
+        headers: this.getAuthHeaders(),
+      });
 
-export interface ErrorResolutionRequest {
-  notes?: string;
-}
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-export interface BulkErrorActionRequest {
-  error_ids: string[];
-  action: 'resolve' | 'delete';
-  notes?: string;
-}
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      this.handleApiError(error);
+    }
+  }
 
-export interface BulkErrorActionResponse {
-  success_count: number;
-  failed_count: number;
-  successful_error_ids: string[];
-  failed_operations: Array<{
-    error_id: string;
-    error: string;
-  }>;
-  message: string;
-}
+  /**
+   * Get real-time error statistics
+   */
+  async getErrorStatistics(tenantId?: string, hoursBack: number = 24): Promise<ErrorStatistics> {
+    try {
+      const params = new URLSearchParams();
+      if (tenantId) params.append('tenant_id', tenantId);
+      params.append('hours_back', hoursBack.toString());
 
-export const errorLoggingService = {
-  // Get error logs with filtering and pagination
-  async getErrorLogs(filters: ErrorLogFilters = {}): Promise<ErrorLogListResponse> {
-    const params = new URLSearchParams();
+      const response = await fetch(`${this.baseUrl}/real-time-statistics?${params}`, {
+        method: 'GET',
+        headers: this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      this.handleApiError(error);
+    }
+  }
+
+  /**
+   * Resolve an error with admin tracking
+   */
+  async resolveError(errorId: string, resolutionData: ErrorResolutionRequest): Promise<ErrorLog> {
+    try {
+      const response = await fetch(`${this.baseUrl}/${errorId}/resolve-with-tracking`, {
+        method: 'PUT',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(resolutionData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      this.handleApiError(error);
+    }
+  }
+
+  /**
+   * Get critical error alerts
+   */
+  async getCriticalAlerts(hours: number = 24, includeResolved: boolean = false): Promise<CriticalErrorAlert[]> {
+    try {
+      const params = new URLSearchParams();
+      params.append('hours', hours.toString());
+      params.append('include_resolved', includeResolved.toString());
+
+      const response = await fetch(`${this.baseUrl}/critical-alerts?${params}`, {
+        method: 'GET',
+        headers: this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      this.handleApiError(error);
+    }
+  }
+
+  /**
+   * Get WebSocket connection status
+   */
+  async getConnectionStatus(): Promise<WebSocketConnectionStatus> {
+    try {
+      const response = await fetch(`${this.baseUrl}/connection-status`, {
+        method: 'GET',
+        headers: this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      this.handleApiError(error);
+    }
+  }
+
+  /**
+   * Simulate an error for testing (development only)
+   */
+  async simulateError(
+    errorMessage: string, 
+    severity: string = 'high', 
+    category: string = 'system',
+    tenantId?: string
+  ): Promise<{ success: boolean; error_id: string; message: string }> {
+    try {
+      const params = new URLSearchParams();
+      params.append('error_message', errorMessage);
+      params.append('severity', severity);
+      params.append('category', category);
+      if (tenantId) params.append('tenant_id', tenantId);
+
+      const response = await fetch(`${this.baseUrl}/simulate-error?${params}`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      this.handleApiError(error);
+    }
+  }
+
+  /**
+   * WebSocket Connection Management
+   */
+
+  /**
+   * Connect to WebSocket for real-time updates
+   */
+  connectWebSocket(): void {
+    if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+      return; // Already connected
+    }
+
+    const token = localStorage.getItem('adminToken') || 'temp-token';
+    const wsUrl = `${this.wsUrl}?token=${encodeURIComponent(token)}`;
+
+    try {
+      this.websocket = new WebSocket(wsUrl);
+
+      this.websocket.onopen = () => {
+        console.log('WebSocket connected to real-time error logging');
+        this.reconnectAttempts = 0;
+        this.notifyConnectionStateHandlers(true);
+        
+        // Start ping interval to keep connection alive
+        this.startPingInterval();
+      };
+
+      this.websocket.onmessage = (event) => {
+        try {
+          const message: WebSocketMessage = JSON.parse(event.data);
+          this.handleWebSocketMessage(message);
+        } catch (error) {
+          console.error('Error parsing WebSocket message:', error);
+        }
+      };
+
+      this.websocket.onclose = (event) => {
+        console.log('WebSocket connection closed:', event.code, event.reason);
+        this.notifyConnectionStateHandlers(false);
+        
+        // Attempt to reconnect if not a normal closure
+        if (event.code !== 1000 && this.reconnectAttempts < this.maxReconnectAttempts) {
+          this.scheduleReconnect();
+        }
+      };
+
+      this.websocket.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        this.notifyConnectionStateHandlers(false, 'WebSocket connection error');
+      };
+
+    } catch (error) {
+      console.error('Failed to create WebSocket connection:', error);
+      this.notifyConnectionStateHandlers(false, 'Failed to create WebSocket connection');
+    }
+  }
+
+  /**
+   * Disconnect WebSocket
+   */
+  disconnectWebSocket(): void {
+    if (this.websocket) {
+      this.websocket.close(1000, 'Manual disconnect');
+      this.websocket = null;
+    }
+  }
+
+  /**
+   * Check if WebSocket is connected
+   */
+  isWebSocketConnected(): boolean {
+    return this.websocket?.readyState === WebSocket.OPEN;
+  }
+
+  /**
+   * Schedule WebSocket reconnection
+   */
+  private scheduleReconnect(): void {
+    this.reconnectAttempts++;
+    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1); // Exponential backoff
     
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
-        params.append(key, value.toString());
+    console.log(`Scheduling WebSocket reconnect attempt ${this.reconnectAttempts} in ${delay}ms`);
+    
+    setTimeout(() => {
+      if (this.reconnectAttempts <= this.maxReconnectAttempts) {
+        this.connectWebSocket();
+      }
+    }, delay);
+  }
+
+  /**
+   * Start ping interval to keep connection alive
+   */
+  private startPingInterval(): void {
+    const pingInterval = setInterval(() => {
+      if (this.websocket?.readyState === WebSocket.OPEN) {
+        this.sendWebSocketMessage({
+          type: WebSocketMessageType.PING,
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        clearInterval(pingInterval);
+      }
+    }, 30000); // Ping every 30 seconds
+  }
+
+  /**
+   * Send WebSocket message
+   */
+  private sendWebSocketMessage(message: Partial<WebSocketMessage>): void {
+    if (this.websocket?.readyState === WebSocket.OPEN) {
+      this.websocket.send(JSON.stringify(message));
+    }
+  }
+
+  /**
+   * Handle incoming WebSocket messages
+   */
+  private handleWebSocketMessage(message: WebSocketMessage): void {
+    const handlers = this.messageHandlers.get(message.type) || [];
+    handlers.forEach(handler => {
+      try {
+        handler(message.data || message);
+      } catch (error) {
+        console.error('Error in WebSocket message handler:', error);
       }
     });
-
-  // Use trailing slash to avoid FastAPI redirect that can break through proxy
-  return apiClient.get(`/api/super-admin/errors/?${params.toString()}`);
-  },
-
-  // Get specific error log by ID
-  async getErrorLog(errorId: string): Promise<ErrorLog> {
-    return apiClient.get(`/api/super-admin/errors/${errorId}`);
-  },
-
-  // Mark error as resolved
-  async resolveError(errorId: string, resolutionData: ErrorResolutionRequest): Promise<ErrorLog> {
-    return apiClient.put(`/api/super-admin/errors/${errorId}/resolve`, resolutionData);
-  },
-
-  // Get error statistics
-  async getErrorStatistics(
-    tenantId?: string,
-    startDate?: string,
-    endDate?: string
-  ): Promise<ErrorStatistics> {
-    const params = new URLSearchParams();
-    
-    if (tenantId) params.append('tenant_id', tenantId);
-    if (startDate) params.append('start_date', startDate);
-    if (endDate) params.append('end_date', endDate);
-
-    return apiClient.get(`/api/super-admin/errors/statistics/overview?${params.toString()}`);
-  },
-
-  // Get error trends
-  async getErrorTrends(days: number = 7): Promise<ErrorTrends> {
-    return apiClient.get(`/api/super-admin/errors/statistics/trends?days=${days}`);
-  },
-
-  // Get critical errors
-  async getCriticalErrors(hours: number = 24): Promise<CriticalErrorAlert[]> {
-    return apiClient.get(`/api/super-admin/errors/alerts/critical?hours=${hours}`);
-  },
-
-  // Perform bulk actions on errors
-  async bulkErrorAction(actionData: BulkErrorActionRequest): Promise<BulkErrorActionResponse> {
-    return apiClient.post('/api/super-admin/errors/bulk-action', actionData);
-  },
-
-  // Delete error log
-  async deleteErrorLog(errorId: string): Promise<{ message: string }> {
-    return apiClient.delete(`/api/super-admin/errors/${errorId}`);
-  },
-
-  // Health check for error logging system
-  async healthCheck(): Promise<{
-    status: string;
-    database_connection: string;
-    recent_errors_accessible: boolean;
-    total_errors_in_system: number;
-    timestamp: string;
-  }> {
-    return apiClient.get('/api/super-admin/errors/health/check');
   }
-};
+
+  /**
+   * Add WebSocket message handler
+   */
+  addMessageHandler(type: WebSocketMessageType, handler: (data: any) => void): void {
+    if (!this.messageHandlers.has(type)) {
+      this.messageHandlers.set(type, []);
+    }
+    this.messageHandlers.get(type)!.push(handler);
+  }
+
+  /**
+   * Remove WebSocket message handler
+   */
+  removeMessageHandler(type: WebSocketMessageType, handler: (data: any) => void): void {
+    const handlers = this.messageHandlers.get(type);
+    if (handlers) {
+      const index = handlers.indexOf(handler);
+      if (index > -1) {
+        handlers.splice(index, 1);
+      }
+    }
+  }
+
+  /**
+   * Add connection state handler
+   */
+  addConnectionStateHandler(handler: (connected: boolean, error?: string) => void): void {
+    this.connectionStateHandlers.push(handler);
+  }
+
+  /**
+   * Remove connection state handler
+   */
+  removeConnectionStateHandler(handler: (connected: boolean, error?: string) => void): void {
+    const index = this.connectionStateHandlers.indexOf(handler);
+    if (index > -1) {
+      this.connectionStateHandlers.splice(index, 1);
+    }
+  }
+
+  /**
+   * Notify connection state handlers
+   */
+  private notifyConnectionStateHandlers(connected: boolean, error?: string): void {
+    this.connectionStateHandlers.forEach(handler => {
+      try {
+        handler(connected, error);
+      } catch (error) {
+        console.error('Error in connection state handler:', error);
+      }
+    });
+  }
+
+  /**
+   * Request current statistics via WebSocket
+   */
+  requestStatistics(): void {
+    this.sendWebSocketMessage({
+      type: WebSocketMessageType.REQUEST_STATISTICS,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  /**
+   * Cleanup resources
+   */
+  cleanup(): void {
+    this.disconnectWebSocket();
+    this.messageHandlers.clear();
+    this.connectionStateHandlers.length = 0;
+  }
+}
+
+// Export singleton instance
+export const errorLoggingService = new ErrorLoggingService();
+export default errorLoggingService;
