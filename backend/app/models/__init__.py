@@ -36,6 +36,9 @@ from .marketing import (
 from .api_error_log import APIErrorLog, ErrorSeverity, ErrorCategory
 from .api_key import ApiKey, ApiKeyUsage, WebhookEndpoint, ApiKeyStatus, ApiKeyScope
 from .authentication_log import AuthenticationLog
+from .tenant_credentials import TenantCredentials
+from .subscription_history import SubscriptionHistory, SubscriptionChangeType
+from .error_log import ErrorLog, ErrorSeverity, ErrorStatus, ErrorCategory
 
 __all__ = [
     "Base",
@@ -110,4 +113,11 @@ __all__ = [
     "ApiKeyStatus",
     "ApiKeyScope",
     "AuthenticationLog",
+    "TenantCredentials",
+    "SubscriptionHistory",
+    "SubscriptionChangeType",
+    "ErrorLog",
+    "ErrorSeverity",
+    "ErrorStatus",
+    "ErrorCategory",
 ]

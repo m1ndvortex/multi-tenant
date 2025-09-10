@@ -22,7 +22,7 @@ from app.models import (
     Account, JournalEntry, JournalEntryLine, PaymentMethod, Transaction,
     NotificationTemplate, NotificationLog, NotificationQueue,
     BackupLog, RestoreLog, StorageLocation,
-    GoldPrice, GoldPriceHistory
+    GoldPrice, GoldPriceHistory, TenantCredentials, SubscriptionHistory, ErrorLog
 )
 
 # this is the Alembic Config object, which provides

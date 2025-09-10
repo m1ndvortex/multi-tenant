@@ -75,6 +75,7 @@ def clean_database():
     try:
         # Get all table names
         tables = [
+            'tenant_credentials', 'subscription_history', 'error_logs',
             'api_error_logs',
             'bank_reconciliation_items', 'bank_reconciliations', 'bank_transactions', 'bank_statements', 'bank_accounts',
             'payment_matching', 'customer_payments', 'supplier_payments', 'supplier_bills',
@@ -224,6 +225,78 @@ def regular_user(db_session, test_tenant):
         role=UserRole.USER,
         status=UserStatus.ACTIVE,
         is_super_admin=False,
+        is_email_verified=True
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
+
+
+@pytest.fixture
+def test_tenant2(db_session):
+    """Create a second test tenant for isolation testing"""
+    from app.models.tenant import Tenant, SubscriptionType, TenantStatus
+    from datetime import datetime, timedelta
+    import uuid
+    
+    # Use unique domain to avoid conflicts
+    unique_id = str(uuid.uuid4())[:8]
+    
+    tenant = Tenant(
+        name=f"Test Tenant 2 {unique_id}",
+        domain=f"test2-{unique_id}.example.com",
+        email=f"test2-{unique_id}@example.com",
+        subscription_type=SubscriptionType.FREE,
+        status=TenantStatus.ACTIVE
+    )
+    db_session.add(tenant)
+    db_session.commit()
+    db_session.refresh(tenant)
+    return tenant
+
+
+@pytest.fixture
+def test_user2(db_session, test_tenant2):
+    """Create a test user for second tenant"""
+    from app.models.user import User, UserRole, UserStatus
+    from app.core.auth import get_password_hash
+    
+    user = User(
+        tenant_id=test_tenant2.id,
+        email="test2@example.com",
+        password_hash=get_password_hash("testpassword"),
+        first_name="Test2",
+        last_name="User2",
+        role=UserRole.ADMIN,
+        status=UserStatus.ACTIVE,
+        is_email_verified=True
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
+
+
+@pytest.fixture
+def test_admin(db_session):
+    """Create a test admin user (super admin)"""
+    from app.models.user import User, UserRole, UserStatus
+    from app.core.auth import get_password_hash
+    import uuid
+    
+    # Use unique email to avoid conflicts
+    unique_id = str(uuid.uuid4())[:8]
+    
+    user = User(
+        tenant_id=None,  # Super admin has no tenant
+        email=f"admin-{unique_id}@hesaabplus.com",
+        password_hash=get_password_hash("admin123"),
+        first_name="Test",
+        last_name="Admin",
+        role=UserRole.OWNER,
+        status=UserStatus.ACTIVE,
+        is_super_admin=True,
         is_email_verified=True
     )
     db_session.add(user)
