@@ -20,33 +20,35 @@ This specification covers comprehensive UI/UX enhancements and tenant management
 6. WHEN using dark mode elements THEN the system SHALL maintain readability with appropriate color adjustments
 7. WHEN viewing navigation elements THEN the system SHALL use consistent typography hierarchy and color schemes
 
-### Requirement 2: Enhanced Tenant Management System
+### Requirement 2: Enhanced Existing Tenant Management System
 
-**User Story:** As a super admin, I want comprehensive tenant management capabilities so that I can fully control tenant accounts including credentials, plans, and profile information.
+**User Story:** As a super admin, I want enhanced tenant management capabilities so that I can have additional control over tenant credentials and improved management features while building on the existing comprehensive system.
 
 #### Acceptance Criteria
 
-1. WHEN creating a tenant THEN the system SHALL allow setting initial username and password for the tenant owner
-2. WHEN managing existing tenants THEN the system SHALL provide endpoints to update tenant email, password, and name
-3. WHEN viewing tenant details THEN the system SHALL display all editable tenant information in a comprehensive form
-4. WHEN changing tenant plans THEN the system SHALL allow upgrading or downgrading subscription plans after creation
-5. WHEN updating tenant credentials THEN the system SHALL validate new passwords and email formats
-6. WHEN modifying tenant information THEN the system SHALL log all changes with admin user and timestamp
-7. WHEN managing tenant status THEN the system SHALL provide controls for activation, suspension, and plan changes
+1. WHEN creating a tenant THEN the system SHALL enhance existing functionality to allow setting initial username and password for the tenant owner
+2. WHEN managing existing tenants THEN the system SHALL enhance existing endpoints to update tenant email, password, and name with improved functionality
+3. WHEN viewing tenant details THEN the system SHALL enhance existing forms to display all editable tenant information with better user experience
+4. WHEN changing tenant plans THEN the system SHALL enhance existing plan management to allow upgrading or downgrading subscription plans after creation
+5. WHEN updating tenant credentials THEN the system SHALL enhance existing validation for new passwords and email formats
+6. WHEN modifying tenant information THEN the system SHALL enhance existing logging of all changes with admin user and timestamp
+7. WHEN managing tenant status THEN the system SHALL enhance existing controls for activation, suspension, and plan changes
 
 ### Requirement 3: Professional Subscription Management System
 
-**User Story:** As a super admin, I want a dedicated subscription management interface so that I can manually control subscription durations, activation status, and plan changes for all tenants.
+**User Story:** As a super admin, I want a dedicated subscription management interface with full manual control so that I can edit time, duration, and any subscription aspect manually for complete data control.
 
 #### Acceptance Criteria
 
-1. WHEN accessing subscription management THEN the system SHALL provide a dedicated navigation tab for subscription operations
-2. WHEN viewing subscription details THEN the system SHALL display current plan, expiration date, and remaining days
-3. WHEN extending subscriptions THEN the system SHALL allow adding any number of months to existing subscriptions
-4. WHEN activating subscriptions THEN the system SHALL provide controls to activate or deactivate tenant subscriptions
+1. WHEN accessing subscription management THEN the system SHALL provide a dedicated navigation tab accessible from sidebar for subscription operations
+2. WHEN viewing subscription details THEN the system SHALL display current plan, expiration date, and remaining days with full editing capabilities
+3. WHEN extending subscriptions THEN the system SHALL allow adding any number of months to existing subscriptions with custom date control
+4. WHEN activating subscriptions THEN the system SHALL provide controls to activate, deactivate, suspend, or disable tenant subscriptions
 5. WHEN changing subscription plans THEN the system SHALL allow switching between Free and Pro plans with immediate effect
 6. WHEN managing subscription status THEN the system SHALL update tenant access permissions in real-time
 7. WHEN viewing subscription history THEN the system SHALL display all subscription changes with dates and admin actions
+8. WHEN editing subscription details THEN the system SHALL allow manual editing of all subscription parameters including custom start/end dates
+9. WHEN managing tenant data THEN the system SHALL provide full control to edit, delete, disable, or suspend any aspect of tenant subscriptions
 
 ### Requirement 4: Real-Time Error Logging Enhancement
 
@@ -120,14 +122,44 @@ This specification covers comprehensive UI/UX enhancements and tenant management
 
 ### Requirement 9: Frontend Enhancement for New Features
 
-**User Story:** As a platform user, I want enhanced frontend interfaces for all new features so that I can efficiently manage tenants, subscriptions, and monitor system health.
+**User Story:** As a platform user, I want enhanced frontend interfaces for all new features so that I can efficiently manage tenants, subscriptions, and monitor system health with proper navigation and UI integration.
 
 #### Acceptance Criteria
 
-1. WHEN managing tenants THEN the frontend SHALL provide comprehensive forms for editing all tenant information
-2. WHEN handling subscriptions THEN the frontend SHALL display a dedicated subscription management interface
+1. WHEN managing tenants THEN the frontend SHALL provide comprehensive forms for editing all tenant information with proper navigation integration
+2. WHEN handling subscriptions THEN the frontend SHALL display a dedicated subscription management interface accessible from sidebar navigation
 3. WHEN viewing errors THEN the frontend SHALL show real-time error dashboard with filtering and resolution controls
 4. WHEN updating tenant credentials THEN the frontend SHALL provide secure forms with password strength validation
 5. WHEN managing subscription plans THEN the frontend SHALL display clear plan comparison and change interfaces
 6. WHEN monitoring system health THEN the frontend SHALL provide real-time updates and visual indicators
 7. WHEN performing administrative tasks THEN the frontend SHALL provide confirmation dialogs and success feedback
+8. WHEN adding new features THEN the system SHALL ensure proper path routing and sidebar navigation integration
+9. WHEN modifying existing features THEN the system SHALL ensure changes are applied to current entities without creating duplicates
+
+### Requirement 10: Enhanced Impersonation System Improvements
+
+**User Story:** As a super admin, I want enhanced impersonation system improvements so that I can have better control with new window opening, automatic session cleanup, and improved professional interface.
+
+#### Acceptance Criteria
+
+1. WHEN accessing impersonation interface THEN the system SHALL ensure proper sidebar navigation integration for existing /impersonation route
+2. WHEN clicking جایگزینی button THEN the system SHALL open tenant session in a new window/tab instead of current window redirect
+3. WHEN impersonating a tenant THEN the system SHALL automatically close the session when the new tab is closed
+4. WHEN managing impersonation sessions THEN the system SHALL provide enhanced session tracking with automatic cleanup
+5. WHEN using impersonation THEN the system SHALL provide improved visual indicators and professional interface enhancements
+6. WHEN ending impersonation THEN the system SHALL provide secure logout and automatic session termination
+7. WHEN impersonating tenants THEN the system SHALL enhance existing logging with better session management and admin tracking
+
+### Requirement 11: Real-Time Online Users Monitoring System
+
+**User Story:** As a super admin, I want to monitor which users are currently online and offline so that I can track system usage and user activity in real-time.
+
+#### Acceptance Criteria
+
+1. WHEN accessing online users THEN the system SHALL provide a dedicated sidebar navigation tab for user status monitoring
+2. WHEN viewing user status THEN the system SHALL display real-time online/offline status for all users across all tenants
+3. WHEN monitoring users THEN the system SHALL update status every 1 minute using Redis for real-time data
+4. WHEN not viewing the tab THEN the system SHALL pause updates to conserve resources
+5. WHEN entering the online users tab THEN the system SHALL automatically start real-time updates
+6. WHEN leaving the online users tab THEN the system SHALL stop real-time updates to optimize performance
+7. WHEN displaying user status THEN the system SHALL show user details, tenant information, and last activity timestamps
