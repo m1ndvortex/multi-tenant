@@ -47,11 +47,23 @@ const NavigationSidebar: React.FC<NavigationSidebarProps> = ({ className }) => {
       ),
     },
     {
+      path: '/subscriptions',
+      label: 'مدیریت اشتراک‌ها',
+      gradient: 'from-emerald-500 to-teal-600',
+      section: 'management',
+      shortcut: 'Ctrl+3',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+    },
+    {
       path: '/analytics',
       label: 'آنالیتیکس',
       gradient: 'from-purple-500 to-violet-600',
       section: 'analytics',
-      shortcut: 'Ctrl+3',
+      shortcut: 'Ctrl+4',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -63,7 +75,7 @@ const NavigationSidebar: React.FC<NavigationSidebarProps> = ({ className }) => {
       label: 'سلامت سیستم',
       gradient: 'from-teal-500 to-cyan-600',
       section: 'monitoring',
-      shortcut: 'Ctrl+4',
+      shortcut: 'Ctrl+5',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -75,7 +87,7 @@ const NavigationSidebar: React.FC<NavigationSidebarProps> = ({ className }) => {
       label: 'پشتیبان‌گیری',
       gradient: 'from-orange-500 to-red-600',
       section: 'operations',
-      shortcut: 'Ctrl+5',
+      shortcut: 'Ctrl+6',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
@@ -87,7 +99,7 @@ const NavigationSidebar: React.FC<NavigationSidebarProps> = ({ className }) => {
       label: 'جایگزینی کاربر',
       gradient: 'from-pink-500 to-rose-600',
       section: 'operations',
-      shortcut: 'Ctrl+6',
+      shortcut: 'Ctrl+7',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -99,7 +111,7 @@ const NavigationSidebar: React.FC<NavigationSidebarProps> = ({ className }) => {
       label: 'مدیریت خطاها',
       gradient: 'from-red-500 to-pink-600',
       section: 'monitoring',
-      shortcut: 'Ctrl+7',
+      shortcut: 'Ctrl+8',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

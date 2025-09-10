@@ -38,11 +38,25 @@ class TestProfessionalSubscriptionManagementAPI:
         try:
             yield db
         finally:
-            # Clean up test data
-            db.query(User).delete()
-            db.query(Tenant).delete()
-            db.commit()
-            db.close()
+            # Clean up test data in correct order to avoid foreign key violations
+            try:
+                # Delete tables that reference users first
+                db.execute("DELETE FROM activity_logs")
+                db.execute("DELETE FROM backup_records") 
+                db.execute("DELETE FROM restore_operations")
+                db.execute("DELETE FROM customer_interactions")
+                db.execute("DELETE FROM stock_movements")
+                db.execute("DELETE FROM subscription_history")
+                
+                # Then delete users and tenants
+                db.query(User).delete()
+                db.query(Tenant).delete()
+                db.commit()
+            except Exception as e:
+                db.rollback()
+                print(f"Error cleaning database: {e}")
+            finally:
+                db.close()
     
     @pytest.fixture
     def super_admin_user(self, db_session):

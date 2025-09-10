@@ -14,6 +14,7 @@ import SystemHealth from '@/pages/SystemHealth';
 import BackupRecovery from '@/pages/BackupRecovery';
 import UserImpersonation from '@/pages/UserImpersonation';
 import ErrorLogging from '@/pages/ErrorLogging';
+import SubscriptionManagement from '@/pages/SubscriptionManagement';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,6 +46,7 @@ function App() {
                         <Routes>
                           <Route path="/" element={<Dashboard />} />
                           <Route path="/tenants" element={<TenantManagement />} />
+                          <Route path="/subscriptions" element={<SubscriptionManagement />} />
                           <Route path="/analytics" element={<Analytics />} />
                           <Route path="/system-health" element={<SystemHealth />} />
                           <Route path="/backup-recovery" element={<BackupRecovery />} />

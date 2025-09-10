@@ -47,6 +47,10 @@ export const NavigationProvider: React.FC<NavigationProviderProps> = ({ children
       title: 'مدیریت تنانت‌ها',
       description: 'مدیریت کاربران، اشتراک‌ها و تأیید پرداخت‌ها'
     },
+    '/subscriptions': {
+      title: 'مدیریت اشتراک‌ها',
+      description: 'مدیریت حرفه‌ای اشتراک‌ها با کنترل کامل دستی'
+    },
     '/analytics': {
       title: 'آنالیتیکس',
       description: 'تحلیل رشد کاربران، درآمد و معیارهای کلیدی'
