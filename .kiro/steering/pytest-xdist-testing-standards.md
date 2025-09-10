@@ -14,27 +14,32 @@ All tests must be run using pytest-xdist for parallel execution to improve test 
 
 #### Standard Test Execution
 ```bash
-# Run all tests with automatic worker detection
-docker-compose exec backend python -m pytest -n auto
+# Run all tests with automatic worker detection and work stealing (RECOMMENDED)
+docker-compose exec backend python -m pytest -n auto --dist worksteal
 
-# Run specific test file with parallel execution
-docker-compose exec backend python -m pytest tests/test_file.py -n auto
+# Run specific test file with parallel execution and work stealing
+docker-compose exec backend python -m pytest tests/test_file.py -n auto --dist worksteal
 
-# Run specific test class with parallel execution
-docker-compose exec backend python -m pytest tests/test_file.py::TestClass -n auto
+# Run specific test class with parallel execution and work stealing
+docker-compose exec backend python -m pytest tests/test_file.py::TestClass -n auto --dist worksteal
 
-# Run with specific number of workers
-docker-compose exec backend python -m pytest -n 4
+# Run with specific number of workers and work stealing
+docker-compose exec backend python -m pytest -n 6 --dist worksteal
 
-# Run with coverage and parallel execution
-docker-compose exec backend python -m pytest -n auto --cov=app --cov-report=html
+# Run with coverage and parallel execution with work stealing
+docker-compose exec backend python -m pytest -n auto --dist worksteal --cov=app --cov-report=html
+
+# For maximum performance on multi-core systems (use logical CPU count)
+docker-compose exec backend python -m pytest -n logical --dist worksteal
 ```
 
 #### Test Execution Options
 - **`-n auto`**: Automatically detect the number of CPU cores and create that many workers
-- **`-n <number>`**: Specify exact number of worker processes
-- **`-n logical`**: Use the number of logical CPUs (includes hyperthreading)
-- **`--dist worksteal`**: Enable work stealing for better load balancing (default)
+- **`-n logical`**: Use the number of logical CPUs (includes hyperthreading) - **FASTEST OPTION**
+- **`-n <number>`**: Specify exact number of worker processes (e.g., `-n 6` for 6 workers)
+- **`--dist worksteal`**: **CRITICAL FOR PERFORMANCE** - Enables work stealing so all workers stay busy until completion
+- **`--dist load`**: Default load balancing (less efficient, avoid this)
+- **`--dist each`**: Run each test on every worker (only for special cases)
 
 ### Docker-First Testing Requirements
 
@@ -58,6 +63,28 @@ docker-compose exec backend python -m pytest -n auto --cov=app --cov-report=html
 - **Better resource utilization**: Distribute test load across available workers
 - **Improved CI/CD performance**: Reduce overall pipeline execution time
 - **Early failure detection**: Parallel execution can identify issues faster
+- **Work stealing efficiency**: `--dist worksteal` keeps all workers busy until the very end
+
+#### Maximum Performance Configuration
+```bash
+# FASTEST: Use logical CPUs with work stealing
+docker-compose exec backend python -m pytest -n logical --dist worksteal
+
+# RECOMMENDED: Auto-detect with work stealing
+docker-compose exec backend python -m pytest -n auto --dist worksteal
+
+# CUSTOM: Specify exact worker count with work stealing
+docker-compose exec backend python -m pytest -n 6 --dist worksteal
+```
+
+#### Work Stealing vs Load Balancing
+- **`--dist worksteal`** (RECOMMENDED): Workers steal tests from each other when they finish early
+  - Keeps all workers busy until completion
+  - Better performance on mixed test durations
+  - Optimal resource utilization
+- **`--dist load`** (DEFAULT, SLOWER): Tests are pre-distributed to workers
+  - Some workers may finish early and sit idle
+  - Less efficient for tests with varying execution times
 
 #### Test Organization for Parallelization
 - Group related tests in the same file when they share fixtures
@@ -69,14 +96,20 @@ docker-compose exec backend python -m pytest -n auto --cov=app --cov-report=html
 
 #### Backend Testing
 ```bash
-# Standard backend test execution
-docker-compose exec backend python -m pytest -n auto -v
+# Standard backend test execution (RECOMMENDED)
+docker-compose exec backend python -m pytest -n auto --dist worksteal -v
 
-# Backend tests with coverage
-docker-compose exec backend python -m pytest -n auto --cov=app --cov-report=term-missing
+# Backend tests with coverage and work stealing
+docker-compose exec backend python -m pytest -n auto --dist worksteal --cov=app --cov-report=term-missing
 
-# Run specific test modules in parallel
-docker-compose exec backend python -m pytest tests/test_models/ -n auto
+# Run specific test modules in parallel with work stealing
+docker-compose exec backend python -m pytest tests/test_models/ -n auto --dist worksteal
+
+# Maximum performance for large test suites
+docker-compose exec backend python -m pytest -n logical --dist worksteal -v
+
+# Quick test run with minimal output
+docker-compose exec backend python -m pytest -n auto --dist worksteal -q
 ```
 
 #### Frontend Testing (if applicable)
@@ -95,6 +128,7 @@ docker-compose exec frontend npm run test:coverage -- --maxWorkers=auto
 [tool:pytest]
 addopts = 
     -n auto
+    --dist worksteal
     --strict-markers
     --strict-config
     --disable-warnings
@@ -107,6 +141,24 @@ markers =
     slow: marks tests as slow (deselect with '-m "not slow"')
     integration: marks tests as integration tests
     unit: marks tests as unit tests
+    fast: marks tests as fast (for quick feedback loops)
+```
+
+#### Alternative High-Performance Configuration
+```ini
+[tool:pytest]
+addopts = 
+    -n logical
+    --dist worksteal
+    --strict-markers
+    --strict-config
+    --disable-warnings
+    -ra
+    --tb=short
+testpaths = tests
+python_files = test_*.py
+python_classes = Test*
+python_functions = test_*
 ```
 
 #### Parallel-Safe Test Design
@@ -130,7 +182,22 @@ markers =
 test:
   script:
     - docker-compose up -d postgres redis
-    - docker-compose exec -T backend python -m pytest -n auto --junitxml=test-results.xml --cov=app --cov-report=xml
+    - docker-compose exec -T backend python -m pytest -n auto --dist worksteal --junitxml=test-results.xml --cov=app --cov-report=xml
+
+# High-performance CI configuration
+test-fast:
+  script:
+    - docker-compose up -d postgres redis
+    - docker-compose exec -T backend python -m pytest -n logical --dist worksteal --junitxml=test-results.xml --cov=app --cov-report=xml --tb=short
+
+# Parallel test stages for large projects
+test-unit:
+  script:
+    - docker-compose exec -T backend python -m pytest tests/unit/ -n auto --dist worksteal -m "not slow"
+    
+test-integration:
+  script:
+    - docker-compose exec -T backend python -m pytest tests/integration/ -n auto --dist worksteal
 ```
 
 ### Troubleshooting Parallel Tests
@@ -149,8 +216,14 @@ docker-compose exec backend python -m pytest -n 0 -v -s
 # Run with specific number of workers for debugging
 docker-compose exec backend python -m pytest -n 1 -v -s
 
-# Enable pytest-xdist logging
-docker-compose exec backend python -m pytest -n auto --log-cli-level=DEBUG
+# Enable pytest-xdist logging with work stealing
+docker-compose exec backend python -m pytest -n auto --dist worksteal --log-cli-level=DEBUG
+
+# Debug with minimal parallelism but still use work stealing
+docker-compose exec backend python -m pytest -n 2 --dist worksteal -v -s
+
+# Profile test performance
+docker-compose exec backend python -m pytest -n auto --dist worksteal --durations=10
 ```
 
 ### Performance Monitoring
@@ -162,19 +235,31 @@ docker-compose exec backend python -m pytest -n auto --log-cli-level=DEBUG
 - Identify bottlenecks in test execution
 
 #### Expected Performance Improvements
-- **2-4x faster execution** on multi-core systems
+- **2-4x faster execution** on multi-core systems with `-n auto --dist worksteal`
+- **3-6x faster execution** on hyperthreaded systems with `-n logical --dist worksteal`
 - **Better CI/CD pipeline performance** with reduced test time
 - **Improved developer productivity** with faster feedback loops
 - **Efficient resource utilization** in containerized environments
+- **Optimal worker utilization** - no idle workers until all tests complete
+
+#### Performance Benchmarks
+```bash
+# Measure performance improvement
+time docker-compose exec backend python -m pytest  # Sequential baseline
+time docker-compose exec backend python -m pytest -n auto --dist load  # Default parallel
+time docker-compose exec backend python -m pytest -n auto --dist worksteal  # Optimized parallel
+time docker-compose exec backend python -m pytest -n logical --dist worksteal  # Maximum parallel
+```
 
 ## Mandatory Requirements
 
 ### For All Test Execution
 1. **MUST use Docker containers** for all test execution
-2. **MUST use pytest-xdist** with `-n auto` for parallel execution
+2. **MUST use pytest-xdist** with `-n auto --dist worksteal` for optimal parallel execution
 3. **MUST ensure tests are parallel-safe** and properly isolated
 4. **MUST use real database connections** within Docker containers
 5. **MUST clean up test data** properly to avoid conflicts
+6. **MUST use work stealing** (`--dist worksteal`) to maximize worker efficiency
 
 ### For Test Development
 1. **MUST design tests** to work with parallel execution
@@ -190,4 +275,58 @@ docker-compose exec backend python -m pytest -n auto --log-cli-level=DEBUG
 4. **MUST monitor test performance** and execution times
 5. **MUST fail builds** if any tests fail in parallel execution
 
-This ensures consistent, fast, and reliable test execution across all development and deployment environments while maximizing the benefits of parallel test execution.
+## Advanced Performance Tuning
+
+### Optimal Worker Configuration
+
+#### System-Specific Recommendations
+```bash
+# For development machines (4-8 cores)
+docker-compose exec backend python -m pytest -n auto --dist worksteal
+
+# For CI/CD servers (8+ cores)
+docker-compose exec backend python -m pytest -n logical --dist worksteal
+
+# For containers with limited CPU
+docker-compose exec backend python -m pytest -n 4 --dist worksteal
+
+# For very large test suites (1000+ tests)
+docker-compose exec backend python -m pytest -n logical --dist worksteal --maxfail=5
+```
+
+#### Memory Considerations
+- Each worker uses additional memory
+- Monitor container memory limits: `docker stats`
+- Adjust worker count if hitting memory limits:
+  ```bash
+  # Reduce workers if memory constrained
+  docker-compose exec backend python -m pytest -n 4 --dist worksteal
+  ```
+
+#### Test Suite Optimization
+```bash
+# Run fast tests first for quick feedback
+docker-compose exec backend python -m pytest -n auto --dist worksteal -m "not slow"
+
+# Run slow tests separately if needed
+docker-compose exec backend python -m pytest -n logical --dist worksteal -m "slow"
+
+# Profile test execution to identify bottlenecks
+docker-compose exec backend python -m pytest -n auto --dist worksteal --durations=20
+```
+
+### Work Stealing Deep Dive
+
+#### How Work Stealing Works
+1. Tests are initially distributed among workers
+2. When a worker finishes its assigned tests, it "steals" tests from busy workers
+3. This continues until all tests are complete
+4. **Result**: All workers stay busy until the very end
+
+#### Benefits Over Default Load Balancing
+- **No idle workers**: Traditional load balancing can leave workers idle
+- **Better handling of mixed test durations**: Fast and slow tests are balanced automatically
+- **Optimal resource utilization**: CPU cores stay busy throughout the entire test run
+- **Faster completion**: Typically 20-40% faster than default distribution
+
+This ensures consistent, fast, and reliable test execution across all development and deployment environments while maximizing the benefits of parallel test execution with optimal worker utilization.

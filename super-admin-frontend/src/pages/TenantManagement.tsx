@@ -3,10 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Users, Building2 } from 'lucide-react';
+import { Plus, Users, Building2, Settings, Key, Eye } from 'lucide-react';
 import TenantFilters from '@/components/TenantFilters';
 import TenantTable from '@/components/TenantTable';
+import EnhancedTenantTable from '@/components/tenant/EnhancedTenantTable';
 import TenantForm from '@/components/TenantForm';
+import TenantCredentialsDialog from '@/components/tenant/TenantCredentialsDialog';
+import TenantFullEditDialog from '@/components/tenant/TenantFullEditDialog';
+import TenantDetailsDialog from '@/components/tenant/TenantDetailsDialog';
 import PaymentConfirmationDialog from '@/components/PaymentConfirmationDialog';
 import DeleteConfirmationDialog from '@/components/DeleteConfirmationDialog';
 import Pagination from '@/components/ui/pagination';
@@ -36,9 +40,13 @@ const TenantManagement: React.FC = () => {
   // Dialog states
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isCredentialsDialogOpen, setIsCredentialsDialogOpen] = useState(false);
+  const [isFullEditDialogOpen, setIsFullEditDialogOpen] = useState(false);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
+  const [useEnhancedTable, setUseEnhancedTable] = useState(true);
 
   // API hooks
   const { data: tenantsData, isLoading } = useTenants(currentPage, pageSize, filters);
@@ -151,22 +159,48 @@ const TenantManagement: React.FC = () => {
     navigate(`/impersonation?tenant_id=${tenant.id}`);
   };
 
+  // Enhanced functionality handlers
+  const handleCredentialsUpdate = (tenant: Tenant) => {
+    setSelectedTenant(tenant);
+    setIsCredentialsDialogOpen(true);
+  };
+
+  const handleFullEdit = (tenant: Tenant) => {
+    setSelectedTenant(tenant);
+    setIsFullEditDialogOpen(true);
+  };
+
+  const handleViewDetails = (tenant: Tenant) => {
+    setSelectedTenant(tenant);
+    setIsDetailsDialogOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">مدیریت تنانت‌ها</h1>
-          <p className="text-slate-600 mt-1">مدیریت و نظارت بر تمام تنانت‌های پلتفرم</p>
+          <h1 className="text-3xl font-bold text-slate-900">مدیریت پیشرفته تنانت‌ها</h1>
+          <p className="text-slate-600 mt-1">مدیریت جامع و نظارت بر تمام تنانت‌های پلتفرم با قابلیت‌های پیشرفته</p>
         </div>
-        <Button
-          variant="gradient-green"
-          onClick={() => setIsCreateDialogOpen(true)}
-          className="flex items-center gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          ایجاد تنانت جدید
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button
+            variant={useEnhancedTable ? "gradient-blue" : "outline"}
+            onClick={() => setUseEnhancedTable(!useEnhancedTable)}
+            className="flex items-center gap-2"
+          >
+            {useEnhancedTable ? <Settings className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {useEnhancedTable ? 'جدول پیشرفته' : 'جدول ساده'}
+          </Button>
+          <Button
+            variant="gradient-green"
+            onClick={() => setIsCreateDialogOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            ایجاد تنانت جدید
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -232,16 +266,32 @@ const TenantManagement: React.FC = () => {
       />
 
       {/* Tenants Table */}
-      <TenantTable
-        tenants={tenants}
-        onEdit={handleEditTenant}
-        onDelete={handleDeleteTenant}
-        onSuspend={handleSuspendTenant}
-        onActivate={handleActivateTenant}
-        onConfirmPayment={handleConfirmPayment}
-        onImpersonate={handleImpersonate}
-        isLoading={isLoading}
-      />
+      {useEnhancedTable ? (
+        <EnhancedTenantTable
+          tenants={tenants}
+          onEdit={handleEditTenant}
+          onFullEdit={handleFullEdit}
+          onCredentialsUpdate={handleCredentialsUpdate}
+          onDelete={handleDeleteTenant}
+          onSuspend={handleSuspendTenant}
+          onActivate={handleActivateTenant}
+          onConfirmPayment={handleConfirmPayment}
+          onImpersonate={handleImpersonate}
+          onViewDetails={handleViewDetails}
+          isLoading={isLoading}
+        />
+      ) : (
+        <TenantTable
+          tenants={tenants}
+          onEdit={handleEditTenant}
+          onDelete={handleDeleteTenant}
+          onSuspend={handleSuspendTenant}
+          onActivate={handleActivateTenant}
+          onConfirmPayment={handleConfirmPayment}
+          onImpersonate={handleImpersonate}
+          isLoading={isLoading}
+        />
+      )}
 
       {/* Pagination */}
       {pagination && pagination.totalPages > 1 && (
@@ -296,6 +346,34 @@ const TenantManagement: React.FC = () => {
         }}
         onConfirm={handlePaymentConfirmation}
         isLoading={confirmPaymentMutation.isPending}
+      />
+
+      {/* Enhanced Dialogs */}
+      <TenantCredentialsDialog
+        tenant={selectedTenant}
+        isOpen={isCredentialsDialogOpen}
+        onClose={() => {
+          setIsCredentialsDialogOpen(false);
+          setSelectedTenant(null);
+        }}
+      />
+
+      <TenantFullEditDialog
+        tenant={selectedTenant}
+        isOpen={isFullEditDialogOpen}
+        onClose={() => {
+          setIsFullEditDialogOpen(false);
+          setSelectedTenant(null);
+        }}
+      />
+
+      <TenantDetailsDialog
+        tenant={selectedTenant}
+        isOpen={isDetailsDialogOpen}
+        onClose={() => {
+          setIsDetailsDialogOpen(false);
+          setSelectedTenant(null);
+        }}
       />
 
       {/* Delete Confirmation Dialog */}
