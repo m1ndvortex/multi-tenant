@@ -23,6 +23,8 @@ graph TB
         SUB_API[Subscription Management API]
         ERROR_API[Real-time Error Logging API]
         CRED_API[Tenant Credentials API]
+        IMPERSON_API[Professional Impersonation API]
+        ONLINE_API[Real-time Online Users API]
     end
     
     subgraph "Enhanced Frontend Components"
@@ -30,6 +32,8 @@ graph TB
         TENANT_UI[Tenant Enhanced UI]
         SUB_MGMT[Subscription Management UI]
         ERROR_DASH[Real-time Error Dashboard]
+        IMPERSON_UI[Professional Impersonation Interface]
+        ONLINE_UI[Real-time Online Users Monitor]
     end
     
     subgraph "Existing Infrastructure"
@@ -50,11 +54,15 @@ graph TB
     SA_UI --> ERROR_API
     SUB_MGMT --> SUB_API
     ERROR_DASH --> ERROR_API
+    IMPERSON_UI --> IMPERSON_API
+    ONLINE_UI --> ONLINE_API
     
     TENANT_API --> FASTAPI
     SUB_API --> FASTAPI
     ERROR_API --> FASTAPI
     CRED_API --> FASTAPI
+    IMPERSON_API --> FASTAPI
+    ONLINE_API --> FASTAPI
     
     FASTAPI --> POSTGRES
     FASTAPI --> REDIS
@@ -116,9 +124,34 @@ erDiagram
         text resolution_notes
     }
     
+    IMPERSONATION_SESSIONS {
+        uuid id PK
+        uuid admin_id FK
+        uuid tenant_id FK
+        string session_token
+        datetime started_at
+        datetime ended_at
+        boolean is_active
+        string client_ip
+        text user_agent
+    }
+    
+    USER_ONLINE_STATUS {
+        uuid id PK
+        uuid user_id FK
+        uuid tenant_id FK
+        boolean is_online
+        datetime last_activity
+        string session_id
+        datetime created_at
+        datetime updated_at
+    }
+    
     TENANTS ||--o| TENANT_CREDENTIALS : has
     TENANTS ||--o{ SUBSCRIPTION_HISTORY : tracks
     TENANTS ||--o{ ERROR_LOGS : generates
+    TENANTS ||--o{ IMPERSONATION_SESSIONS : impersonated_by
+    TENANTS ||--o{ USER_ONLINE_STATUS : monitors
 ```
 ## Compone
 nts and Interfaces
@@ -434,7 +467,11 @@ async def full_tenant_update(
 
 ### Professional Subscription Management System
 
-#### Subscription Management API
+#### Dedicated Subscription Management Route and Navigation
+
+The subscription management system will be accessible through a dedicated route `/subscriptions` with full navigation integration in the sidebar. This ensures proper navigation flow and dedicated interface for subscription operations.
+
+#### Full Manual Control Subscription Management API
 
 ```python
 # backend/app/api/subscription_management.py
@@ -450,10 +487,11 @@ from ..schemas.subscription import (
     SubscriptionExtensionRequest,
     SubscriptionStatusUpdateRequest,
     SubscriptionHistoryResponse,
-    SubscriptionStatsResponse
+    SubscriptionStatsResponse,
+    SubscriptionFullControlRequest
 )
 
-router = APIRouter(prefix="/subscription-management", tags=["Subscription Management"])
+router = APIRouter(prefix="/subscription-management", tags=["Full Control Subscription Management"])
 
 @router.get("/subscriptions/overview")
 async def get_subscription_overview(
@@ -623,6 +661,90 @@ async def update_subscription_status(
         raise HTTPException(
             status_code=500,
             detail=f"Failed to update subscription status: {str(e)}"
+        )
+
+@router.put("/subscriptions/{tenant_id}/full-control")
+async def full_subscription_control(
+    tenant_id: str,
+    control_data: SubscriptionFullControlRequest,
+    current_admin: User = Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Complete manual control over all subscription aspects - edit everything
+    """
+    try:
+        tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+        if not tenant:
+            raise HTTPException(status_code=404, detail="Tenant not found")
+        
+        changes = []
+        
+        # Full control over subscription type
+        if control_data.subscription_type is not None:
+            old_type = tenant.subscription_type
+            tenant.subscription_type = control_data.subscription_type
+            changes.append(f"Subscription type: {old_type} → {control_data.subscription_type}")
+        
+        # Full control over dates - custom start/end dates
+        if control_data.custom_start_date:
+            old_start = tenant.subscription_starts_at
+            tenant.subscription_starts_at = control_data.custom_start_date
+            changes.append(f"Start date: {old_start} → {control_data.custom_start_date}")
+        
+        if control_data.custom_end_date:
+            old_end = tenant.subscription_expires_at
+            tenant.subscription_expires_at = control_data.custom_end_date
+            changes.append(f"End date: {old_end} → {control_data.custom_end_date}")
+        
+        # Full control over limitations
+        if control_data.max_users is not None:
+            old_users = tenant.max_users
+            tenant.max_users = control_data.max_users
+            changes.append(f"Max users: {old_users} → {control_data.max_users}")
+        
+        if control_data.max_products is not None:
+            old_products = tenant.max_products
+            tenant.max_products = control_data.max_products
+            changes.append(f"Max products: {old_products} → {control_data.max_products}")
+        
+        # Full control over status - activate, deactivate, suspend, disable
+        if control_data.status:
+            old_status = tenant.status
+            tenant.status = control_data.status
+            changes.append(f"Status: {old_status} → {control_data.status}")
+        
+        # Full control over custom pricing and features
+        if control_data.custom_features:
+            tenant.custom_features = control_data.custom_features
+            changes.append("Custom features updated")
+        
+        # Log all manual changes
+        if changes:
+            control_note = f"\nFull manual control by admin {current_admin.id} at {datetime.now(timezone.utc)}:\n"
+            control_note += "\n".join(f"- {change}" for change in changes)
+            if control_data.admin_notes:
+                control_note += f"\nAdmin notes: {control_data.admin_notes}"
+            tenant.notes = (tenant.notes or "") + control_note
+        
+        tenant.updated_at = datetime.now(timezone.utc)
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "Full subscription control applied successfully",
+            "tenant_id": tenant_id,
+            "changes_applied": len(changes),
+            "changes": changes
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to apply full subscription control: {str(e)}"
         )
 ```### Re
 al-Time Error Logging System
@@ -1640,3 +1762,1174 @@ class TestErrorLogging:
 ```
 
 This comprehensive design document provides the foundation for implementing all the requested UI/UX enhancements and tenant management improvements while maintaining the existing system's architecture and ensuring proper multi-tenant data isolation.
+### Enhanced Existing Impersonation System
+
+#### Impersonation System Enhancements
+
+The existing impersonation system at `/impersonation` will be enhanced with better control features, new window opening functionality, and automatic session management while maintaining the current comprehensive functionality.
+
+#### Enhanced Impersonation API
+
+```python
+# backend/app/api/enhanced_impersonation.py
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Response
+from sqlalchemy.orm import Session
+from datetime import datetime, timezone, timedelta
+import jwt
+import uuid
+
+from ..core.database import get_db
+from ..core.auth import get_super_admi
+### Profe
+ssional Impersonation System
+
+#### Enhanced Impersonation API with Session Management
+
+```python
+# backend/app/api/professional_impersonation.py
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy.orm import Session
+from datetime import datetime, timezone, timedelta
+import secrets
+import jwt
+
+from ..core.database import get_db
+from ..core.auth import get_super_admin_user
+from ..models.tenant import Tenant
+from ..models.user import User
+from ..models.impersonation_session import ImpersonationSession
+from ..schemas.impersonation import (
+    ImpersonationStartRequest,
+    ImpersonationSessionResponse,
+    ActiveImpersonationResponse
+)
+
+router = APIRouter(prefix="/impersonation", tags=["Professional Impersonation"])
+
+@router.post("/start/{tenant_id}")
+async def start_impersonation_session(
+    tenant_id: str,
+    request: Request,
+    current_admin: User = Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Start professional impersonation session with new window/tab support
+    """
+    try:
+        # Get target tenant
+        tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+        if not tenant:
+            raise HTTPException(status_code=404, detail="Tenant not found")
+        
+        # Get tenant owner for impersonation
+        tenant_owner = db.query(User).filter(
+            User.tenant_id == tenant_id,
+            User.role == "owner"
+        ).first()
+        
+        if not tenant_owner:
+            raise HTTPException(status_code=404, detail="Tenant owner not found")
+        
+        # Generate secure session token
+        session_token = secrets.token_urlsafe(32)
+        
+        # Create impersonation session record
+        impersonation_session = ImpersonationSession(
+            admin_id=current_admin.id,
+            tenant_id=tenant_id,
+            session_token=session_token,
+            started_at=datetime.now(timezone.utc),
+            is_active=True,
+            client_ip=request.client.host,
+            user_agent=request.headers.get("user-agent", "")
+        )
+        
+        db.add(impersonation_session)
+        
+        # Generate JWT token for tenant session
+        tenant_jwt_payload = {
+            "user_id": str(tenant_owner.id),
+            "tenant_id": tenant_id,
+            "email": tenant_owner.email,
+            "role": tenant_owner.role,
+            "impersonation_session": str(impersonation_session.id),
+            "impersonated_by": str(current_admin.id),
+            "exp": datetime.now(timezone.utc) + timedelta(hours=8),  # 8 hour session
+            "iat": datetime.now(timezone.utc)
+        }
+        
+        tenant_jwt_token = jwt.encode(
+            tenant_jwt_payload,
+            "your-secret-key",  # Use your actual JWT secret
+            algorithm="HS256"
+        )
+        
+        # Log impersonation start
+        log_note = f"\nImpersonation started by admin {current_admin.id} at {datetime.now(timezone.utc)}"
+        log_note += f"\nSession ID: {impersonation_session.id}"
+        log_note += f"\nClient IP: {request.client.host}"
+        
+        tenant.notes = (tenant.notes or "") + log_note
+        tenant.updated_at = datetime.now(timezone.utc)
+        
+        db.commit()
+        
+        # Return session data for new window/tab opening
+        return {
+            "success": True,
+            "session_id": str(impersonation_session.id),
+            "tenant_jwt_token": tenant_jwt_token,
+            "tenant_url": f"http://localhost:3001?impersonation_token={tenant_jwt_token}",
+            "tenant_name": tenant.name,
+            "tenant_email": tenant.email,
+            "session_expires_at": impersonation_session.started_at + timedelta(hours=8),
+            "message": "Impersonation session started - open in new window"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to start impersonation session: {str(e)}"
+        )
+
+@router.post("/end/{session_id}")
+async def end_impersonation_session(
+    session_id: str,
+    current_admin: User = Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    End impersonation session and cleanup
+    """
+    try:
+        # Get impersonation session
+        session = db.query(ImpersonationSession).filter(
+            ImpersonationSession.id == session_id,
+            ImpersonationSession.admin_id == current_admin.id,
+            ImpersonationSession.is_active == True
+        ).first()
+        
+        if not session:
+            raise HTTPException(status_code=404, detail="Active impersonation session not found")
+        
+        # End the session
+        session.ended_at = datetime.now(timezone.utc)
+        session.is_active = False
+        
+        # Log session end
+        tenant = db.query(Tenant).filter(Tenant.id == session.tenant_id).first()
+        if tenant:
+            log_note = f"\nImpersonation ended by admin {current_admin.id} at {datetime.now(timezone.utc)}"
+            log_note += f"\nSession ID: {session_id}"
+            log_note += f"\nDuration: {session.ended_at - session.started_at}"
+            
+            tenant.notes = (tenant.notes or "") + log_note
+            tenant.updated_at = datetime.now(timezone.utc)
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "Impersonation session ended successfully",
+            "session_duration": str(session.ended_at - session.started_at)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to end impersonation session: {str(e)}"
+        )
+
+@router.get("/active-sessions")
+async def get_active_impersonation_sessions(
+    current_admin: User = Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get all active impersonation sessions for monitoring
+    """
+    try:
+        active_sessions = db.query(ImpersonationSession).filter(
+            ImpersonationSession.is_active == True
+        ).all()
+        
+        return [
+            ActiveImpersonationResponse(
+                session_id=str(session.id),
+                admin_id=str(session.admin_id),
+                tenant_id=str(session.tenant_id),
+                tenant_name=session.tenant.name if session.tenant else "Unknown",
+                started_at=session.started_at,
+                duration=datetime.now(timezone.utc) - session.started_at,
+                client_ip=session.client_ip
+            )
+            for session in active_sessions
+        ]
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get active impersonation sessions: {str(e)}"
+        )
+
+# Auto-cleanup endpoint for expired sessions
+@router.post("/cleanup-expired")
+async def cleanup_expired_sessions(
+    current_admin: User = Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Cleanup expired impersonation sessions (8+ hours old)
+    """
+    try:
+        eight_hours_ago = datetime.now(timezone.utc) - timedelta(hours=8)
+        
+        expired_sessions = db.query(ImpersonationSession).filter(
+            ImpersonationSession.is_active == True,
+            ImpersonationSession.started_at < eight_hours_ago
+        ).all()
+        
+        cleanup_count = 0
+        for session in expired_sessions:
+            session.ended_at = datetime.now(timezone.utc)
+            session.is_active = False
+            cleanup_count += 1
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "cleaned_up_sessions": cleanup_count,
+            "message": f"Cleaned up {cleanup_count} expired impersonation sessions"
+        }
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to cleanup expired sessions: {str(e)}"
+        )
+```
+
+#### Frontend Impersonation Interface
+
+```typescript
+// super-admin-frontend/src/components/impersonation/ProfessionalImpersonation.tsx
+import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { ExternalLink, Shield, Clock, X } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+
+interface ImpersonationSession {
+  session_id: string;
+  tenant_id: string;
+  tenant_name: string;
+  started_at: string;
+  duration: string;
+  client_ip: string;
+}
+
+interface Tenant {
+  id: string;
+  name: string;
+  email: string;
+  status: string;
+  subscription_type: string;
+}
+
+export const ProfessionalImpersonation: React.FC = () => {
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [activeSessions, setActiveSessions] = useState<ImpersonationSession[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  // Track opened impersonation windows
+  const [openWindows, setOpenWindows] = useState<Map<string, Window>>(new Map());
+
+  const startImpersonation = async (tenantId: string, tenantName: string) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/impersonation/start/${tenantId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to start impersonation session');
+      }
+
+      const data = await response.json();
+      
+      // Open tenant application in new window
+      const newWindow = window.open(
+        data.tenant_url,
+        `impersonation_${tenantId}`,
+        'width=1200,height=800,scrollbars=yes,resizable=yes'
+      );
+
+      if (newWindow) {
+        // Track the opened window
+        setOpenWindows(prev => new Map(prev.set(data.session_id, newWindow)));
+
+        // Monitor window close to auto-end session
+        const checkClosed = setInterval(() => {
+          if (newWindow.closed) {
+            clearInterval(checkClosed);
+            endImpersonationSession(data.session_id);
+            setOpenWindows(prev => {
+              const updated = new Map(prev);
+              updated.delete(data.session_id);
+              return updated;
+            });
+          }
+        }, 1000);
+
+        toast({
+          title: "Impersonation Started",
+          description: `Successfully impersonating ${tenantName} in new window`,
+          variant: "default"
+        });
+
+        // Refresh active sessions
+        loadActiveSessions();
+      } else {
+        toast({
+          title: "Window Blocked",
+          description: "Please allow popups and try again",
+          variant: "destructive"
+        });
+      }
+
+    } catch (error) {
+      toast({
+        title: "Impersonation Failed",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const endImpersonationSession = async (sessionId: string) => {
+    try {
+      const response = await fetch(`/api/impersonation/end/${sessionId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        // Close the window if still open
+        const window = openWindows.get(sessionId);
+        if (window && !window.closed) {
+          window.close();
+        }
+
+        toast({
+          title: "Session Ended",
+          description: "Impersonation session ended successfully",
+          variant: "default"
+        });
+
+        loadActiveSessions();
+      }
+    } catch (error) {
+      console.error('Failed to end impersonation session:', error);
+    }
+  };
+
+  const loadActiveSessions = async () => {
+    try {
+      const response = await fetch('/api/impersonation/active-sessions', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (response.ok) {
+        const sessions = await response.json();
+        setActiveSessions(sessions);
+      }
+    } catch (error) {
+      console.error('Failed to load active sessions:', error);
+    }
+  };
+
+  useEffect(() => {
+    loadActiveSessions();
+    // Refresh active sessions every 30 seconds
+    const interval = setInterval(loadActiveSessions, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-gray-900">Professional Impersonation</h1>
+        <Badge variant="outline" className="flex items-center gap-2">
+          <Shield className="w-4 h-4" />
+          Secure Session Management
+        </Badge>
+      </div>
+
+      {/* Active Sessions Monitor */}
+      {activeSessions.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              Active Impersonation Sessions ({activeSessions.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {activeSessions.map((session) => (
+                <div
+                  key={session.session_id}
+                  className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg"
+                >
+                  <div>
+                    <p className="font-medium text-gray-900">{session.tenant_name}</p>
+                    <p className="text-sm text-gray-600">
+                      Duration: {session.duration} | IP: {session.client_ip}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => endImpersonationSession(session.session_id)}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <X className="w-4 h-4 mr-1" />
+                    End Session
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Tenant List for Impersonation */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Available Tenants for Impersonation</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {tenants.map((tenant) => (
+              <div
+                key={tenant.id}
+                className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
+              >
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-gray-900">{tenant.name}</h3>
+                  <p className="text-sm text-gray-600">{tenant.email}</p>
+                  <div className="flex gap-2">
+                    <Badge variant={tenant.status === 'active' ? 'default' : 'secondary'}>
+                      {tenant.status}
+                    </Badge>
+                    <Badge variant="outline">{tenant.subscription_type}</Badge>
+                  </div>
+                  <Button
+                    onClick={() => startImpersonation(tenant.id, tenant.name)}
+                    disabled={loading}
+                    className="w-full mt-3"
+                    variant="outline"
+                  >
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    جایگزینی (New Window)
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+```
+
+### Real-Time Online Users Monitoring System
+
+#### Real-Time Online Users API with Redis Integration
+
+```python
+# backend/app/api/online_users_monitoring.py
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, WebSocket
+from sqlalchemy.orm import Session
+from datetime import datetime, timezone, timedelta
+import json
+import redis
+import asyncio
+
+from ..core.database import get_db
+from ..core.auth import get_super_admin_user
+from ..models.user import User
+from ..models.tenant import Tenant
+from ..schemas.online_users import (
+    OnlineUserResponse,
+    UserActivityResponse,
+    OnlineStatsResponse
+)
+
+router = APIRouter(prefix="/online-users", tags=["Real-time Online Users Monitoring"])
+
+# Redis connection for real-time user status
+redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+
+# WebSocket connection manager for real-time updates
+class OnlineUsersConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+        self.monitoring_active = False
+    
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+        if not self.monitoring_active:
+            self.monitoring_active = True
+            asyncio.create_task(self.start_monitoring())
+    
+    def disconnect(self, websocket: WebSocket):
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+        if not self.active_connections:
+            self.monitoring_active = False
+    
+    async def broadcast_user_status(self, status_data: dict):
+        if self.active_connections:
+            for connection in self.active_connections:
+                try:
+                    await connection.send_text(json.dumps(status_data))
+                except:
+                    self.active_connections.remove(connection)
+    
+    async def start_monitoring(self):
+        """Start real-time monitoring - only when someone is watching"""
+        while self.monitoring_active and self.active_connections:
+            try:
+                # Get current online users from Redis and database
+                online_data = await self.get_current_online_users()
+                await self.broadcast_user_status(online_data)
+                await asyncio.sleep(60)  # Update every 1 minute
+            except Exception as e:
+                print(f"Monitoring error: {e}")
+                await asyncio.sleep(60)
+    
+    async def get_current_online_users(self):
+        """Get current online users from Redis and database"""
+        try:
+            # Get all online user keys from Redis
+            online_keys = redis_client.keys("user_online:*")
+            online_user_ids = [key.split(":")[1] for key in online_keys]
+            
+            # Get user details from database
+            db = next(get_db())
+            online_users = db.query(User).filter(User.id.in_(online_user_ids)).all()
+            
+            users_data = []
+            for user in online_users:
+                # Get last activity from Redis
+                last_activity_str = redis_client.get(f"user_activity:{user.id}")
+                last_activity = datetime.fromisoformat(last_activity_str) if last_activity_str else None
+                
+                users_data.append({
+                    "user_id": str(user.id),
+                    "email": user.email,
+                    "tenant_id": str(user.tenant_id),
+                    "tenant_name": user.tenant.name if user.tenant else "Unknown",
+                    "role": user.role,
+                    "is_online": True,
+                    "last_activity": last_activity.isoformat() if last_activity else None
+                })
+            
+            return {
+                "type": "online_users_update",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "total_online": len(users_data),
+                "users": users_data
+            }
+            
+        except Exception as e:
+            return {
+                "type": "error",
+                "message": f"Failed to get online users: {str(e)}"
+            }
+
+online_manager = OnlineUsersConnectionManager()
+
+@router.websocket("/ws/online-users")
+async def websocket_online_users(websocket: WebSocket):
+    """
+    WebSocket endpoint for real-time online users monitoring
+    Only updates when someone is actively watching
+    """
+    await online_manager.connect(websocket)
+    try:
+        while True:
+            # Keep connection alive and listen for client messages
+            await websocket.receive_text()
+    except:
+        online_manager.disconnect(websocket)
+
+@router.get("/current-online", response_model=List[OnlineUserResponse])
+async def get_current_online_users(
+    tenant_id: Optional[str] = None,
+    current_admin: User = Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get currently online users across all tenants
+    """
+    try:
+        # Get online user IDs from Redis
+        online_keys = redis_client.keys("user_online:*")
+        online_user_ids = [key.split(":")[1] for key in online_keys]
+        
+        if not online_user_ids:
+            return []
+        
+        # Query database for user details
+        query = db.query(User).filter(User.id.in_(online_user_ids))
+        
+        if tenant_id:
+            query = query.filter(User.tenant_id == tenant_id)
+        
+        online_users = query.all()
+        
+        result = []
+        for user in online_users:
+            # Get last activity from Redis
+            last_activity_str = redis_client.get(f"user_activity:{user.id}")
+            last_activity = datetime.fromisoformat(last_activity_str) if last_activity_str else None
+            
+            result.append(OnlineUserResponse(
+                user_id=str(user.id),
+                email=user.email,
+                tenant_id=str(user.tenant_id),
+                tenant_name=user.tenant.name if user.tenant else "Unknown",
+                role=user.role,
+                is_online=True,
+                last_activity=last_activity,
+                session_duration=datetime.now(timezone.utc) - last_activity if last_activity else None
+            ))
+        
+        return result
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get online users: {str(e)}"
+        )
+
+@router.get("/stats", response_model=OnlineStatsResponse)
+async def get_online_statistics(
+    current_admin: User = Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get online users statistics
+    """
+    try:
+        # Get total users count
+        total_users = db.query(User).count()
+        
+        # Get online users count from Redis
+        online_keys = redis_client.keys("user_online:*")
+        online_count = len(online_keys)
+        
+        # Get users by tenant
+        tenants_online = {}
+        if online_keys:
+            online_user_ids = [key.split(":")[1] for key in online_keys]
+            online_users = db.query(User).filter(User.id.in_(online_user_ids)).all()
+            
+            for user in online_users:
+                tenant_name = user.tenant.name if user.tenant else "Unknown"
+                tenants_online[tenant_name] = tenants_online.get(tenant_name, 0) + 1
+        
+        return OnlineStatsResponse(
+            total_users=total_users,
+            online_users=online_count,
+            offline_users=total_users - online_count,
+            online_percentage=(online_count / total_users * 100) if total_users > 0 else 0,
+            tenants_online=tenants_online,
+            last_updated=datetime.now(timezone.utc)
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get online statistics: {str(e)}"
+        )
+
+@router.post("/update-user-activity/{user_id}")
+async def update_user_activity(
+    user_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Update user activity status (called by tenant applications)
+    """
+    try:
+        # Verify user exists
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Update Redis with current activity
+        current_time = datetime.now(timezone.utc)
+        redis_client.setex(f"user_online:{user_id}", 300, "true")  # 5 minute expiry
+        redis_client.setex(f"user_activity:{user_id}", 300, current_time.isoformat())
+        
+        return {
+            "success": True,
+            "message": "User activity updated",
+            "user_id": user_id,
+            "timestamp": current_time
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to update user activity: {str(e)}"
+        )
+
+@router.delete("/cleanup-offline")
+async def cleanup_offline_users(
+    current_admin: User = Depends(get_super_admin_user)
+):
+    """
+    Manual cleanup of offline users (Redis keys expire automatically)
+    """
+    try:
+        # Get all user online keys
+        online_keys = redis_client.keys("user_online:*")
+        activity_keys = redis_client.keys("user_activity:*")
+        
+        cleanup_count = 0
+        current_time = datetime.now(timezone.utc)
+        
+        # Check activity keys for stale entries (older than 5 minutes)
+        for key in activity_keys:
+            activity_time_str = redis_client.get(key)
+            if activity_time_str:
+                activity_time = datetime.fromisoformat(activity_time_str)
+                if current_time - activity_time > timedelta(minutes=5):
+                    user_id = key.split(":")[1]
+                    redis_client.delete(f"user_online:{user_id}")
+                    redis_client.delete(key)
+                    cleanup_count += 1
+        
+        return {
+            "success": True,
+            "cleaned_up_users": cleanup_count,
+            "message": f"Cleaned up {cleanup_count} offline users"
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to cleanup offline users: {str(e)}"
+        )
+```
+
+#### Frontend Online Users Monitor Interface
+
+```typescript
+// super-admin-frontend/src/components/online-users/OnlineUsersMonitor.tsx
+import React, { useState, useEffect, useRef } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Users, Activity, Clock, Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+
+interface OnlineUser {
+  user_id: string;
+  email: string;
+  tenant_id: string;
+  tenant_name: string;
+  role: string;
+  is_online: boolean;
+  last_activity: string;
+  session_duration?: string;
+}
+
+interface OnlineStats {
+  total_users: number;
+  online_users: number;
+  offline_users: number;
+  online_percentage: number;
+  tenants_online: Record<string, number>;
+  last_updated: string;
+}
+
+export const OnlineUsersMonitor: React.FC = () => {
+  const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
+  const [stats, setStats] = useState<OnlineStats | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [isTabActive, setIsTabActive] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+  
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Monitor tab visibility to pause/resume updates
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      const isActive = !document.hidden;
+      setIsTabActive(isActive);
+      
+      if (isActive) {
+        // Tab became active - start monitoring
+        connectWebSocket();
+        loadStats();
+      } else {
+        // Tab became inactive - stop monitoring to save resources
+        disconnectWebSocket();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Initial connection if tab is active
+    if (isTabActive) {
+      connectWebSocket();
+      loadStats();
+    }
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      disconnectWebSocket();
+    };
+  }, []);
+
+  const connectWebSocket = () => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      return; // Already connected
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const wsUrl = `ws://localhost:8000/api/online-users/ws/online-users?token=${token}`;
+      
+      wsRef.current = new WebSocket(wsUrl);
+
+      wsRef.current.onopen = () => {
+        setIsConnected(true);
+        console.log('Online users WebSocket connected');
+        
+        // Clear any reconnection timeout
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current);
+          reconnectTimeoutRef.current = null;
+        }
+      };
+
+      wsRef.current.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          
+          if (data.type === 'online_users_update') {
+            setOnlineUsers(data.users);
+            // Update stats with current data
+            if (stats) {
+              setStats(prev => prev ? {
+                ...prev,
+                online_users: data.total_online,
+                offline_users: prev.total_users - data.total_online,
+                online_percentage: (data.total_online / prev.total_users * 100),
+                last_updated: data.timestamp
+              } : null);
+            }
+          } else if (data.type === 'error') {
+            console.error('WebSocket error:', data.message);
+          }
+        } catch (error) {
+          console.error('Failed to parse WebSocket message:', error);
+        }
+      };
+
+      wsRef.current.onclose = () => {
+        setIsConnected(false);
+        console.log('Online users WebSocket disconnected');
+        
+        // Auto-reconnect if tab is still active
+        if (isTabActive && !reconnectTimeoutRef.current) {
+          reconnectTimeoutRef.current = setTimeout(() => {
+            connectWebSocket();
+          }, 5000); // Reconnect after 5 seconds
+        }
+      };
+
+      wsRef.current.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        setIsConnected(false);
+      };
+
+    } catch (error) {
+      console.error('Failed to connect WebSocket:', error);
+      setIsConnected(false);
+    }
+  };
+
+  const disconnectWebSocket = () => {
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+    
+    setIsConnected(false);
+  };
+
+  const loadStats = async () => {
+    try {
+      const response = await fetch('/api/online-users/stats', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (response.ok) {
+        const statsData = await response.json();
+        setStats(statsData);
+      }
+    } catch (error) {
+      console.error('Failed to load online users stats:', error);
+    }
+  };
+
+  const manualRefresh = async () => {
+    setLoading(true);
+    try {
+      await loadStats();
+      
+      // Also get current online users
+      const response = await fetch('/api/online-users/current-online', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (response.ok) {
+        const users = await response.json();
+        setOnlineUsers(users);
+      }
+
+      toast({
+        title: "Refreshed",
+        description: "Online users data updated successfully",
+        variant: "default"
+      });
+    } catch (error) {
+      toast({
+        title: "Refresh Failed",
+        description: "Failed to refresh online users data",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDuration = (lastActivity: string) => {
+    const now = new Date();
+    const activity = new Date(lastActivity);
+    const diff = now.getTime() - activity.getTime();
+    const minutes = Math.floor(diff / 60000);
+    
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ${minutes % 60}m ago`;
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-gray-900">Online Users Monitor</h1>
+        <div className="flex items-center gap-4">
+          <Badge variant={isConnected ? "default" : "destructive"} className="flex items-center gap-2">
+            {isConnected ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
+            {isConnected ? 'Real-time Connected' : 'Disconnected'}
+          </Badge>
+          <Button
+            onClick={manualRefresh}
+            disabled={loading}
+            variant="outline"
+            size="sm"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
+      </div>
+
+      {!isTabActive && (
+        <Card className="border-yellow-200 bg-yellow-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-yellow-800">
+              <Activity className="w-5 h-5" />
+              <p>Real-time monitoring paused - switch to this tab to resume updates and save resources</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Statistics Overview */}
+      {stats && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.total_users}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Online Now</CardTitle>
+              <Wifi className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{stats.online_users}</div>
+              <p className="text-xs text-muted-foreground">
+                {stats.online_percentage.toFixed(1)}% of total
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Offline</CardTitle>
+              <WifiOff className="h-4 w-4 text-gray-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-600">{stats.offline_users}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Active Tenants</CardTitle>
+              <Activity className="h-4 w-4 text-blue-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600">
+                {Object.keys(stats.tenants_online).length}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Online Users List */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            Currently Online Users ({onlineUsers.length})
+            {isConnected && (
+              <Badge variant="outline" className="ml-2">
+                <Clock className="w-3 h-3 mr-1" />
+                Updates every 1min
+              </Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {onlineUsers.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <WifiOff className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <p>No users currently online</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {onlineUsers.map((user) => (
+                <div
+                  key={user.user_id}
+                  className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                      <div>
+                        <p className="font-medium text-gray-900">{user.email}</p>
+                        <p className="text-sm text-gray-600">
+                          {user.tenant_name} • {user.role}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <Badge variant="outline" className="mb-1">
+                      Online
+                    </Badge>
+                    <p className="text-xs text-gray-500">
+                      {user.last_activity ? formatDuration(user.last_activity) : 'Unknown'}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Tenants Activity Summary */}
+      {stats && Object.keys(stats.tenants_online).length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Tenants Activity Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {Object.entries(stats.tenants_online).map(([tenantName, count]) => (
+                <div
+                  key={tenantName}
+                  className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg"
+                >
+                  <span className="font-medium text-gray-900">{tenantName}</span>
+                  <Badge variant="default">{count} online</Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+};
+```
