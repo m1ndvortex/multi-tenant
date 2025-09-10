@@ -10,11 +10,18 @@
 - Use Docker volumes for persistent data and development file mounting
 
 ### Command Execution Guidelines
-- **Backend commands**: `docker-compose exec backend python -m pytest`
+- **Backend commands**: `docker-compose exec backend python -m pytest -n auto`
 - **Frontend commands**: `docker-compose exec frontend npm test`
 - **Database operations**: `docker-compose exec postgres psql -U hesaab -d hesaabplus`
 - **Redis operations**: `docker-compose exec redis redis-cli`
 - **Celery operations**: `docker-compose exec celery celery -A app.celery worker`
+
+### Parallel Testing with pytest-xdist
+- **ALL tests must use pytest-xdist** for parallel execution with `-n auto`
+- **pytest-xdist==3.5.0** is installed and configured for multi-threaded testing
+- **Automatic worker detection**: Use `-n auto` to utilize all available CPU cores
+- **Parallel-safe tests**: All tests must be designed to work with concurrent execution
+- **Performance improvement**: Expect 2-4x faster test execution on multi-core systems
 
 ### Development Environment Setup
 - Always use docker-compose.yml for service orchestration
@@ -105,10 +112,12 @@ test-redis:
 ```
 
 ### Test Execution Commands
-- **Run all tests**: `docker-compose -f docker-compose.test.yml up --abort-on-container-exit`
-- **Backend tests**: `docker-compose exec test-backend python -m pytest -v --cov=app`
-- **Frontend tests**: `docker-compose exec test-frontend npm run test:coverage`
-- **Integration tests**: `docker-compose exec test-backend python -m pytest tests/integration/ -v`
+- **Run all tests**: `docker-compose exec backend python -m pytest -n auto`
+- **Backend tests with coverage**: `docker-compose exec backend python -m pytest -n auto --cov=app --cov-report=html`
+- **Frontend tests**: `docker-compose exec frontend npm run test:coverage`
+- **Integration tests**: `docker-compose exec backend python -m pytest tests/integration/ -n auto -v`
+- **Specific test file**: `docker-compose exec backend python -m pytest tests/test_file.py -n auto`
+- **Debug mode (sequential)**: `docker-compose exec backend python -m pytest -n 0 -v -s`
 
 ### Continuous Integration Requirements
 - All tests must run in clean Docker containers
