@@ -201,6 +201,7 @@
 
 
 
+
   - Enhance existing impersonation interface at /impersonation route with better sidebar navigation integration
   - Modify existing جایگزینی button to open tenant session in new window/tab instead of current window redirect
   - Enhance existing active impersonation sessions monitor with improved session tracking and manual termination
@@ -211,7 +212,12 @@
   - **Backend Dependency:** Task 12 - Enhanced Impersonation System Backend APIs
   - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, 9.8, 9.9_
 
-- [ ] 15. Implement Real-Time Online Users Monitor Interface
+- [x] 15. Implement Real-Time Online Users Monitor Interface
+
+
+
+
+
   - Create real-time online users monitor interface accessible from sidebar navigation
   - Implement WebSocket connection for real-time user status updates (only when tab is active)
   - Create online users statistics dashboard with tenant-wise breakdown and activity tracking

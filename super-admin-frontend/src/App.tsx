@@ -15,6 +15,7 @@ import BackupRecovery from '@/pages/BackupRecovery';
 import UserImpersonation from '@/pages/UserImpersonation';
 import ErrorLogging from '@/pages/ErrorLogging';
 import SubscriptionManagement from '@/pages/SubscriptionManagement';
+import OnlineUsersMonitor from '@/pages/OnlineUsersMonitor';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,6 +53,7 @@ function App() {
                           <Route path="/backup-recovery" element={<BackupRecovery />} />
                           <Route path="/impersonation" element={<UserImpersonation />} />
                           <Route path="/error-logging" element={<ErrorLogging />} />
+                          <Route path="/online-users" element={<OnlineUsersMonitor />} />
                         </Routes>
                       </Layout>
                     </NavigationProvider>
