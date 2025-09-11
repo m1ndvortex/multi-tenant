@@ -457,10 +457,10 @@ class TestEnhancedErrorLoggingAPI:
         from app.core.auth import create_access_token
         from datetime import timedelta
         
-        # Create a mock super admin token
+        # Create a mock super admin token with valid UUID
         token_data = {
             "sub": "admin@hesaabplus.com",
-            "user_id": "super-admin-id",
+            "user_id": str(uuid.uuid4()),
             "role": "super_admin",
             "is_super_admin": True
         }
@@ -471,169 +471,314 @@ class TestEnhancedErrorLoggingAPI:
         
         return {"Authorization": f"Bearer {token}"}
     
-    def test_get_active_errors_endpoint(self, client, super_admin_headers):
+    def test_get_active_errors_endpoint(self, client, super_admin_headers, db_session):
         """Test GET /enhanced-error-logging/active-errors endpoint"""
         from app.api.enhanced_error_logging import get_super_admin_user
         from app.main import app
+        from app.models.user import User, UserRole, UserStatus
         
-        # Create mock super admin user
-        mock_user = Mock()
-        mock_user.id = uuid.uuid4()
-        mock_user.is_super_admin = True
-        mock_user.email = "admin@test.com"
+        # Create a real super admin user in the database
+        super_admin_user = User(
+            email="admin@test.com",
+            password_hash="hashed_password",
+            first_name="Test",
+            last_name="Admin",
+            role=UserRole.ADMIN,
+            status=UserStatus.ACTIVE,
+            is_super_admin=True,
+            is_email_verified=True
+        )
+        db_session.add(super_admin_user)
+        db_session.commit()
+        db_session.refresh(super_admin_user)
         
-        # Override the dependency
-        app.dependency_overrides[get_super_admin_user] = lambda: mock_user
+        # Create token with the real user ID
+        from app.core.auth import create_access_token
+        from datetime import timedelta
         
-        try:
-            response = client.get(
-                "/enhanced-error-logging/active-errors",
-                headers=super_admin_headers,
-                params={"hours_back": 24, "limit": 10}
-            )
-        finally:
-            # Clean up the override
-            app.dependency_overrides.pop(get_super_admin_user, None)
-            
-            # Should return 200 even with no errors
-            assert response.status_code == 200
-            data = response.json()
-            assert "errors" in data
-            assert "total" in data
-            assert isinstance(data["errors"], list)
+        token_data = {
+            "sub": super_admin_user.email,
+            "user_id": str(super_admin_user.id),
+            "role": "admin",
+            "is_super_admin": True
+        }
+        token = create_access_token(
+            data=token_data,
+            expires_delta=timedelta(hours=1)
+        )
+        
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        response = client.get(
+            "/api/enhanced-error-logging/active-errors",
+            headers=headers,
+            params={"hours_back": 24, "limit": 10}
+        )
+        
+        # Should return 200 even with no errors
+        assert response.status_code == 200
+        data = response.json()
+        assert "errors" in data
+        assert "total" in data
+        assert isinstance(data["errors"], list)
     
-    def test_get_real_time_statistics_endpoint(self, client, super_admin_headers):
+    def test_get_real_time_statistics_endpoint(self, client, db_session):
         """Test GET /enhanced-error-logging/real-time-statistics endpoint"""
-        from app.api.enhanced_error_logging import get_super_admin_user
-        from app.main import app
+        from app.models.user import User, UserRole, UserStatus
+        from app.core.auth import create_access_token
+        from datetime import timedelta
         
-        # Create mock super admin user
-        mock_user = Mock()
-        mock_user.id = uuid.uuid4()
-        mock_user.is_super_admin = True
-        mock_user.email = "admin@test.com"
+        # Create a real super admin user in the database
+        super_admin_user = User(
+            email="admin@test.com",
+            password_hash="hashed_password",
+            first_name="Test",
+            last_name="Admin",
+            role=UserRole.ADMIN,
+            status=UserStatus.ACTIVE,
+            is_super_admin=True,
+            is_email_verified=True
+        )
+        db_session.add(super_admin_user)
+        db_session.commit()
+        db_session.refresh(super_admin_user)
         
-        # Override the dependency
-        app.dependency_overrides[get_super_admin_user] = lambda: mock_user
+        # Create token with the real user ID
+        token_data = {
+            "sub": super_admin_user.email,
+            "user_id": str(super_admin_user.id),
+            "role": "admin",
+            "is_super_admin": True
+        }
+        token = create_access_token(
+            data=token_data,
+            expires_delta=timedelta(hours=1)
+        )
         
-        try:
-            response = client.get(
-                "/enhanced-error-logging/real-time-statistics",
-                headers=super_admin_headers,
-                params={"hours_back": 24}
-            )
-        finally:
-            # Clean up the override
-            app.dependency_overrides.pop(get_super_admin_user, None)
-            
-            assert response.status_code == 200
-            data = response.json()
-            assert "total_errors" in data
-            assert "active_errors_count" in data
-            assert "severity_breakdown" in data
-            assert "last_updated" in data
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        response = client.get(
+            "/api/enhanced-error-logging/real-time-statistics",
+            headers=headers,
+            params={"hours_back": 24}
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert "total_errors" in data
+        assert "severity_breakdown" in data
+        assert "category_breakdown" in data
+        assert "recent_critical_errors" in data
+        assert "unresolved_errors" in data
+        assert "top_error_endpoints" in data
     
-    def test_resolve_error_with_tracking_endpoint(self, client, super_admin_headers):
+    def test_resolve_error_with_tracking_endpoint(self, client, db_session):
         """Test PUT /enhanced-error-logging/{error_id}/resolve-with-tracking endpoint"""
-        error_id = uuid.uuid4()
+        from app.models.user import User, UserRole, UserStatus
+        from app.core.auth import create_access_token
+        from datetime import timedelta
         
-        with patch('app.api.enhanced_error_logging.get_super_admin_user') as mock_auth, \
-             patch('app.api.enhanced_error_logging.ErrorLoggingService') as mock_service:
-            
-            mock_auth.return_value = Mock(id=uuid.uuid4(), name="Test Admin")
-            
-            # Mock resolved error
-            mock_error = Mock()
-            mock_error.id = error_id
-            mock_error.is_resolved = True
-            mock_error.resolved_at = datetime.utcnow()
-            mock_error.error_message = "Test error"
-            mock_error.error_type = "TestError"
-            mock_error.endpoint = "/api/test"
-            mock_error.severity = ErrorSeverity.HIGH
-            mock_error.tenant_id = None
-            
-            mock_service_instance = Mock()
-            mock_service_instance.resolve_error.return_value = mock_error
-            mock_service.return_value = mock_service_instance
-            
-            # Mock database query
-            with patch('app.api.enhanced_error_logging.APIErrorLog') as mock_model:
-                mock_query = Mock()
-                mock_query.filter.return_value.first.return_value = mock_error
-                mock_model.return_value = mock_query
-                
-                response = client.put(
-                    f"/enhanced-error-logging/{error_id}/resolve-with-tracking",
-                    headers=super_admin_headers,
-                    json={"notes": "Fixed the issue"}
-                )
-                
-                # Note: This might return 500 due to missing database setup
-                # In a real test environment with proper DB setup, this should return 200
-                assert response.status_code in [200, 500]
+        # Create a real super admin user in the database
+        super_admin_user = User(
+            email="admin@test.com",
+            password_hash="hashed_password",
+            first_name="Test",
+            last_name="Admin",
+            role=UserRole.ADMIN,
+            status=UserStatus.ACTIVE,
+            is_super_admin=True,
+            is_email_verified=True
+        )
+        db_session.add(super_admin_user)
+        db_session.commit()
+        db_session.refresh(super_admin_user)
+        
+        # Create an error log to resolve
+        error_log = APIErrorLog(
+            error_message="Test error to resolve",
+            error_type="TestError",
+            endpoint="/api/test",
+            method="GET",
+            status_code=500,
+            severity=ErrorSeverity.HIGH,
+            category=ErrorCategory.SYSTEM,
+            tenant_id=None,
+            occurrence_count=1,
+            first_occurrence=datetime.utcnow(),
+            last_occurrence=datetime.utcnow(),
+            is_resolved=False
+        )
+        db_session.add(error_log)
+        db_session.commit()
+        db_session.refresh(error_log)
+        
+        # Create token with the real user ID
+        token_data = {
+            "sub": super_admin_user.email,
+            "user_id": str(super_admin_user.id),
+            "role": "admin",
+            "is_super_admin": True
+        }
+        token = create_access_token(
+            data=token_data,
+            expires_delta=timedelta(hours=1)
+        )
+        
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        response = client.put(
+            f"/api/enhanced-error-logging/{error_log.id}/resolve-with-tracking",
+            headers=headers,
+            json={"notes": "Fixed the issue"}
+        )
+        
+        # Should return 200 with real database setup
+        assert response.status_code == 200
+        data = response.json()
+        assert data["is_resolved"] == True
+        assert "resolved_at" in data
     
-    def test_get_critical_alerts_endpoint(self, client, super_admin_headers):
+    def test_get_critical_alerts_endpoint(self, client, db_session):
         """Test GET /enhanced-error-logging/critical-alerts endpoint"""
-        with patch('app.api.enhanced_error_logging.get_super_admin_user') as mock_auth:
-            mock_auth.return_value = Mock(id=uuid.uuid4(), is_super_admin=True)
-            
-            response = client.get(
-                "/enhanced-error-logging/critical-alerts",
-                headers=super_admin_headers,
-                params={"hours": 24}
-            )
-            
-            assert response.status_code == 200
-            data = response.json()
-            assert isinstance(data, list)
+        from app.models.user import User, UserRole, UserStatus
+        from app.core.auth import create_access_token
+        from datetime import timedelta
+        
+        # Create a real super admin user in the database
+        super_admin_user = User(
+            email="admin@test.com",
+            password_hash="hashed_password",
+            first_name="Test",
+            last_name="Admin",
+            role=UserRole.ADMIN,
+            status=UserStatus.ACTIVE,
+            is_super_admin=True,
+            is_email_verified=True
+        )
+        db_session.add(super_admin_user)
+        db_session.commit()
+        db_session.refresh(super_admin_user)
+        
+        # Create token with the real user ID
+        token_data = {
+            "sub": super_admin_user.email,
+            "user_id": str(super_admin_user.id),
+            "role": "admin",
+            "is_super_admin": True
+        }
+        token = create_access_token(
+            data=token_data,
+            expires_delta=timedelta(hours=1)
+        )
+        
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        response = client.get(
+            "/api/enhanced-error-logging/critical-alerts",
+            headers=headers,
+            params={"hours": 24}
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
     
-    def test_get_connection_status_endpoint(self, client, super_admin_headers):
+    def test_get_connection_status_endpoint(self, client, db_session):
         """Test GET /enhanced-error-logging/connection-status endpoint"""
-        with patch('app.api.enhanced_error_logging.get_super_admin_user') as mock_auth:
-            mock_auth.return_value = Mock(id=uuid.uuid4(), is_super_admin=True)
-            
-            response = client.get(
-                "/enhanced-error-logging/connection-status",
-                headers=super_admin_headers
-            )
-            
-            assert response.status_code == 200
-            data = response.json()
-            assert "active_connections" in data
-            assert "status" in data
-            assert "timestamp" in data
+        from app.models.user import User, UserRole, UserStatus
+        from app.core.auth import create_access_token
+        from datetime import timedelta
+        
+        # Create a real super admin user in the database
+        super_admin_user = User(
+            email="admin@test.com",
+            password_hash="hashed_password",
+            first_name="Test",
+            last_name="Admin",
+            role=UserRole.ADMIN,
+            status=UserStatus.ACTIVE,
+            is_super_admin=True,
+            is_email_verified=True
+        )
+        db_session.add(super_admin_user)
+        db_session.commit()
+        db_session.refresh(super_admin_user)
+        
+        # Create token with the real user ID
+        token_data = {
+            "sub": super_admin_user.email,
+            "user_id": str(super_admin_user.id),
+            "role": "admin",
+            "is_super_admin": True
+        }
+        token = create_access_token(
+            data=token_data,
+            expires_delta=timedelta(hours=1)
+        )
+        
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        response = client.get(
+            "/api/enhanced-error-logging/connection-status",
+            headers=headers
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert "active_connections" in data
+        assert "status" in data
+        assert "timestamp" in data
     
-    def test_simulate_error_endpoint(self, client, super_admin_headers):
+    def test_simulate_error_endpoint(self, client, db_session):
         """Test POST /enhanced-error-logging/simulate-error endpoint"""
-        with patch('app.api.enhanced_error_logging.get_super_admin_user') as mock_auth, \
-             patch('app.api.enhanced_error_logging.ErrorLoggingService') as mock_service:
-            
-            mock_auth.return_value = Mock(id=uuid.uuid4(), is_super_admin=True)
-            
-            # Mock simulated error
-            mock_error = Mock()
-            mock_error.id = uuid.uuid4()
-            mock_error.error_message = "[SIMULATED] Test error"
-            mock_error.severity = ErrorSeverity.HIGH
-            mock_error.created_at = datetime.utcnow()
-            
-            mock_service_instance = Mock()
-            mock_service_instance.log_custom_error.return_value = mock_error
-            mock_service.return_value = mock_service_instance
-            
-            response = client.post(
-                "/enhanced-error-logging/simulate-error",
-                headers=super_admin_headers,
-                params={
-                    "error_message": "Test simulation",
-                    "severity": "high"
-                }
-            )
-            
-            # Note: This might return 500 due to missing database setup
-            # In a real test environment with proper DB setup, this should return 200
-            assert response.status_code in [200, 500]
+        from app.models.user import User, UserRole, UserStatus
+        from app.core.auth import create_access_token
+        from datetime import timedelta
+        
+        # Create a real super admin user in the database
+        super_admin_user = User(
+            email="admin@test.com",
+            password_hash="hashed_password",
+            first_name="Test",
+            last_name="Admin",
+            role=UserRole.ADMIN,
+            status=UserStatus.ACTIVE,
+            is_super_admin=True,
+            is_email_verified=True
+        )
+        db_session.add(super_admin_user)
+        db_session.commit()
+        db_session.refresh(super_admin_user)
+        
+        # Create token with the real user ID
+        token_data = {
+            "sub": super_admin_user.email,
+            "user_id": str(super_admin_user.id),
+            "role": "admin",
+            "is_super_admin": True
+        }
+        token = create_access_token(
+            data=token_data,
+            expires_delta=timedelta(hours=1)
+        )
+        
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        response = client.post(
+            "/api/enhanced-error-logging/simulate-error",
+            headers=headers,
+            params={
+                "error_message": "Test simulation",
+                "severity": "high"
+            }
+        )
+        
+        # Should return 200 with real database setup
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] == True
+        assert "Error simulated successfully" in data["message"]
+        assert "error_id" in data
 
 
 class TestRealTimeScenarios:

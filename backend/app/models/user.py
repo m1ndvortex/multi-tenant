@@ -168,6 +168,20 @@ class User(BaseModel):
     # Relationships
     tenant = relationship("Tenant", back_populates="users")
     
+    # Impersonation session relationships
+    admin_impersonation_sessions = relationship(
+        "ImpersonationSession", 
+        foreign_keys="ImpersonationSession.admin_user_id",
+        back_populates="admin_user",
+        cascade="all, delete-orphan"
+    )
+    target_impersonation_sessions = relationship(
+        "ImpersonationSession", 
+        foreign_keys="ImpersonationSession.target_user_id",
+        back_populates="target_user",
+        cascade="all, delete-orphan"
+    )
+    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         if self.login_count is None:

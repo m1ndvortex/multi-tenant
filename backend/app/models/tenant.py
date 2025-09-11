@@ -171,6 +171,13 @@ class Tenant(BaseModel):
     invoice_branding_configs = relationship("InvoiceBranding", back_populates="tenant", cascade="all, delete-orphan")
     api_keys = relationship("ApiKey", back_populates="tenant", cascade="all, delete-orphan")
     
+    # Impersonation session relationship
+    impersonation_sessions = relationship(
+        "ImpersonationSession", 
+        back_populates="target_tenant",
+        cascade="all, delete-orphan"
+    )
+    
     def __repr__(self):
         return f"<Tenant(id={self.id}, name='{self.name}', subscription='{self.subscription_type.value}')>"
     

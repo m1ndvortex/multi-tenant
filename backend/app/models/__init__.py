@@ -39,6 +39,7 @@ from .authentication_log import AuthenticationLog
 from .tenant_credentials import TenantCredentials
 from .subscription_history import SubscriptionHistory, SubscriptionChangeType
 from .error_log import ErrorLog, ErrorSeverity, ErrorStatus, ErrorCategory
+from .impersonation_session import ImpersonationSession
 
 __all__ = [
     "Base",
@@ -120,4 +121,5 @@ __all__ = [
     "ErrorSeverity",
     "ErrorStatus",
     "ErrorCategory",
+    "ImpersonationSession",
 ]
