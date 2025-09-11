@@ -390,13 +390,12 @@ async def terminate_enhanced_session(
             detail="Session not found"
         )
     
-    # End the session with admin termination reason
-    result = impersonation_service.end_impersonation(
-        current_user=admin_user,  # Use admin user as current user for termination
+    # Terminate the session directly (admin termination)
+    result = impersonation_service.admin_terminate_session(
+        admin_user=admin_user,
         session_id=session_id,
         ip_address=ip_address,
-        user_agent=user_agent,
-        termination_reason="admin_terminated"
+        user_agent=user_agent
     )
     
     return {

@@ -17,7 +17,7 @@ from ..core.auth import create_impersonation_token, verify_token, Authentication
 from ..models.user import User, UserStatus
 from ..models.tenant import Tenant, TenantStatus
 from ..models.impersonation_session import ImpersonationSession
-# from ..models.activity_log import ActivityLog  # Temporarily disabled due to migration issues
+from ..models.activity_log import ActivityLog
 from ..core.redis_client import redis_client
 
 
@@ -255,6 +255,67 @@ class EnhancedImpersonationService:
             "session_id": session_id,
             "termination_reason": termination_reason,
             "ended_at": datetime.now(timezone.utc).isoformat()
+        }
+    
+    def admin_terminate_session(
+        self,
+        admin_user: User,
+        session_id: str,
+        ip_address: Optional[str] = None,
+        user_agent: Optional[str] = None
+    ) -> Dict[str, str]:
+        """
+        Admin termination of an impersonation session
+        
+        Args:
+            admin_user: Admin user terminating the session
+            session_id: Session ID to terminate
+            ip_address: Request IP address
+            user_agent: Request user agent
+            
+        Returns:
+            Dict with termination confirmation
+        """
+        # Update database session record
+        db_session = self.db.query(ImpersonationSession).filter(
+            ImpersonationSession.session_id == session_id,
+            ImpersonationSession.is_active == True
+        ).first()
+        
+        if not db_session:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Session not found or already ended"
+            )
+        
+        # Get target user for logging
+        target_user = self.db.query(User).filter(User.id == db_session.target_user_id).first()
+        
+        # End the session
+        db_session.end_session(reason="admin_terminated", terminated_by_admin_id=admin_user.id)
+        self.db.commit()
+        
+        # Remove session from Redis
+        redis_key = f"impersonation_session:{session_id}"
+        self.redis_client.delete(redis_key)
+        
+        # Log session termination
+        self._log_impersonation_attempt(
+            admin_user=admin_user,
+            target_user=target_user,
+            action="impersonation_terminated",
+            status="success",
+            session_id=session_id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            reason="Terminated by super admin"
+        )
+        
+        return {
+            "message": "Session terminated successfully",
+            "session_id": session_id,
+            "terminated_at": datetime.now(timezone.utc).isoformat(),
+            "terminated_by": str(admin_user.id)
         }
     
     def detect_window_closure(
@@ -510,26 +571,43 @@ class EnhancedImpersonationService:
                 "timestamp": datetime.now(timezone.utc).isoformat()
             }
             
-            # TODO: Re-enable activity logging once ActivityLog table is restored
             # Create activity log entry
-            # log_entry = ActivityLog(
-            #     user_id=admin_user.id if admin_user else None,
-            #     action=action,
-            #     resource_type="impersonation_session",
-            #     resource_id=session_id,
-            #     details=details,
-            #     ip_address=ip_address,
-            #     user_agent=user_agent,
-            #     status=status,
-            #     error_message=error_message,
-            #     tenant_id=admin_user.tenant_id if admin_user else None
-            # )
-            # 
-            # self.db.add(log_entry)
-            # self.db.commit()
+            # For super admin users, use the target user's tenant_id for logging
+            log_tenant_id = None
+            if admin_user:
+                if admin_user.tenant_id:
+                    log_tenant_id = admin_user.tenant_id
+                elif target_user and target_user.tenant_id:
+                    # Super admin impersonating a tenant user - use target tenant for logging
+                    log_tenant_id = target_user.tenant_id
+                else:
+                    # Create a dummy tenant_id for super admin activities
+                    # We'll use the first available tenant or create a system tenant
+                    from ..models.tenant import Tenant
+                    system_tenant = self.db.query(Tenant).first()
+                    if system_tenant:
+                        log_tenant_id = system_tenant.id
             
-            # For now, just print the log for debugging
-            print(f"Impersonation log: {action} - {status} - {details}")
+            if log_tenant_id:  # Only create log if we have a valid tenant_id
+                log_entry = ActivityLog(
+                    user_id=admin_user.id if admin_user else None,
+                    action=action,
+                    resource_type="impersonation_session",
+                    resource_id=session_id,
+                    details=details,
+                    ip_address=ip_address,
+                    user_agent=user_agent,
+                    status=status,
+                    error_message=error_message,
+                    tenant_id=log_tenant_id
+                )
+                
+                self.db.add(log_entry)
+                self.db.commit()
+            else:
+                # Fallback: just print the log if we can't store in database
+                print(f"Impersonation log (no tenant): {action} - {status} - {details}")
+
             
         except Exception as e:
             # Don't fail the main operation if logging fails
