@@ -50,6 +50,7 @@ from app.api.error_logging import router as error_logging_router
 from app.api.enhanced_error_logging import router as enhanced_error_logging_router
 from app.api.enhanced_tenant_management import router as enhanced_tenant_management_router
 from app.api.enhanced_impersonation import router as enhanced_impersonation_router
+from app.api.online_users_monitoring import router as online_users_monitoring_router
 from app.api.dashboard import router as dashboard_router
 from app.api.invoice_customization import router as invoice_customization_router
 from app.api.api_access import router as api_access_router
@@ -225,6 +226,7 @@ app.include_router(error_logging_router, prefix="/api")
 app.include_router(enhanced_error_logging_router, prefix="/api")
 app.include_router(enhanced_tenant_management_router, prefix="/api")
 app.include_router(enhanced_impersonation_router, prefix="/api")
+app.include_router(online_users_monitoring_router, prefix="/api")
 app.include_router(dashboard_router)
 app.include_router(invoice_customization_router, prefix="/api/invoice-customization")
 app.include_router(api_access_router, prefix="/api")

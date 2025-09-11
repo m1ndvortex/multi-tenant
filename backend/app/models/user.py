@@ -182,6 +182,13 @@ class User(BaseModel):
         cascade="all, delete-orphan"
     )
     
+    # Online status relationship
+    online_status = relationship(
+        "UserOnlineStatus",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         if self.login_count is None:
