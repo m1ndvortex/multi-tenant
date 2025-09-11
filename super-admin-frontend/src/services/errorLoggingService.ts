@@ -415,4 +415,27 @@ class ErrorLoggingService {
 
 // Export singleton instance
 export const errorLoggingService = new ErrorLoggingService();
+
+// Re-export types for convenience
+export { ErrorSeverity, ErrorCategory } from '../types/errorLogging';
+export type { 
+  ErrorLog, 
+  ErrorStatistics, 
+  ErrorFilters, 
+  CriticalErrorAlert 
+} from '../types/errorLogging';
+
+// Placeholder type for ErrorTrends
+export interface ErrorTrends {
+  daily_counts: Array<{ date: string; count: number }>;
+  severity_trends: Record<string, Array<{ time: string; count: number }>>;
+}
+
+// Additional exports for components
+export const ErrorLogFilters = {
+  // Default filter values
+  DEFAULT_HOURS_BACK: 24,
+  DEFAULT_LIMIT: 50
+};
+
 export default errorLoggingService;

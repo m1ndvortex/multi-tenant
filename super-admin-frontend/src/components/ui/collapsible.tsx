@@ -3,7 +3,7 @@
  * Based on Radix UI Collapsible primitive
  */
 
-import * as React from "react"
+// import React from "react" // unused
 import * as CollapsiblePrimitive from "@radix-ui/react-collapsible"
 
 const Collapsible = CollapsiblePrimitive.Root

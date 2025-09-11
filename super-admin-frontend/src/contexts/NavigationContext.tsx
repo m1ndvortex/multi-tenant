@@ -70,6 +70,10 @@ export const NavigationProvider: React.FC<NavigationProviderProps> = ({ children
     '/error-logging': {
       title: 'مدیریت خطاها',
       description: 'مشاهده و تحلیل خطاهای سیستم'
+    },
+    '/online-users': {
+      title: 'کاربران آنلاین',
+      description: 'نظارت بر وضعیت آنلاین کاربران در زمان واقعی'
     }
   };
 

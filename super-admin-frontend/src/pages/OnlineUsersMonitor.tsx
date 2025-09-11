@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -15,7 +15,6 @@ import {
   RefreshCw,
   Eye,
   Settings,
-  Download,
   AlertCircle,
   X
 } from 'lucide-react';
@@ -30,7 +29,7 @@ import RealTimeConnectionStatus from '../components/online-users/RealTimeConnect
 
 // Import hooks and types
 import { useOnlineUsers } from '../hooks/useOnlineUsers';
-import { OnlineUser, UserSession, OnlineUsersFilter } from '../types/onlineUsers';
+import { OnlineUser, UserSession } from '../types/onlineUsers';
 
 // Mock tenants data - in real app, this would come from API
 const mockTenants = [
@@ -49,7 +48,6 @@ export const OnlineUsersMonitor: React.FC = () => {
   const {
     users,
     stats,
-    tenantUsers,
     loading,
     statsLoading,
     usersLoading,
@@ -57,9 +55,7 @@ export const OnlineUsersMonitor: React.FC = () => {
     refreshUsers,
     refreshStats,
     setUserOffline,
-    bulkSetUsersOffline,
     getUserSession,
-    getTenantUsers,
     cleanupExpiredUsers,
     filters,
     setFilters,
@@ -295,7 +291,7 @@ export const OnlineUsersMonitor: React.FC = () => {
           {selectedUser ? (
             <UserActivityTimeline
               user={selectedUser}
-              session={selectedUserSession}
+              session={selectedUserSession || undefined}
               onClose={() => {
                 setSelectedUser(null);
                 setSelectedUserSession(null);

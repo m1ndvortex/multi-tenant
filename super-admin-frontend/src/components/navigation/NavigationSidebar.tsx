@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import useNavigationGuards from '@/hooks/useNavigationGuards';
+import useNavigationPersistence from '@/hooks/useNavigationPersistence';
 
 interface NavItem {
   path: string;
@@ -18,7 +20,14 @@ interface NavigationSidebarProps {
 
 const NavigationSidebar: React.FC<NavigationSidebarProps> = ({ className }) => {
   const location = useLocation();
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const { hasAccessToRoute } = useNavigationGuards();
+  const { navigationState, updateSidebarState } = useNavigationPersistence();
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(navigationState.sidebarCollapsed);
+
+  // Update sidebar state when it changes
+  useEffect(() => {
+    updateSidebarState(isSidebarCollapsed);
+  }, [isSidebarCollapsed, updateSidebarState]);
 
   const navItems: NavItem[] = [
     {
@@ -201,6 +210,13 @@ const NavigationSidebar: React.FC<NavigationSidebarProps> = ({ className }) => {
             <div className="space-y-1">
               {items.map((item) => {
                 const isActive = location.pathname === item.path;
+                const hasAccess = hasAccessToRoute(item.path);
+                
+                // Don't render items user doesn't have access to
+                if (!hasAccess) {
+                  return null;
+                }
+                
                 return (
                   <Link
                     key={item.path}

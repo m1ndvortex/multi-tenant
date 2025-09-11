@@ -4,6 +4,7 @@ import SuperAdminHeader from '@/components/SuperAdminHeader';
 import Breadcrumb from '@/components/navigation/Breadcrumb';
 import { useNavigation } from '@/contexts/NavigationContext';
 import useKeyboardShortcuts from '@/hooks/useKeyboardShortcuts';
+import useNavigationGuards from '@/hooks/useNavigationGuards';
 import { cn } from '@/lib/utils';
 
 interface LayoutProps {
@@ -13,6 +14,7 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { navigationState } = useNavigation();
   useKeyboardShortcuts(); // Enable keyboard shortcuts
+  useNavigationGuards(); // Enable navigation guards
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex" dir="rtl">

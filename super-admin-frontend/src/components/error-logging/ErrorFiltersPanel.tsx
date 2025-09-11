@@ -21,12 +21,9 @@ import { Switch } from '../ui/switch';
 import { 
   Filter, 
   X, 
-  Calendar,
   Clock,
   AlertTriangle,
-  Server,
-  Users,
-  RefreshCw
+  Server
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { ErrorFilters, ErrorSeverity, ErrorCategory, ErrorStatistics } from '../../types/errorLogging';

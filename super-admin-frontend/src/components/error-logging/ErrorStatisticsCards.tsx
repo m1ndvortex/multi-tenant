@@ -15,12 +15,11 @@ import {
   TrendingDown,
   Activity,
   Clock,
-  Users,
   Server,
   Zap
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { ErrorStatistics, ErrorSeverity } from '../../types/errorLogging';
+import { ErrorStatistics } from '../../types/errorLogging';
 
 interface ErrorStatisticsCardsProps {
   statistics: ErrorStatistics | null;

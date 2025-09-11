@@ -29,32 +29,44 @@ const useKeyboardShortcuts = () => {
     {
       key: '3',
       ctrlKey: true,
+      action: () => navigate('/subscriptions'),
+      description: 'رفتن به مدیریت اشتراک‌ها'
+    },
+    {
+      key: '4',
+      ctrlKey: true,
       action: () => navigate('/analytics'),
       description: 'رفتن به آنالیتیکس'
     },
     {
-      key: '4',
+      key: '5',
       ctrlKey: true,
       action: () => navigate('/system-health'),
       description: 'رفتن به سلامت سیستم'
     },
     {
-      key: '5',
+      key: '6',
       ctrlKey: true,
       action: () => navigate('/backup-recovery'),
       description: 'رفتن به پشتیبان‌گیری'
     },
     {
-      key: '6',
+      key: '7',
       ctrlKey: true,
       action: () => navigate('/impersonation'),
       description: 'رفتن به جایگزینی کاربر'
     },
     {
-      key: '7',
+      key: '8',
       ctrlKey: true,
       action: () => navigate('/error-logging'),
       description: 'رفتن به مدیریت خطاها'
+    },
+    {
+      key: '9',
+      ctrlKey: true,
+      action: () => navigate('/online-users'),
+      description: 'رفتن به کاربران آنلاین'
     },
     {
       key: '/',

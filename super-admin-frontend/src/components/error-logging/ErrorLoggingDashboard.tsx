@@ -14,18 +14,14 @@ import {
   Wifi, 
   WifiOff, 
   AlertTriangle, 
-  CheckCircle, 
   XCircle,
   Activity,
-  TrendingUp,
   Clock,
-  Users,
-  Server,
   Bug
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useErrorLogging } from '../../hooks/useErrorLogging';
-import { ErrorSeverity, ErrorFilters } from '../../types/errorLogging';
+import { ErrorFilters } from '../../types/errorLogging';
 import ErrorStatisticsCards from './ErrorStatisticsCards';
 import ActiveErrorsTable from './ActiveErrorsTable';
 import CriticalAlertsPanel from './CriticalAlertsPanel';
@@ -59,7 +55,7 @@ const ErrorLoggingDashboard: React.FC<ErrorLoggingDashboardProps> = ({ className
     markNotificationAsRead,
     clearAllNotifications,
     updateFilters,
-    toggleAutoRefresh
+    // toggleAutoRefresh - unused
   } = useErrorLogging({
     autoConnect: true,
     autoRefresh: true,
@@ -126,20 +122,7 @@ const ErrorLoggingDashboard: React.FC<ErrorLoggingDashboardProps> = ({ className
   /**
    * Get severity color
    */
-  const getSeverityColor = (severity: ErrorSeverity): string => {
-    switch (severity) {
-      case ErrorSeverity.CRITICAL:
-        return 'text-red-600 bg-red-50 border-red-200';
-      case ErrorSeverity.HIGH:
-        return 'text-orange-600 bg-orange-50 border-orange-200';
-      case ErrorSeverity.MEDIUM:
-        return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-      case ErrorSeverity.LOW:
-        return 'text-blue-600 bg-blue-50 border-blue-200';
-      default:
-        return 'text-gray-600 bg-gray-50 border-gray-200';
-    }
-  };
+  // getSeverityColor function removed as unused
 
   /**
    * Get connection status indicator

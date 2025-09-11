@@ -26,11 +26,14 @@ export interface UseOnlineUsersReturn {
   users: OnlineUser[];
   stats: OnlineUsersStats | null;
   tenantUsers: Record<string, TenantOnlineUsers>;
+  data: { users: OnlineUser[]; stats: OnlineUsersStats | null; total_count: number; last_updated: string };
   
   // Loading states
   loading: boolean;
   statsLoading: boolean;
   usersLoading: boolean;
+  isLoading: boolean;
+  isRefetching: boolean;
   
   // Real-time connection
   isConnected: boolean;
@@ -293,11 +296,14 @@ export const useOnlineUsers = (options: UseOnlineUsersOptions = {}): UseOnlineUs
     users,
     stats,
     tenantUsers,
+    data: { users, stats, total_count: users.length, last_updated: new Date().toISOString() },
     
     // Loading states
     loading,
     statsLoading,
     usersLoading,
+    isLoading: loading,
+    isRefetching: loading,
     
     // Real-time connection
     isConnected,

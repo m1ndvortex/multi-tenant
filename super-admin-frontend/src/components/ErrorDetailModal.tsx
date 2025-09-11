@@ -117,7 +117,9 @@ export const ErrorDetailModal: React.FC<ErrorDetailModalProps> = ({
       [ErrorCategory.AUTHORIZATION]: 'مجوز دسترسی',
       [ErrorCategory.VALIDATION]: 'اعتبارسنجی',
       [ErrorCategory.DATABASE]: 'پایگاه داده',
+      [ErrorCategory.API]: 'API',
       [ErrorCategory.EXTERNAL_API]: 'API خارجی',
+      [ErrorCategory.EXTERNAL_SERVICE]: 'سرویس خارجی',
       [ErrorCategory.BUSINESS_LOGIC]: 'منطق کسب‌وکار',
       [ErrorCategory.SYSTEM]: 'سیستم',
       [ErrorCategory.NETWORK]: 'شبکه',
@@ -316,29 +318,20 @@ export const ErrorDetailModal: React.FC<ErrorDetailModalProps> = ({
                       )}
                     </div>
 
-                    {errorLog.user_agent && (
+                    {errorLog.request_id && (
                       <div>
-                        <label className="text-sm font-medium text-slate-600">User Agent</label>
+                        <label className="text-sm font-medium text-slate-600">شناسه درخواست</label>
                         <div className="mt-1 p-2 bg-slate-50 rounded text-sm font-mono break-all">
-                          {errorLog.user_agent}
+                          {errorLog.request_id}
                         </div>
                       </div>
                     )}
 
-                    {errorLog.request_data && (
+                    {errorLog.additional_context && (
                       <div>
-                        <label className="text-sm font-medium text-slate-600">داده‌های درخواست</label>
+                        <label className="text-sm font-medium text-slate-600">اطلاعات اضافی درخواست</label>
                         <div className="mt-1 p-3 bg-slate-50 rounded text-sm font-mono overflow-x-auto">
-                          <pre>{JSON.stringify(errorLog.request_data, null, 2)}</pre>
-                        </div>
-                      </div>
-                    )}
-
-                    {errorLog.response_data && (
-                      <div>
-                        <label className="text-sm font-medium text-slate-600">داده‌های پاسخ</label>
-                        <div className="mt-1 p-3 bg-slate-50 rounded text-sm font-mono overflow-x-auto">
-                          <pre>{JSON.stringify(errorLog.response_data, null, 2)}</pre>
+                          <pre>{JSON.stringify(errorLog.additional_context, null, 2)}</pre>
                         </div>
                       </div>
                     )}
@@ -381,11 +374,11 @@ export const ErrorDetailModal: React.FC<ErrorDetailModalProps> = ({
                         </div>
                       )}
                       
-                      {errorLog.error_code && (
+                      {errorLog.error_type && (
                         <div>
-                          <label className="text-sm font-medium text-slate-600">کد خطا</label>
+                          <label className="text-sm font-medium text-slate-600">نوع خطا</label>
                           <div className="mt-1 p-2 bg-slate-50 rounded text-sm font-mono">
-                            {errorLog.error_code}
+                            {errorLog.error_type}
                           </div>
                         </div>
                       )}

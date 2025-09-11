@@ -18,8 +18,11 @@ export enum ErrorCategory {
   VALIDATION = 'validation',
   BUSINESS_LOGIC = 'business_logic',
   EXTERNAL_SERVICE = 'external_service',
+  EXTERNAL_API = 'external_api',
   PERFORMANCE = 'performance',
-  SECURITY = 'security'
+  SECURITY = 'security',
+  NETWORK = 'network',
+  UNKNOWN = 'unknown'
 }
 
 export enum WebSocketMessageType {
@@ -81,6 +84,7 @@ export interface ErrorStatistics {
   total_errors: number;
   active_errors_count: number;
   resolved_errors_count: number;
+  unresolved_errors: number;
   
   // Severity breakdown
   severity_breakdown: Record<string, number>;
@@ -158,6 +162,12 @@ export interface ErrorFilters {
   error_type?: string;
   hours_back: number;
   limit: number;
+  search_term?: string;
+  status_code?: number;
+  is_resolved?: boolean;
+  user_id?: string;
+  start_date?: string;
+  end_date?: string;
 }
 
 export interface ErrorListResponse {

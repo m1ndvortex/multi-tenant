@@ -13,9 +13,11 @@ export interface OnlineUser {
   user_id: string;
   tenant_id: string;
   user_email: string;
+  email: string;
   user_full_name: string;
   tenant_name: string;
   is_online: boolean;
+  is_impersonation?: boolean;
   last_activity: string;
   session_id: string;
   user_agent?: string;
@@ -63,7 +65,7 @@ export interface UserSession {
 }
 
 export interface OnlineUsersWebSocketMessage {
-  type: 'user_online' | 'user_offline' | 'activity_update' | 'stats_update' | 'users_update' | 'initial_stats' | 'ping' | 'pong';
+  type: 'user_online' | 'user_offline' | 'activity_update' | 'stats_update' | 'users_update' | 'initial_stats' | 'ping' | 'pong' | 'request_stats' | 'request_users';
   data: any;
   timestamp: string;
 }

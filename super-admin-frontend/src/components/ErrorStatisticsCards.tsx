@@ -26,11 +26,12 @@ export const ErrorStatisticsCards: React.FC<ErrorStatisticsCardsProps> = ({
   };
 
   const formatCategoryName = (category: string) => {
-    const categoryNames = {
+    const categoryNames: Record<string, string> = {
       [ErrorCategory.AUTHENTICATION]: 'احراز هویت',
       [ErrorCategory.AUTHORIZATION]: 'مجوز دسترسی',
       [ErrorCategory.VALIDATION]: 'اعتبارسنجی',
       [ErrorCategory.DATABASE]: 'پایگاه داده',
+      [ErrorCategory.API]: 'API',
       [ErrorCategory.EXTERNAL_API]: 'API خارجی',
       [ErrorCategory.BUSINESS_LOGIC]: 'منطق کسب‌وکار',
       [ErrorCategory.SYSTEM]: 'سیستم',
@@ -39,7 +40,7 @@ export const ErrorStatisticsCards: React.FC<ErrorStatisticsCardsProps> = ({
       [ErrorCategory.SECURITY]: 'امنیت',
       [ErrorCategory.UNKNOWN]: 'نامشخص',
     };
-    return categoryNames[category as ErrorCategory] || category;
+    return categoryNames[category as string] || category;
   };
 
   const getSeverityColor = (severity: string) => {
@@ -206,7 +207,7 @@ export const ErrorStatisticsCards: React.FC<ErrorStatisticsCardsProps> = ({
             <CardContent>
               <div className="space-y-3">
                 {Object.entries(statistics.severity_breakdown)
-                  .sort(([, a], [, b]) => b - a)
+                  .sort(([, a], [, b]) => (b as number) - (a as number))
                   .map(([severity, count]) => (
                     <div key={severity} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -215,12 +216,12 @@ export const ErrorStatisticsCards: React.FC<ErrorStatisticsCardsProps> = ({
                         </Badge>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm text-slate-600">{count.toLocaleString('fa-IR')}</span>
+                        <span className="text-sm text-slate-600">{(count as number).toLocaleString('fa-IR')}</span>
                         <div className="w-16 bg-slate-200 rounded-full h-2">
                           <div 
                             className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full"
                             style={{ 
-                              width: `${statistics.total_errors > 0 ? (count / statistics.total_errors) * 100 : 0}%` 
+                              width: `${statistics.total_errors > 0 ? ((count as number) / statistics.total_errors) * 100 : 0}%` 
                             }}
                           ></div>
                         </div>
@@ -246,8 +247,8 @@ export const ErrorStatisticsCards: React.FC<ErrorStatisticsCardsProps> = ({
             <CardContent>
               <div className="space-y-3">
                 {Object.entries(statistics.category_breakdown)
-                  .filter(([, count]) => count > 0)
-                  .sort(([, a], [, b]) => b - a)
+                  .filter(([, count]) => (count as number) > 0)
+                  .sort(([, a], [, b]) => (b as number) - (a as number))
                   .slice(0, 8) // Show top 8 categories
                   .map(([category, count]) => (
                     <div key={category} className="flex items-center justify-between">
@@ -257,12 +258,12 @@ export const ErrorStatisticsCards: React.FC<ErrorStatisticsCardsProps> = ({
                         </Badge>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm text-slate-600">{count.toLocaleString('fa-IR')}</span>
+                        <span className="text-sm text-slate-600">{(count as number).toLocaleString('fa-IR')}</span>
                         <div className="w-16 bg-slate-200 rounded-full h-2">
                           <div 
                             className="bg-gradient-to-r from-cyan-500 to-blue-600 h-2 rounded-full"
                             style={{ 
-                              width: `${statistics.total_errors > 0 ? (count / statistics.total_errors) * 100 : 0}%` 
+                              width: `${statistics.total_errors > 0 ? ((count as number) / statistics.total_errors) * 100 : 0}%` 
                             }}
                           ></div>
                         </div>
@@ -290,7 +291,7 @@ export const ErrorStatisticsCards: React.FC<ErrorStatisticsCardsProps> = ({
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {statistics.top_error_endpoints.slice(0, 10).map((endpoint, index) => (
+              {statistics.top_error_endpoints.slice(0, 10).map((endpoint: any, index: number) => (
                 <div key={endpoint.endpoint} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-6 h-6 bg-gradient-to-br from-pink-500 to-rose-600 rounded text-white text-xs flex items-center justify-center font-medium">

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Users, Building2, Settings, Key, Eye } from 'lucide-react';
+import { Plus, Users, Building2, Settings, Eye } from 'lucide-react';
 import TenantFilters from '@/components/TenantFilters';
 import TenantTable from '@/components/TenantTable';
 import EnhancedTenantTable from '@/components/tenant/EnhancedTenantTable';

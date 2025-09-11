@@ -48,7 +48,7 @@ const TenantDetailsDialog: React.FC<TenantDetailsDialogProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState('overview');
 
-  const { data: enhancedTenant, isLoading: isLoadingEnhanced } = useEnhancedTenantDetails(
+  const { data: enhancedTenant } = useEnhancedTenantDetails(
     tenant?.id || ''
   );
   const { data: auditLog, isLoading: isLoadingAudit } = useTenantAuditLog(

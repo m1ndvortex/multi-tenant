@@ -128,11 +128,12 @@ export const ErrorLogTable: React.FC<ErrorLogTableProps> = ({
   };
 
   const formatCategoryName = (category: ErrorCategory) => {
-    const categoryNames = {
+    const categoryNames: Record<string, string> = {
       [ErrorCategory.AUTHENTICATION]: 'احراز هویت',
       [ErrorCategory.AUTHORIZATION]: 'مجوز دسترسی',
       [ErrorCategory.VALIDATION]: 'اعتبارسنجی',
       [ErrorCategory.DATABASE]: 'پایگاه داده',
+      [ErrorCategory.API]: 'API',
       [ErrorCategory.EXTERNAL_API]: 'API خارجی',
       [ErrorCategory.BUSINESS_LOGIC]: 'منطق کسب‌وکار',
       [ErrorCategory.SYSTEM]: 'سیستم',
@@ -141,7 +142,7 @@ export const ErrorLogTable: React.FC<ErrorLogTableProps> = ({
       [ErrorCategory.SECURITY]: 'امنیت',
       [ErrorCategory.UNKNOWN]: 'نامشخص',
     };
-    return categoryNames[category] || category;
+    return categoryNames[category as string] || category;
   };
 
   const formatSeverityName = (severity: ErrorSeverity) => {
