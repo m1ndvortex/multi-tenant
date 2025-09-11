@@ -110,7 +110,8 @@ const UserImpersonation: React.FC = () => {
   const loadActiveSessions = async () => {
     setSessionsLoading(true);
     try {
-      const sessions = await impersonationService.getActiveSessions();
+      // Use enhanced API for better session tracking
+      const sessions = await impersonationService.getEnhancedActiveSessions();
       setActiveSessions(sessions);
     } catch (error) {
       setActiveSessions([]); // Ensure activeSessions is always an array
@@ -163,10 +164,11 @@ const UserImpersonation: React.FC = () => {
     setImpersonationDialogOpen(true);
   };
 
-  const handleStartImpersonation = async (data: ImpersonationStartRequest) => {
+  const handleStartImpersonation = async (data: ImpersonationStartRequest & { is_window_based?: boolean }) => {
     setImpersonationLoading(true);
     try {
-      const response = await impersonationService.startImpersonation(data);
+      // Use enhanced impersonation API
+      const response = await impersonationService.startEnhancedImpersonation(data);
       
       toast({
         title: 'جانشینی با موفقیت شروع شد',
@@ -181,8 +183,32 @@ const UserImpersonation: React.FC = () => {
       setImpersonationDialogOpen(false);
       setSelectedUser(null);
 
-      // Redirect to tenant application
-      impersonationService.redirectToTenantApp(response.access_token, response.target_user);
+      // Handle window-based vs redirect-based impersonation
+      if (data.is_window_based) {
+        // Open in new window/tab
+        const newWindow = impersonationService.openTenantAppInNewWindow(
+          response.access_token, 
+          response.target_user,
+          response.session_id
+        );
+        
+        if (!newWindow) {
+          toast({
+            title: 'خطا در باز کردن پنجره جدید',
+            description: 'لطفاً popup blocker را غیرفعال کنید و دوباره تلاش کنید',
+            variant: 'destructive',
+          });
+        } else {
+          toast({
+            title: 'پنجره جانشینی باز شد',
+            description: 'جلسه جانشینی در پنجره جدید باز شد. بستن پنجره به صورت خودکار جلسه را خاتمه می‌دهد.',
+            variant: 'default',
+          });
+        }
+      } else {
+        // Legacy redirect behavior
+        impersonationService.redirectToTenantApp(response.access_token, response.target_user);
+      }
 
       // Refresh data
       loadActiveSessions();
@@ -201,11 +227,12 @@ const UserImpersonation: React.FC = () => {
   const handleTerminateSession = async (sessionId: string) => {
     setTerminatingSessionId(sessionId);
     try {
-      await impersonationService.terminateSession(sessionId);
+      // Use enhanced termination API
+      await impersonationService.terminateEnhancedSession(sessionId);
       
       toast({
         title: 'جلسه با موفقیت خاتمه یافت',
-        description: 'جلسه جانشینی به صورت اجباری خاتمه یافت',
+        description: 'جلسه جانشینی به صورت اجباری خاتمه یافت و پنجره مربوطه بسته شد',
         variant: 'default',
       });
 

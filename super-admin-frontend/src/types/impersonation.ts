@@ -14,6 +14,7 @@ export interface ImpersonationStartRequest {
   target_user_id: string;
   duration_hours?: number;
   reason?: string;
+  is_window_based?: boolean;
 }
 
 export interface ImpersonationStartResponse {
@@ -34,6 +35,8 @@ export interface ImpersonationStartResponse {
     name?: string;
   };
   expires_at: string;
+  is_window_based?: boolean;
+  window_url?: string;
 }
 
 export interface ImpersonationEndRequest {
@@ -46,15 +49,27 @@ export interface ImpersonationEndResponse {
 }
 
 export interface ActiveSession {
+  id?: string;
   session_id: string;
   admin_user_id: string;
   target_user_id: string;
   target_tenant_id?: string;
   started_at: string;
   expires_at: string;
+  ended_at?: string;
+  is_active?: boolean;
+  is_window_based?: boolean;
+  window_closed_detected?: boolean;
   ip_address?: string;
   user_agent?: string;
   reason?: string;
+  last_activity_at?: string;
+  activity_count?: number;
+  termination_reason?: string;
+  terminated_by_admin_id?: string;
+  duration_minutes?: number;
+  created_at?: string;
+  updated_at?: string;
   status: string;
 }
 

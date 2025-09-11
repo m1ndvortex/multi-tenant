@@ -16,7 +16,11 @@ import {
   User, 
   Shield, 
   Globe,
-  Smartphone
+  Smartphone,
+  ExternalLink,
+  Monitor,
+  Activity,
+  AlertCircle
 } from 'lucide-react';
 import { ActiveSession } from '@/types/impersonation';
 import { formatDistanceToNow } from 'date-fns';
@@ -35,16 +39,40 @@ const ActiveSessionsTable: React.FC<ActiveSessionsTableProps> = ({
   isLoading = false,
   terminatingSessionId,
 }) => {
-  const getStatusBadge = (status: string) => {
-    switch (status) {
+  const getStatusBadge = (session: ActiveSession) => {
+    if (session.window_closed_detected) {
+      return <Badge variant="warning" className="flex items-center gap-1">
+        <AlertCircle className="h-3 w-3" />
+        پنجره بسته شده
+      </Badge>;
+    }
+    
+    switch (session.status) {
       case 'active':
-        return <Badge variant="success">فعال</Badge>;
+        return <Badge variant="success" className="flex items-center gap-1">
+          <Activity className="h-3 w-3" />
+          فعال
+        </Badge>;
       case 'expired':
         return <Badge variant="error">منقضی شده</Badge>;
       case 'terminated':
         return <Badge variant="secondary">خاتمه یافته</Badge>;
       default:
-        return <Badge variant="secondary">{status}</Badge>;
+        return <Badge variant="secondary">{session.status}</Badge>;
+    }
+  };
+
+  const getSessionTypeBadge = (session: ActiveSession) => {
+    if (session.is_window_based) {
+      return <Badge variant="gradient-blue" className="flex items-center gap-1">
+        <ExternalLink className="h-3 w-3" />
+        پنجره جدید
+      </Badge>;
+    } else {
+      return <Badge variant="secondary" className="flex items-center gap-1">
+        <Monitor className="h-3 w-3" />
+        تغییر مسیر
+      </Badge>;
     }
   };
 
@@ -134,11 +162,13 @@ const ActiveSessionsTable: React.FC<ActiveSessionsTableProps> = ({
             <TableHeader>
               <TableRow>
                 <TableHead>شناسه جلسه</TableHead>
+                <TableHead>نوع جلسه</TableHead>
                 <TableHead>ادمین</TableHead>
                 <TableHead>کاربر هدف</TableHead>
                 <TableHead>تنانت</TableHead>
                 <TableHead>شروع</TableHead>
                 <TableHead>زمان باقی‌مانده</TableHead>
+                <TableHead>فعالیت</TableHead>
                 <TableHead>IP آدرس</TableHead>
                 <TableHead>مرورگر</TableHead>
                 <TableHead>وضعیت</TableHead>
@@ -150,6 +180,9 @@ const ActiveSessionsTable: React.FC<ActiveSessionsTableProps> = ({
                 <TableRow key={session.session_id}>
                   <TableCell className="font-mono text-sm">
                     {session.session_id.substring(0, 8)}...
+                  </TableCell>
+                  <TableCell>
+                    {getSessionTypeBadge(session)}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -190,6 +223,23 @@ const ActiveSessionsTable: React.FC<ActiveSessionsTableProps> = ({
                     </div>
                   </TableCell>
                   <TableCell>
+                    <div className="flex flex-col gap-1">
+                      {session.activity_count !== undefined && (
+                        <div className="flex items-center gap-1">
+                          <Activity className="h-3 w-3 text-green-500" />
+                          <span className="text-xs text-slate-600">
+                            {session.activity_count} فعالیت
+                          </span>
+                        </div>
+                      )}
+                      {session.last_activity_at && (
+                        <span className="text-xs text-slate-500">
+                          آخرین: {formatDate(session.last_activity_at)}
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
                     <div className="flex items-center gap-2">
                       <Globe className="h-4 w-4 text-slate-400" />
                       <span className="text-sm text-slate-600">
@@ -206,7 +256,7 @@ const ActiveSessionsTable: React.FC<ActiveSessionsTableProps> = ({
                     </div>
                   </TableCell>
                   <TableCell>
-                    {getStatusBadge(session.status)}
+                    {getStatusBadge(session)}
                   </TableCell>
                   <TableCell>
                     <Button
@@ -215,13 +265,16 @@ const ActiveSessionsTable: React.FC<ActiveSessionsTableProps> = ({
                       onClick={() => onTerminateSession(session.session_id)}
                       disabled={
                         session.status !== 'active' || 
-                        terminatingSessionId === session.session_id
+                        terminatingSessionId === session.session_id ||
+                        session.window_closed_detected
                       }
                       className="h-8 px-3"
                     >
                       <StopCircle className="h-4 w-4 mr-1" />
                       {terminatingSessionId === session.session_id 
                         ? 'در حال خاتمه...' 
+                        : session.window_closed_detected
+                        ? 'پنجره بسته شده'
                         : 'خاتمه جلسه'
                       }
                     </Button>

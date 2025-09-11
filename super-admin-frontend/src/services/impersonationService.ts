@@ -70,7 +70,20 @@ class ImpersonationService {
     return this.request<User>(`/api/super-admin/users/${id}`);
   }
 
-  // Impersonation methods
+  // Enhanced impersonation methods
+  async startEnhancedImpersonation(data: ImpersonationStartRequest & { 
+    is_window_based?: boolean 
+  }): Promise<ImpersonationStartResponse & { 
+    is_window_based: boolean; 
+    window_url: string 
+  }> {
+    return this.request('/api/enhanced-impersonation/start', {
+      method: 'POST',
+      body: { ...data, is_window_based: data.is_window_based ?? true },
+    });
+  }
+
+  // Legacy impersonation method for backward compatibility
   async startImpersonation(data: ImpersonationStartRequest): Promise<ImpersonationStartResponse> {
     return this.request<ImpersonationStartResponse>('/api/impersonation/start', {
       method: 'POST',
@@ -85,6 +98,21 @@ class ImpersonationService {
     });
   }
 
+  // Enhanced active sessions with better tracking
+  async getEnhancedActiveSessions(
+    adminUserId?: string,
+    targetUserId?: string,
+    includeWindowBased: boolean = true
+  ): Promise<ActiveSession[]> {
+    const params = new URLSearchParams();
+    if (adminUserId) params.append('admin_user_id', adminUserId);
+    if (targetUserId) params.append('target_user_id', targetUserId);
+    if (includeWindowBased !== undefined) params.append('include_window_based', includeWindowBased.toString());
+
+    return this.request<ActiveSession[]>(`/api/enhanced-impersonation/sessions?${params}`);
+  }
+
+  // Legacy method for backward compatibility
   async getActiveSessions(
     adminUserId?: string,
     targetUserId?: string
@@ -126,6 +154,19 @@ class ImpersonationService {
     return this.request(`/api/impersonation/validate-session/${sessionId}`);
   }
 
+  // Enhanced session termination
+  async terminateEnhancedSession(sessionId: string): Promise<{
+    message: string;
+    session_id: string;
+    terminated_at: string;
+    terminated_by: string;
+  }> {
+    return this.request(`/api/enhanced-impersonation/sessions/${sessionId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Legacy method for backward compatibility
   async terminateSession(sessionId: string): Promise<{
     message: string;
     session_id: string;
@@ -141,7 +182,33 @@ class ImpersonationService {
     return this.request<CurrentSessionInfo>('/api/impersonation/current-session');
   }
 
-  // Helper method to redirect to tenant application with impersonation token
+  // Enhanced method to open tenant application in new window/tab with impersonation token
+  openTenantAppInNewWindow(token: string, targetUser: any, sessionId: string): Window | null {
+    // Store the impersonation token
+    localStorage.setItem('impersonation_token', token);
+    localStorage.setItem('impersonation_target_user', JSON.stringify(targetUser));
+    localStorage.setItem('impersonation_session_id', sessionId);
+    
+    // Open tenant application in new window/tab
+    const tenantAppUrl = (import.meta as any).env?.VITE_TENANT_APP_URL || 'http://localhost:3001';
+    const impersonationUrl = `${tenantAppUrl}?impersonation=true&session_id=${sessionId}&token=${encodeURIComponent(token)}`;
+    
+    // Open in new window with specific features
+    const newWindow = window.open(
+      impersonationUrl,
+      `impersonation_${sessionId}`,
+      'width=1200,height=800,scrollbars=yes,resizable=yes,status=yes,location=yes,menubar=yes,toolbar=yes'
+    );
+    
+    // Set up window closure detection
+    if (newWindow) {
+      this.setupWindowClosureDetection(newWindow, sessionId);
+    }
+    
+    return newWindow;
+  }
+
+  // Legacy method for backward compatibility (redirects in same window)
   redirectToTenantApp(token: string, targetUser: any): void {
     // Store the impersonation token
     localStorage.setItem('impersonation_token', token);
@@ -150,6 +217,52 @@ class ImpersonationService {
     // Redirect to tenant application
     const tenantAppUrl = (import.meta as any).env?.VITE_TENANT_APP_URL || 'http://localhost:3001';
     window.location.href = `${tenantAppUrl}?impersonation=true`;
+  }
+
+  // Set up automatic window closure detection
+  private setupWindowClosureDetection(impersonationWindow: Window, sessionId: string): void {
+    const checkClosure = () => {
+      if (impersonationWindow.closed) {
+        // Window was closed, notify backend for cleanup
+        this.handleWindowClosure(sessionId).catch(console.error);
+        clearInterval(intervalId);
+      }
+    };
+    
+    // Check every 2 seconds if window is closed
+    const intervalId = setInterval(checkClosure, 2000);
+    
+    // Also listen for beforeunload event on the main window
+    const handleMainWindowUnload = () => {
+      if (!impersonationWindow.closed) {
+        impersonationWindow.close();
+      }
+      clearInterval(intervalId);
+    };
+    
+    window.addEventListener('beforeunload', handleMainWindowUnload);
+    
+    // Clean up event listener when window closes
+    setTimeout(() => {
+      window.removeEventListener('beforeunload', handleMainWindowUnload);
+    }, 8 * 60 * 60 * 1000); // 8 hours max session time
+  }
+
+  // Handle window closure detection
+  private async handleWindowClosure(sessionId: string): Promise<void> {
+    try {
+      await this.request('/api/enhanced-impersonation/detect-window-closure', {
+        method: 'POST',
+        body: { session_id: sessionId }
+      });
+      
+      // Clean up local storage
+      localStorage.removeItem('impersonation_token');
+      localStorage.removeItem('impersonation_target_user');
+      localStorage.removeItem('impersonation_session_id');
+    } catch (error) {
+      console.error('Failed to notify window closure:', error);
+    }
   }
 
   // Helper method to return from impersonation

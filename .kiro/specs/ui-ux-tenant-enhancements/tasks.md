@@ -196,7 +196,11 @@
   - **Frontend Task:** Task 15 - Real-Time Online Users Monitor Interface
   - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 11.6, 11.7_
 
-- [ ] 14. Enhance Existing Impersonation Interface
+- [x] 14. Enhance Existing Impersonation Interface
+
+
+
+
   - Enhance existing impersonation interface at /impersonation route with better sidebar navigation integration
   - Modify existing جایگزینی button to open tenant session in new window/tab instead of current window redirect
   - Enhance existing active impersonation sessions monitor with improved session tracking and manual termination

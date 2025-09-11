@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { UserCheck, Eye, Clock } from 'lucide-react';
+import { UserCheck, Eye, Clock, ExternalLink } from 'lucide-react';
 import { User } from '@/types/impersonation';
 import { formatDistanceToNow } from 'date-fns';
 import { faIR } from 'date-fns/locale';
@@ -145,23 +145,23 @@ const UserSelectionTable: React.FC<UserSelectionTableProps> = ({
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    {/* Impersonate Button */}
+                    {/* Enhanced Impersonate Button */}
                     <Button
                       variant="gradient-blue"
                       size="sm"
                       onClick={() => onImpersonate(user)}
                       disabled={!user.is_active || impersonatingUserId === user.id}
-                      className="h-8 px-3"
+                      className="h-8 px-3 flex items-center gap-1"
                     >
                       {impersonatingUserId === user.id ? (
                         <>
-                          <Eye className="h-4 w-4 mr-1" />
+                          <Eye className="h-4 w-4" />
                           در حال جانشینی
                         </>
                       ) : (
                         <>
-                          <UserCheck className="h-4 w-4 mr-1" />
-                          جانشینی
+                          <ExternalLink className="h-4 w-4" />
+                          جایگزینی
                         </>
                       )}
                     </Button>

@@ -8,7 +8,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -19,7 +18,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, User, Clock, FileText } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { AlertTriangle, User, Clock, FileText, ExternalLink, Monitor } from 'lucide-react';
 import { User as UserType } from '@/types/impersonation';
 
 interface ImpersonationStartDialogProps {
@@ -29,6 +29,7 @@ interface ImpersonationStartDialogProps {
     target_user_id: string;
     duration_hours: number;
     reason?: string;
+    is_window_based?: boolean;
   }) => void;
   user: UserType | null;
   isLoading?: boolean;
@@ -43,6 +44,7 @@ const ImpersonationStartDialog: React.FC<ImpersonationStartDialogProps> = ({
 }) => {
   const [durationHours, setDurationHours] = useState<number>(2);
   const [reason, setReason] = useState<string>('');
+  const [isWindowBased, setIsWindowBased] = useState<boolean>(true);
 
   const handleConfirm = () => {
     if (!user) return;
@@ -51,12 +53,14 @@ const ImpersonationStartDialog: React.FC<ImpersonationStartDialogProps> = ({
       target_user_id: user.id,
       duration_hours: durationHours,
       reason: reason.trim() || undefined,
+      is_window_based: isWindowBased,
     });
   };
 
   const handleClose = () => {
     setDurationHours(2);
     setReason('');
+    setIsWindowBased(true);
     onClose();
   };
 
@@ -133,6 +137,49 @@ const ImpersonationStartDialog: React.FC<ImpersonationStartDialogProps> = ({
             </Select>
           </div>
 
+          {/* Window Mode Selection */}
+          <div className="space-y-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <Label className="flex items-center gap-2 font-medium">
+              <Monitor className="h-4 w-4" />
+              نحوه باز کردن جلسه جانشینی
+            </Label>
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2 space-x-reverse">
+                <Checkbox
+                  id="window-based"
+                  checked={isWindowBased}
+                  onCheckedChange={(checked) => setIsWindowBased(checked as boolean)}
+                />
+                <Label htmlFor="window-based" className="flex items-center gap-2 cursor-pointer">
+                  <ExternalLink className="h-4 w-4 text-blue-500" />
+                  <span>باز کردن در پنجره/تب جدید (پیشنهادی)</span>
+                </Label>
+              </div>
+              <div className="text-sm text-slate-600 mr-6">
+                {isWindowBased ? (
+                  <div className="space-y-1">
+                    <p className="text-green-700 font-medium">✓ مزایای پنجره جدید:</p>
+                    <ul className="list-disc list-inside space-y-1 text-xs">
+                      <li>امکان کار همزمان با پنل ادمین</li>
+                      <li>تشخیص خودکار بسته شدن پنجره و پاک‌سازی جلسه</li>
+                      <li>مدیریت بهتر جلسات چندگانه</li>
+                      <li>امنیت بالاتر با جداسازی جلسات</li>
+                    </ul>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <p className="text-orange-700 font-medium">⚠ حالت تغییر مسیر:</p>
+                    <ul className="list-disc list-inside space-y-1 text-xs">
+                      <li>پنل ادمین بسته می‌شود</li>
+                      <li>باید دستی به پنل ادمین برگردید</li>
+                      <li>مدیریت جلسه محدودتر است</li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Reason */}
           <div className="space-y-2">
             <Label htmlFor="reason" className="flex items-center gap-2">
@@ -165,8 +212,16 @@ const ImpersonationStartDialog: React.FC<ImpersonationStartDialogProps> = ({
             variant="gradient-blue"
             onClick={handleConfirm}
             disabled={isLoading}
+            className="flex items-center gap-2"
           >
-            {isLoading ? 'در حال شروع...' : 'شروع جانشینی'}
+            {isLoading ? (
+              'در حال شروع...'
+            ) : (
+              <>
+                {isWindowBased ? <ExternalLink className="h-4 w-4" /> : <User className="h-4 w-4" />}
+                {isWindowBased ? 'باز کردن در پنجره جدید' : 'شروع جانشینی'}
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
