@@ -28,7 +28,8 @@ class OnlineUsersService {
     options: RequestInit = {}
   ): Promise<OnlineUsersApiResponse<T>> {
     try {
-      const token = localStorage.getItem('token');
+      // Super admin token is stored under 'super_admin_token'
+      const token = localStorage.getItem('super_admin_token');
       
       const response = await fetch(`${this.baseURL}${endpoint}`, {
         ...options,
@@ -139,9 +140,26 @@ class OnlineUsersService {
    * Get WebSocket URL for real-time updates
    */
   getWebSocketURL(): string {
+    // Prefer direct backend WS in dev to avoid Vite proxy WS flakiness
+    const isLocalDev = ['localhost', '127.0.0.1'].includes(window.location.hostname) && window.location.port === '3000';
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
-    return `${protocol}//${host}${this.baseURL}/ws`;
+    const token = localStorage.getItem('super_admin_token');
+
+    let wsPath: string;
+    if (isLocalDev) {
+      // Connect directly to backend container exposed on host
+      // Force non-TLS WS for local backend (port 8000 is http)
+      wsPath = `ws://localhost:8000${this.baseURL}/ws`;
+    } else {
+      const host = window.location.host;
+      wsPath = `${protocol}//${host}${this.baseURL}/ws`;
+    }
+
+    const url = new URL(wsPath);
+    if (token) {
+      url.searchParams.set('token', token);
+    }
+    return url.toString();
   }
 
   /**

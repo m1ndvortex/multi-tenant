@@ -110,6 +110,10 @@ class PermissionMiddleware(BaseHTTPMiddleware):
         Process request and validate permissions
         """
         start_time = time.time()
+
+        # Skip for WebSocket upgrade requests (handled separately)
+        if request.scope.get("type") == "websocket":
+            return await call_next(request)
         
         # Skip permission check for public endpoints
         if self._is_public_endpoint(request.url.path):
@@ -374,6 +378,9 @@ class TenantIsolationMiddleware(BaseHTTPMiddleware):
         """
         Ensure tenant isolation for all requests
         """
+        # Skip for WebSocket connections
+        if request.scope.get("type") == "websocket":
+            return await call_next(request)
         # Skip for public endpoints and super admin
         if (self._is_public_endpoint(request.url.path) or 
             request.url.path.startswith("/api/super-admin")):

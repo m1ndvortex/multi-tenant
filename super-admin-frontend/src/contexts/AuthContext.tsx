@@ -70,18 +70,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }: AuthProv
   }, [token]);
 
   useEffect(() => {
-    if (token) {
-      // Set axios default header
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      
-      // Verify token and get user info
-      verifyToken();
-      
-      // Setup session management
-      setupSessionManagement();
-    } else {
-      setIsLoading(false);
-    }
+    const maybeBootstrapAuth = async () => {
+      if (token) {
+        // Set axios default header
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+        // If the token is expired or about to expire soon, proactively refresh before other requests start.
+        try {
+          const expSeconds = getTokenExpiry(token);
+          const nowSeconds = Math.floor(Date.now() / 1000);
+          const isExpiringSoon = expSeconds !== null && (expSeconds - nowSeconds) < 60; // 60s buffer
+          if (expSeconds !== null && expSeconds <= nowSeconds) {
+            await refreshToken();
+          } else if (isExpiringSoon) {
+            await refreshToken();
+          }
+        } catch {
+          // If parsing fails, try to verify; refresh will occur via interceptors if needed
+        }
+
+        // Verify token and get user info
+        await verifyToken();
+
+        // Setup session management
+        setupSessionManagement();
+      } else {
+        setIsLoading(false);
+      }
+    };
+
+    // Fire and forget; internal calls await as needed
+    void maybeBootstrapAuth();
   }, [token]);
 
   
@@ -138,6 +157,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }: AuthProv
       logout(true);
     }
   };
+
+  // Helper: decode JWT and extract exp (in seconds since epoch). Returns null on failure.
+  function getTokenExpiry(jwtToken: string): number | null {
+    try {
+      const parts = jwtToken.split('.');
+      if (parts.length !== 3) return null;
+      const payloadJson = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+      const exp = payloadJson?.exp;
+      return typeof exp === 'number' ? exp : null;
+    } catch {
+      return null;
+    }
+  }
 
   const login = async (email: string, password: string) => {
     try {

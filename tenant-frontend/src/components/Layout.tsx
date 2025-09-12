@@ -1,6 +1,7 @@
 import React, { ReactNode, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSessionManagement } from '@/hooks/useSessionManagement';
+import { useOnlineActivity } from '@/hooks/useOnlineActivity';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import LoginPage from '@/pages/Login';
@@ -20,6 +21,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     warningMinutes: 5,
     checkIntervalSeconds: 60
   });
+
+  // Send periodic presence heartbeats when authenticated
+  useOnlineActivity({ intervalMs: 60_000, immediate: true });
 
   // Show loading state
   if (isLoading) {

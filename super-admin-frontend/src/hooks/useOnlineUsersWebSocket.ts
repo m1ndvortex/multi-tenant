@@ -34,19 +34,30 @@ export const useOnlineUsersWebSocket = (
   const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isTabActiveRef = useRef(true);
   const shouldConnectRef = useRef(enabled);
+  // Store callbacks in refs to prevent changing dependencies causing reconnect loops
+  const onConnectRef = useRef<typeof onConnect>(onConnect);
+  const onDisconnectRef = useRef<typeof onDisconnect>(onDisconnect);
+  const onErrorRef = useRef<typeof onError>(onError);
 
-  // Handle tab visibility changes to pause/resume updates
+  useEffect(() => {
+    onConnectRef.current = onConnect;
+  }, [onConnect]);
+  useEffect(() => {
+    onDisconnectRef.current = onDisconnect;
+  }, [onDisconnect]);
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
+
+  // Handle tab visibility changes to pause/resume updates (avoid disconnect churn)
   useEffect(() => {
     const handleVisibilityChange = () => {
       const isActive = !document.hidden;
       isTabActiveRef.current = isActive;
       
+      // Don't aggressively disconnect on tab hide; just resume if needed when active again
       if (isActive && shouldConnectRef.current && !wsRef.current) {
-        // Tab became active, reconnect if needed
         connect();
-      } else if (!isActive && wsRef.current) {
-        // Tab became inactive, disconnect to conserve resources
-        disconnect();
       }
     };
 
@@ -85,9 +96,15 @@ export const useOnlineUsersWebSocket = (
     }
 
     try {
-      // Close existing connection
+      // If a connection already exists and is open or connecting, do not create a new one
+      if (wsRef.current &&
+          (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
+        return;
+      }
+
+      // Close any lingering connection before creating a new one
       if (wsRef.current) {
-        wsRef.current.close();
+        try { wsRef.current.close(); } catch { /* noop */ }
       }
 
       // Create new WebSocket connection
@@ -97,7 +114,7 @@ export const useOnlineUsersWebSocket = (
         console.log('Online Users WebSocket connected');
         setIsConnected(true);
         setupPingInterval();
-        onConnect?.();
+        onConnectRef.current?.();
         
         // Clear reconnect timeout
         if (reconnectTimeoutRef.current) {
@@ -106,7 +123,7 @@ export const useOnlineUsersWebSocket = (
         }
       };
 
-      wsRef.current.onmessage = (event) => {
+      wsRef.current.onmessage = (event: MessageEvent<string>) => {
         try {
           const message: OnlineUsersWebSocketMessage = JSON.parse(event.data);
           
@@ -123,8 +140,8 @@ export const useOnlineUsersWebSocket = (
               break;
               
             case 'user_online':
-              setUsers(prev => {
-                const existingIndex = prev.findIndex(u => u.user_id === message.data.user_id);
+              setUsers((prev: OnlineUser[]) => {
+                const existingIndex = prev.findIndex((u: OnlineUser) => u.user_id === message.data.user_id);
                 if (existingIndex >= 0) {
                   // Update existing user
                   const updated = [...prev];
@@ -138,11 +155,11 @@ export const useOnlineUsersWebSocket = (
               break;
               
             case 'user_offline':
-              setUsers(prev => prev.filter(u => u.user_id !== message.data.user_id));
+              setUsers((prev: OnlineUser[]) => prev.filter((u: OnlineUser) => u.user_id !== message.data.user_id));
               break;
               
             case 'activity_update':
-              setUsers(prev => prev.map(user => 
+              setUsers((prev: OnlineUser[]) => prev.map((user: OnlineUser) => 
                 user.user_id === message.data.user_id 
                   ? { ...user, last_activity: message.data.last_activity }
                   : user
@@ -161,16 +178,19 @@ export const useOnlineUsersWebSocket = (
         }
       };
 
-      wsRef.current.onclose = (event) => {
+      wsRef.current.onclose = (event: CloseEvent) => {
         console.log('Online Users WebSocket disconnected:', event.code, event.reason);
         setIsConnected(false);
-        onDisconnect?.();
+        onDisconnectRef.current?.();
         
         // Clear ping interval
         if (pingIntervalRef.current) {
           clearInterval(pingIntervalRef.current);
           pingIntervalRef.current = null;
         }
+
+        // Ensure reference cleared so future connects can proceed
+        wsRef.current = null;
 
         // Auto-reconnect if enabled and tab is active
         if (autoReconnect && shouldConnectRef.current && isTabActiveRef.current && !reconnectTimeoutRef.current) {
@@ -183,14 +203,14 @@ export const useOnlineUsersWebSocket = (
 
       wsRef.current.onerror = (error) => {
         console.error('Online Users WebSocket error:', error);
-        onError?.(error);
+        onErrorRef.current?.(error);
       };
 
     } catch (error) {
       console.error('Failed to create WebSocket connection:', error);
-      onError?.(error as Event);
+      onErrorRef.current?.(error as Event);
     }
-  }, [autoReconnect, reconnectInterval, onConnect, onDisconnect, onError, setupPingInterval]);
+  }, [autoReconnect, reconnectInterval, setupPingInterval]);
 
   const disconnect = useCallback(() => {
     shouldConnectRef.current = false;
@@ -232,7 +252,7 @@ export const useOnlineUsersWebSocket = (
     return () => {
       disconnect();
     };
-  }, [enabled, connect, disconnect]);
+  }, [enabled]);
 
   // Request initial data when connected
   useEffect(() => {

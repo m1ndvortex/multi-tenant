@@ -7,10 +7,11 @@ from sqlalchemy.orm import Session
 from uuid import UUID
 import asyncio
 import json
+import logging
 
 from ..core.database import get_db
-from ..core.auth import get_super_admin_user, get_current_user
-from ..models.user import User
+from ..core.auth import get_super_admin_user, get_current_user, verify_token
+from ..models.user import User, UserStatus
 from ..services.online_users_service import online_users_service
 from ..schemas.online_users_monitoring import (
     UserActivityUpdateRequest,
@@ -24,6 +25,7 @@ from ..schemas.online_users_monitoring import (
 )
 
 router = APIRouter(prefix="/online-users", tags=["Online Users Monitoring"])
+logger = logging.getLogger(__name__)
 
 
 @router.post("/activity/update")
@@ -64,6 +66,67 @@ async def update_user_activity(
             status_code=500,
             detail=f"Failed to update user activity: {str(e)}"
         )
+
+
+@router.post("/activity/offline")
+async def set_current_user_offline(
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Mark the current user as offline immediately (called by tenant app on logout/tab close)
+    """
+    try:
+        success = await online_users_service.set_user_offline(current_user.id, db)
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to set user offline")
+        return {
+            "success": True,
+            "message": "User set offline successfully",
+            "user_id": str(current_user.id)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to set user offline: {str(e)}"
+        )
+
+
+@router.post("/activity/offline-beacon")
+async def set_current_user_offline_beacon(
+    token: str = Query(..., description="JWT access token for authentication (for sendBeacon)"),
+    db: Session = Depends(get_db)
+):
+    """
+    Beacon-friendly offline endpoint.
+    Authenticates using JWT provided as a query param (to support navigator.sendBeacon which cannot set headers).
+    """
+    try:
+        payload = verify_token(token)
+        user_id = payload.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        try:
+            user_uuid = UUID(user_id)
+        except Exception:
+            raise HTTPException(status_code=401, detail="Invalid token user id")
+
+        # Optional: verify user exists
+        user = db.query(User).filter(User.id == user_uuid).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        success = await online_users_service.set_user_offline(user_uuid, db)
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to set user offline")
+        return {"success": True, "message": "User set offline via beacon", "user_id": str(user_uuid)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to set user offline (beacon): {str(e)}")
 
 
 @router.post("/users/{user_id}/offline")
@@ -196,21 +259,64 @@ async def websocket_endpoint(
 ):
     """
     WebSocket endpoint for real-time online users updates
+    Auth: expects JWT in query param `token` belonging to an active super admin
     Only active when admin is watching (conserves resources)
     """
+
+    # Authenticate via JWT in query params before accepting the connection
+    try:
+        token = websocket.query_params.get("token")
+        if not token:
+            await websocket.close(code=1008, reason="Missing authentication token")
+            return
+
+        payload = verify_token(token)
+        user_id = payload.get("user_id")
+        is_super_admin = payload.get("is_super_admin", False)
+
+        if not user_id or not is_super_admin:
+            await websocket.close(code=1008, reason="Super admin access required")
+            return
+
+        # Validate user exists and is active super admin
+        # Ensure DB comparison uses UUID type
+        try:
+            user_uuid = UUID(user_id) if not isinstance(user_id, UUID) else user_id
+        except Exception:
+            await websocket.close(code=1008, reason="Invalid user identifier in token")
+            return
+
+        user = db.query(User).filter(User.id == user_uuid, User.is_super_admin == True).first()
+        if not user or not user.is_super_admin or user.status != UserStatus.ACTIVE:
+            await websocket.close(code=1008, reason="User not authorized or inactive")
+            return
+    except Exception as e:
+        try:
+            # Provide a consistent auth failure close without exposing internals
+            await websocket.close(code=1008, reason="Invalid or expired token")
+        finally:
+            return
+
+    # Accept connection after successful authentication
     await websocket.accept()
+    logger.info(f"[OnlineUsers][WS] Connection accepted for super admin: {user_id}")
     
     try:
         # Add connection to service
         await online_users_service.add_websocket_connection(websocket)
         
         # Send initial stats
-        initial_stats = await online_users_service.get_online_users_stats(db)
-        initial_message = OnlineUsersWebSocketMessage(
-            type="initial_stats",
-            data=initial_stats.dict()
-        )
-        await websocket.send_text(initial_message.json())
+        try:
+            initial_stats = await online_users_service.get_online_users_stats(db)
+            initial_message = OnlineUsersWebSocketMessage(
+                type="initial_stats",
+                data=initial_stats.dict()
+            )
+            # Use json with default=str to avoid serialization issues
+            await websocket.send_text(json.dumps(initial_message.dict(), default=str))
+        except Exception as send_err:
+            logger.error(f"[OnlineUsers][WS] Failed sending initial stats: {send_err}")
+            raise
         
         # Keep connection alive and handle messages
         while True:
@@ -230,7 +336,7 @@ async def websocket_endpoint(
                         type="stats_update",
                         data=stats.dict()
                     )
-                    await websocket.send_text(stats_message.json())
+                    await websocket.send_text(json.dumps(stats_message.dict(), default=str))
                 
                 elif message.get("type") == "request_users":
                     # Send current online users
@@ -246,18 +352,19 @@ async def websocket_endpoint(
                         type="users_update",
                         data={"users": users_data}
                     )
-                    await websocket.send_text(users_message.json())
+                    await websocket.send_text(json.dumps(users_message.dict(), default=str))
                 
             except WebSocketDisconnect:
+                logger.info(f"[OnlineUsers][WS] Client disconnected: {user_id}")
                 break
             except Exception as e:
-                print(f"WebSocket error: {e}")
+                logger.error(f"[OnlineUsers][WS] Error in message loop: {e}")
                 break
     
     except WebSocketDisconnect:
-        pass
+        logger.info(f"[OnlineUsers][WS] Disconnected: {user_id}")
     except Exception as e:
-        print(f"WebSocket connection error: {e}")
+        logger.error(f"[OnlineUsers][WS] Connection error: {e}")
     finally:
         # Remove connection from service
         await online_users_service.remove_websocket_connection(websocket)

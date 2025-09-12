@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import axios from 'axios';
+import { sendOffline } from '@/services/onlineActivityService';
 
 interface User {
   id: string;
@@ -99,7 +100,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = (reason?: string) => {
+  const logout = async (reason?: string) => {
+    // Try to mark user offline before clearing token
+    try {
+      await sendOffline();
+    } catch {
+      // ignore
+    }
     setUser(null);
     setToken(null);
     localStorage.removeItem('tenant_token');

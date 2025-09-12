@@ -34,12 +34,12 @@ class OnlineUsersService:
         self.expiration_time = 300  # 5 minutes in seconds
     
     async def get_redis_client(self):
-        """Get Redis client connection"""
+        """Get Redis client connection using REDIS_URL from settings"""
         if not self.redis_client:
-            self.redis_client = redis.Redis(
-                host=settings.REDIS_HOST,
-                port=settings.REDIS_PORT,
-                db=settings.REDIS_DB,
+            # Use the unified Redis URL from settings to avoid missing host/port/db attrs
+            # Example: redis://redis:6379/0
+            self.redis_client = redis.from_url(
+                settings.redis_url,
                 decode_responses=True
             )
         return self.redis_client
@@ -159,10 +159,23 @@ class OnlineUsersService:
                                 user_data.update(user_info)
                         
                         # Calculate session duration
-                        last_activity = datetime.fromisoformat(user_data["last_activity"])
+                        last_activity = datetime.fromisoformat(user_data["last_activity"]) if isinstance(user_data.get("last_activity"), str) else datetime.now(timezone.utc)
                         session_duration = (datetime.now(timezone.utc) - last_activity).total_seconds() / 60
                         user_data["session_duration_minutes"] = int(session_duration)
-                        
+
+                        # Ensure required fields for OnlineUserResponse schema
+                        # id is not persisted in Redis; use user_id as id for response identity
+                        if "id" not in user_data:
+                            user_data["id"] = user_data.get("user_id")
+                        # last_activity should be datetime
+                        user_data["last_activity"] = last_activity
+                        # defaults for created_at/updated_at
+                        now_dt = datetime.now(timezone.utc)
+                        user_data.setdefault("created_at", now_dt.isoformat())
+                        user_data.setdefault("updated_at", now_dt.isoformat())
+                        # ensure flags
+                        user_data.setdefault("is_online", True)
+
                         online_users.append(OnlineUserResponse(**user_data))
                         
                 except Exception as e:
