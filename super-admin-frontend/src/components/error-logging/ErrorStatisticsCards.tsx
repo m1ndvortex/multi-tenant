@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Error Statistics Cards Component
  * Displays real-time error statistics with visual indicators

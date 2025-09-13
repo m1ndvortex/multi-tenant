@@ -354,7 +354,9 @@ export const useErrorLogging = (options: UseErrorLoggingOptions = {}): UseErrorL
     
     // Add message handlers
     errorLoggingService.addMessageHandler(WebSocketMessageType.ERROR_UPDATE, handleErrorUpdate);
-    errorLoggingService.addMessageHandler(WebSocketMessageType.STATISTICS_UPDATE, handleStatisticsUpdate);
+  errorLoggingService.addMessageHandler(WebSocketMessageType.STATISTICS_UPDATE, handleStatisticsUpdate);
+  // Some servers emit an initial snapshot with a different type
+  errorLoggingService.addMessageHandler(WebSocketMessageType.INITIAL_STATISTICS as any, handleStatisticsUpdate);
     errorLoggingService.addMessageHandler(WebSocketMessageType.ERROR_RESOLVED, handleErrorResolved);
     
     // Add connection state handler
@@ -372,7 +374,8 @@ export const useErrorLogging = (options: UseErrorLoggingOptions = {}): UseErrorL
     
     // Remove handlers
     errorLoggingService.removeMessageHandler(WebSocketMessageType.ERROR_UPDATE, handleErrorUpdate);
-    errorLoggingService.removeMessageHandler(WebSocketMessageType.STATISTICS_UPDATE, handleStatisticsUpdate);
+  errorLoggingService.removeMessageHandler(WebSocketMessageType.STATISTICS_UPDATE, handleStatisticsUpdate);
+  errorLoggingService.removeMessageHandler(WebSocketMessageType.INITIAL_STATISTICS as any, handleStatisticsUpdate);
     errorLoggingService.removeMessageHandler(WebSocketMessageType.ERROR_RESOLVED, handleErrorResolved);
     errorLoggingService.removeConnectionStateHandler(handleConnectionStateChange);
     

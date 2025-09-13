@@ -1,3 +1,8 @@
+---
+
+inclusion: manual
+
+---
 # Pytest-xdist Multi-threaded Testing Standards
 
 ## Overview

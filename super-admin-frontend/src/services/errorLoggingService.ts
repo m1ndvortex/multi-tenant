@@ -15,8 +15,56 @@ import {
   WebSocketMessageType
 } from '../types/errorLogging';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-const WS_BASE_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000';
+// Resolve HTTP and WS base URLs in a way that works both inside Docker (via Vite proxy)
+// and on the host machine. Prefer relative paths so the browser talks to the same origin
+// and lets Vite proxy /api -> backend:8000 during development.
+function resolveHttpBaseUrl(): string {
+  const raw = (import.meta as any)?.env?.VITE_API_URL as string | undefined;
+  let base = raw ?? '';
+
+  try {
+    if (typeof window !== 'undefined') {
+      const lower = (raw || '').toLowerCase();
+      // If pointing to Docker-internal DNS, prefer relative so host browser can reach via proxy
+      if (lower.includes('backend:8000') || lower === 'http://backend' || lower === 'https://backend') {
+        base = '';
+      }
+      // Allow sentinel values
+      if (lower === 'same-origin' || lower === 'relative') {
+        base = '';
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return base || '';
+}
+
+function resolveWsUrl(): string {
+  const raw = (import.meta as any)?.env?.VITE_WS_URL as string | undefined;
+
+  // If an explicit absolute WS URL is provided, use it as-is
+  if (raw && /^(ws|wss):\/\//i.test(raw)) {
+    return raw.replace(/\/$/, '');
+  }
+
+  // Otherwise, build a same-origin WS URL so Vite's proxy can forward it in dev
+  try {
+    if (typeof window !== 'undefined') {
+      const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+      const host = window.location.host; // includes port
+      return `${proto}://${host}`;
+    }
+  } catch {
+    // fall through
+  }
+
+  // Fallback to localhost (useful in some non-browser environments)
+  return 'ws://localhost:3000';
+}
+
+const API_BASE_URL = resolveHttpBaseUrl();
+const WS_BASE_ORIGIN = resolveWsUrl();
 
 class ErrorLoggingService {
   private baseUrl: string;
@@ -30,14 +78,15 @@ class ErrorLoggingService {
 
   constructor() {
     this.baseUrl = `${API_BASE_URL}/api/enhanced-error-logging`;
-    this.wsUrl = `${WS_BASE_URL}/api/enhanced-error-logging/ws/real-time-errors`;
+    this.wsUrl = `${WS_BASE_ORIGIN}/api/enhanced-error-logging/ws/real-time-errors`;
   }
 
   /**
    * Get authentication headers
    */
   private getAuthHeaders(): HeadersInit {
-    const token = localStorage.getItem('adminToken');
+    // Use the same token used across the super-admin app
+    const token = localStorage.getItem('super_admin_token');
     return {
       'Content-Type': 'application/json',
       'Authorization': token ? `Bearer ${token}` : '',
@@ -105,7 +154,46 @@ class ErrorLoggingService {
       }
 
       const data = await response.json();
-      return data;
+      
+      // Transform API response to match expected interface
+      return {
+        // Map API fields to expected interface
+        total_errors: data.total_errors || 0,
+        active_errors_count: data.unresolved_errors || 0,
+        resolved_errors_count: (data.total_errors || 0) - (data.unresolved_errors || 0),
+        
+        // Direct mappings
+        severity_breakdown: data.severity_breakdown || {},
+        category_breakdown: data.category_breakdown || {},
+        recent_critical_errors: data.recent_critical_errors || 0,
+        critical_errors_last_hour: data.recent_critical_errors || 0,
+        
+        // Set default values for missing fields
+        severity_trends: data.severity_trends || {},
+        errors_per_hour: data.errors_per_hour || [],
+        top_error_endpoints: (data.top_error_endpoints || []).map((item: any) => ({
+          ...item,
+          percentage: data.total_errors > 0 ? (item.count / data.total_errors * 100) : 0
+        })),
+        top_error_types: data.top_error_types || [],
+        top_affected_tenants: data.top_affected_tenants || [],
+        
+        // Real-time metrics
+        error_rate_per_minute: data.error_rate_per_minute || 0,
+        average_resolution_time: data.average_resolution_time,
+        
+        // Time range information
+        time_range: data.time_range || {
+          start: new Date(Date.now() - hoursBack * 60 * 60 * 1000).toISOString(),
+          end: new Date().toISOString(),
+          hours: hoursBack
+        },
+        last_updated: data.last_updated || new Date().toISOString(),
+        
+        // Health indicators
+        system_health_score: data.system_health_score,
+        alert_level: data.alert_level || 'normal'
+      };
     } catch (error) {
       this.handleApiError(error);
     }
@@ -223,8 +311,8 @@ class ErrorLoggingService {
       return; // Already connected
     }
 
-    const token = localStorage.getItem('adminToken') || 'temp-token';
-    const wsUrl = `${this.wsUrl}?token=${encodeURIComponent(token)}`;
+  const token = localStorage.getItem('super_admin_token') || '';
+  const wsUrl = `${this.wsUrl}?token=${encodeURIComponent(token)}`;
 
     try {
       this.websocket = new WebSocket(wsUrl);
