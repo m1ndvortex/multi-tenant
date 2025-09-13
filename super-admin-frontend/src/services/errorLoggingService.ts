@@ -504,3 +504,22 @@ class ErrorLoggingService {
 // Export singleton instance
 export const errorLoggingService = new ErrorLoggingService();
 export default errorLoggingService;
+
+// Re-export types for convenience
+export type { 
+  ErrorLog, 
+  ErrorStatistics, 
+  ErrorFilters, 
+  ErrorListResponse, 
+  CriticalErrorAlert,
+  ErrorResolutionRequest,
+  WebSocketConnectionStatus,
+  WebSocketMessage,
+  WebSocketMessageType,
+  ErrorTrends
+} from '../types/errorLogging';
+
+export { 
+  ErrorSeverity,
+  ErrorCategory
+} from '../types/errorLogging';

@@ -4,29 +4,46 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-all duration-cyber-normal focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
   {
     variants: {
       variant: {
+        // Cybersecurity theme variants
+        "cyber-primary":
+          "border-cyan-400/50 bg-cyan-400/10 text-cyber-neon-primary cyber-text-glow hover:bg-cyan-400/20 hover:border-cyan-400 hover:shadow-neon-cyan/30",
+        "cyber-secondary":
+          "border-emerald-400/50 bg-emerald-400/10 text-cyber-neon-secondary cyber-text-glow hover:bg-emerald-400/20 hover:border-emerald-400 hover:shadow-neon-green/30",
+        "cyber-danger":
+          "border-pink-400/50 bg-pink-400/10 text-cyber-neon-danger cyber-text-glow hover:bg-pink-400/20 hover:border-pink-400 hover:shadow-neon-pink/30 animate-cyber-pulse",
+        "cyber-warning":
+          "border-orange-400/50 bg-orange-400/10 text-cyber-neon-warning cyber-text-glow hover:bg-orange-400/20 hover:border-orange-400 hover:shadow-neon-orange/30",
+        "cyber-info":
+          "border-blue-400/50 bg-blue-400/10 text-cyber-neon-info cyber-text-glow hover:bg-blue-400/20 hover:border-blue-400 hover:shadow-neon-blue/30",
+        "cyber-success":
+          "border-emerald-400/50 bg-emerald-400/10 text-cyber-neon-success cyber-text-glow hover:bg-emerald-400/20 hover:border-emerald-400 hover:shadow-neon-green/30",
+        "cyber-glass":
+          "glass-morphism border-white/20 text-cyber-text-primary hover:glass-morphism-hover hover:text-cyber-neon-primary hover:cyber-text-glow",
+        
+        // Legacy variants (updated for dark theme)
         default:
-          "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
+          "border-white/20 bg-white/10 text-cyber-text-primary hover:bg-white/20",
         secondary:
-          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
+          "border-white/10 bg-cyber-bg-elevated text-cyber-text-secondary hover:bg-white/10",
         destructive:
-          "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
-        outline: "text-foreground",
+          "border-red-400/50 bg-red-400/10 text-cyber-neon-danger hover:bg-red-400/20",
+        outline: "border-white/20 text-cyber-text-primary hover:bg-white/5",
         success:
-          "border-transparent bg-green-500 text-white hover:bg-green-600",
+          "border-emerald-400/50 bg-emerald-400/10 text-cyber-neon-success hover:bg-emerald-400/20",
         warning:
-          "border-transparent bg-yellow-500 text-white hover:bg-yellow-600",
+          "border-orange-400/50 bg-orange-400/10 text-cyber-neon-warning hover:bg-orange-400/20",
         error:
-          "border-transparent bg-red-500 text-white hover:bg-red-600",
+          "border-red-400/50 bg-red-400/10 text-cyber-neon-danger hover:bg-red-400/20",
         "gradient-green":
-          "border-transparent bg-gradient-to-r from-green-500 to-teal-600 text-white hover:from-green-600 hover:to-teal-700",
+          "border-transparent bg-gradient-to-r from-emerald-500/20 to-teal-600/20 text-cyber-neon-secondary hover:from-emerald-500/30 hover:to-teal-600/30",
         "gradient-blue":
-          "border-transparent bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700",
+          "border-transparent bg-gradient-to-r from-blue-500/20 to-indigo-600/20 text-cyber-neon-info hover:from-blue-500/30 hover:to-indigo-600/30",
         "gradient-purple":
-          "border-transparent bg-gradient-to-r from-purple-500 to-violet-600 text-white hover:from-purple-600 hover:to-violet-700",
+          "border-transparent bg-gradient-to-r from-purple-500/20 to-violet-600/20 text-purple-300 hover:from-purple-500/30 hover:to-violet-600/30",
       },
     },
     defaultVariants: {

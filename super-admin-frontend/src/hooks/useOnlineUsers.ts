@@ -23,17 +23,24 @@ export interface UseOnlineUsersOptions {
 
 export interface UseOnlineUsersReturn {
   // Data
+  data: OnlineUsersStats | null; // Add missing data property
   users: OnlineUser[];
   stats: OnlineUsersStats | null;
   tenantUsers: Record<string, TenantOnlineUsers>;
   
   // Loading states
   loading: boolean;
+  isLoading: boolean; // Add missing isLoading property
   statsLoading: boolean;
   usersLoading: boolean;
+  isRefetching: boolean; // Add missing isRefetching property
   
   // Real-time connection
   isConnected: boolean;
+  
+  // Error handling
+  error: string | null;
+  clearError: () => void;
   
   // Actions
   refreshUsers: () => Promise<void>;
@@ -47,10 +54,6 @@ export interface UseOnlineUsersReturn {
   // Filters
   filters: OnlineUsersFilter;
   setFilters: (filters: OnlineUsersFilter) => void;
-  
-  // Error handling
-  error: string | null;
-  clearError: () => void;
 }
 
 export const useOnlineUsers = (options: UseOnlineUsersOptions = {}): UseOnlineUsersReturn => {
@@ -66,8 +69,10 @@ export const useOnlineUsers = (options: UseOnlineUsersOptions = {}): UseOnlineUs
   const [stats, setStats] = useState<OnlineUsersStats | null>(null);
   const [tenantUsers, setTenantUsers] = useState<Record<string, TenantOnlineUsers>>({});
   const [loading, setLoading] = useState(false);
+  const [isLoading] = useState(false);
   const [statsLoading, setStatsLoading] = useState(false);
   const [usersLoading, setUsersLoading] = useState(false);
+  const [isRefetching] = useState(false);
   const [filters, setFilters] = useState<OnlineUsersFilter>(initialFilters);
   const [error, setError] = useState<string | null>(null);
 
@@ -290,17 +295,24 @@ export const useOnlineUsers = (options: UseOnlineUsersOptions = {}): UseOnlineUs
 
   return {
     // Data
+    data: stats, // Add missing data property
     users,
     stats,
     tenantUsers,
     
     // Loading states
     loading,
+    isLoading,
     statsLoading,
     usersLoading,
+    isRefetching,
     
     // Real-time connection
     isConnected,
+    
+    // Error handling
+    error,
+    clearError,
     
     // Actions
     refreshUsers,
@@ -313,10 +325,6 @@ export const useOnlineUsers = (options: UseOnlineUsersOptions = {}): UseOnlineUs
     
     // Filters
     filters,
-    setFilters,
-    
-    // Error handling
-    error,
-    clearError
+    setFilters
   };
 };

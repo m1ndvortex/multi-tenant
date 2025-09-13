@@ -55,11 +55,7 @@ export const OnlineUsersStatsCards: React.FC<OnlineUsersStatsCardsProps> = ({
     return `${hours}h ${remainingMinutes}m`;
   };
 
-  const getStatusColor = (value: number, threshold: number = 0): string => {
-    if (value === 0) return 'text-gray-500';
-    if (value > threshold) return 'text-green-600';
-    return 'text-blue-600';
-  };
+  // Removed unused getStatusColor function
 
   return (
     <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 ${className}`}>

@@ -9,7 +9,7 @@ const Skeleton = React.forwardRef<HTMLDivElement, SkeletonProps>(
       <div
         ref={ref}
         className={cn(
-          "animate-pulse rounded-md bg-slate-200",
+          "animate-cyber-pulse rounded-md glass-morphism border-white/10 bg-gradient-to-r from-white/5 to-white/10",
           className
         )}
         {...props}
@@ -45,7 +45,7 @@ export const TableRowSkeleton: React.FC<{ columns: number }> = ({ columns }) => 
 );
 
 export const ChartSkeleton: React.FC<{ height?: string }> = ({ height = "h-64" }) => (
-  <div className={cn("w-full rounded-lg bg-slate-100 flex items-center justify-center", height)}>
+  <div className={cn("w-full rounded-lg glass-morphism border-white/20 flex items-center justify-center", height)}>
     <div className="text-center space-y-2">
       <Skeleton className="h-6 w-32 mx-auto" />
       <Skeleton className="h-4 w-24 mx-auto" />
@@ -56,7 +56,7 @@ export const ChartSkeleton: React.FC<{ height?: string }> = ({ height = "h-64" }
 export const UserListSkeleton: React.FC<{ count?: number }> = ({ count = 5 }) => (
   <div className="space-y-3">
     {Array.from({ length: count }).map((_, index) => (
-      <div key={index} className="flex items-center space-x-3 p-3 rounded-lg bg-slate-50">
+      <div key={index} className="flex items-center space-x-3 p-3 rounded-lg glass-morphism border-white/10">
         <Skeleton className="w-10 h-10 rounded-full" />
         <div className="flex-1 space-y-2">
           <Skeleton className="h-4 w-3/4" />

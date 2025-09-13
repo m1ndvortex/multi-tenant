@@ -42,7 +42,7 @@ import {
   Copy
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { ErrorLog, ErrorSeverity, ErrorCategory } from '../../types/errorLogging';
+import { ErrorLog, ErrorSeverity } from '../../types/errorLogging';
 
 interface ActiveErrorsTableProps {
   errors: ErrorLog[];
@@ -68,7 +68,7 @@ const ActiveErrorsTable: React.FC<ActiveErrorsTableProps> = ({
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [sortField, setSortField] = useState<SortField>('last_occurrence');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
-  const [selectedError, setSelectedError] = useState<ErrorLog | null>(null);
+  const [, setSelectedError] = useState<ErrorLog | null>(null);
 
   /**
    * Get severity color and styling

@@ -98,11 +98,11 @@ export const ErrorTrendsChart: React.FC<ErrorTrendsChartProps> = ({
 
   // Prepare chart data
   const totalErrorsData = {
-    labels: trends.daily_counts.map(item => formatDate(item.date)),
+    labels: trends.daily_counts.map((item: any) => formatDate(item.date)),
     datasets: [
       {
         label: 'تعداد کل خطاها',
-        data: trends.daily_counts.map(item => item.count),
+        data: trends.daily_counts.map((item: any) => item.count),
         borderColor: 'rgb(59, 130, 246)',
         backgroundColor: 'rgba(59, 130, 246, 0.1)',
         fill: true,
@@ -114,19 +114,19 @@ export const ErrorTrendsChart: React.FC<ErrorTrendsChartProps> = ({
   };
 
   const severityData = {
-    labels: trends.daily_counts.map(item => formatDate(item.date)),
-    datasets: Object.entries(trends.severity_trends).map(([severity, data]) => ({
+    labels: trends.daily_counts.map((item: any) => formatDate(item.date)),
+    datasets: Object.entries(trends.severity_trends).map(([severity, data]: [string, any]) => ({
       label: formatSeverityName(severity),
-      data: data.map(item => item.count),
+      data: (data as any[]).map((item: any) => item.count),
       borderColor: getSeverityColor(severity),
     })),
   };
 
   const stackedBarData = {
-    labels: trends.daily_counts.map(item => formatDate(item.date)),
-    datasets: Object.entries(trends.severity_trends).map(([severity, data]) => ({
+    labels: trends.daily_counts.map((item: any) => formatDate(item.date)),
+    datasets: Object.entries(trends.severity_trends).map(([severity, data]: [string, any]) => ({
       label: formatSeverityName(severity),
-      data: data.map(item => item.count),
+      data: (data as any[]).map((item: any) => item.count),
       backgroundColor: getSeverityColor(severity),
     })),
   };
@@ -249,7 +249,7 @@ export const ErrorTrendsChart: React.FC<ErrorTrendsChartProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
           <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-lg">
             <div className="text-2xl font-bold text-blue-800">
-              {trends.daily_counts.reduce((sum, item) => sum + item.count, 0)}
+              {trends.daily_counts.reduce((sum: number, item: any) => sum + item.count, 0)}
             </div>
             <div className="text-sm text-blue-600">کل خطاها در این دوره</div>
           </div>
@@ -258,14 +258,14 @@ export const ErrorTrendsChart: React.FC<ErrorTrendsChartProps> = ({
             <div className="text-2xl font-bold text-red-800">
               {Object.entries(trends.severity_trends)
                 .filter(([severity]) => severity === ErrorSeverity.CRITICAL)
-                .reduce((sum, [, data]) => sum + data.reduce((s, item) => s + item.count, 0), 0)}
+                .reduce((sum: number, [, data]: [string, any]) => sum + (data as any[]).reduce((s: number, item: any) => s + item.count, 0), 0)}
             </div>
             <div className="text-sm text-red-600">خطاهای بحرانی</div>
           </div>
 
           <div className="p-4 bg-gradient-to-br from-green-50 to-green-100/50 rounded-lg">
             <div className="text-2xl font-bold text-green-800">
-              {Math.round(trends.daily_counts.reduce((sum, item) => sum + item.count, 0) / trends.daily_counts.length)}
+              {Math.round(trends.daily_counts.reduce((sum: number, item: any) => sum + item.count, 0) / trends.daily_counts.length)}
             </div>
             <div className="text-sm text-green-600">میانگین خطا در روز</div>
           </div>

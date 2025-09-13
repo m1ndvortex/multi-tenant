@@ -8,10 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { 
-  Clock, 
   User, 
   Monitor, 
-  MapPin, 
   Wifi, 
   Calendar,
   Activity,
@@ -24,7 +22,7 @@ import { faIR } from 'date-fns/locale';
 
 interface UserActivityTimelineProps {
   user: OnlineUser;
-  session?: UserSession;
+  session?: UserSession | null;
   onClose?: () => void;
   className?: string;
 }

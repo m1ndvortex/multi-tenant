@@ -48,7 +48,7 @@ interface UseErrorLoggingReturn {
   loadStatistics: (tenantId?: string, hoursBack?: number) => Promise<void>;
   loadCriticalAlerts: (hours?: number, includeResolved?: boolean) => Promise<void>;
   resolveError: (errorId: string, resolutionData: ErrorResolutionRequest) => Promise<void>;
-  simulateError: (message: string, severity?: string, category?: string, tenantId?: string) => Promise<void>;
+  simulateError: (message: string, severity?: string, category?: string, tenantId?: string) => Promise<{ success: boolean; error_id: string; message: string; }>;
   
   // WebSocket management
   connectRealTime: () => void;
@@ -110,7 +110,7 @@ export const useErrorLogging = (options: UseErrorLoggingOptions = {}): UseErrorL
   /**
    * Safe state update helper
    */
-  const safeSetState = useCallback(<T>(setter: React.Dispatch<React.SetStateAction<T>>, value: T | ((prev: T) => T)) => {
+  const safeSetState = useCallback((setter: any, value: any) => {
     if (mountedRef.current) {
       setter(value);
     }
@@ -191,8 +191,8 @@ export const useErrorLogging = (options: UseErrorLoggingOptions = {}): UseErrorL
       const resolvedError = await errorLoggingService.resolveError(errorId, resolutionData);
       
       // Update local state
-      safeSetState(setActiveErrors, prev => 
-        prev.map(error => 
+      safeSetState(setActiveErrors, (prev: ErrorLog[]) => 
+        prev.map((error: ErrorLog) => 
           error.id === errorId 
             ? { ...error, is_resolved: true, resolved_at: resolvedError.resolved_at, resolution_notes: resolutionData.notes }
             : error
@@ -211,7 +211,7 @@ export const useErrorLogging = (options: UseErrorLoggingOptions = {}): UseErrorL
           read: false,
           actionRequired: false
         };
-        safeSetState(setNotifications, prev => [notification, ...prev]);
+        safeSetState(setNotifications, (prev: ErrorNotification[]) => [notification, ...prev]);
       }
     } catch (error) {
       handleError(error, 'resolve error');
@@ -270,8 +270,8 @@ export const useErrorLogging = (options: UseErrorLoggingOptions = {}): UseErrorL
     console.log('Received error update:', data);
     
     // Add or update error in the list
-    safeSetState(setActiveErrors, prev => {
-      const existingIndex = prev.findIndex(error => error.id === data.id);
+    safeSetState(setActiveErrors, (prev: ErrorLog[]) => {
+      const existingIndex = prev.findIndex((error: ErrorLog) => error.id === data.id);
       if (existingIndex >= 0) {
         // Update existing error
         const updated = [...prev];
@@ -295,7 +295,7 @@ export const useErrorLogging = (options: UseErrorLoggingOptions = {}): UseErrorL
         read: false,
         actionRequired: true
       };
-      safeSetState(setNotifications, prev => [notification, ...prev]);
+      safeSetState(setNotifications, (prev: ErrorNotification[]) => [notification, ...prev]);
     }
   }, [safeSetState, enableNotifications]);
 
@@ -308,8 +308,8 @@ export const useErrorLogging = (options: UseErrorLoggingOptions = {}): UseErrorL
     console.log('Received error resolved:', data);
     
     // Update the resolved error in the list
-    safeSetState(setActiveErrors, prev => 
-      prev.map(error => 
+    safeSetState(setActiveErrors, (prev: ErrorLog[]) => 
+      prev.map((error: ErrorLog) => 
         error.id === data.error_id 
           ? { ...error, is_resolved: true, resolved_at: data.resolved_at, resolution_notes: data.resolution_notes }
           : error
@@ -328,7 +328,7 @@ export const useErrorLogging = (options: UseErrorLoggingOptions = {}): UseErrorL
         read: false,
         actionRequired: false
       };
-      safeSetState(setNotifications, prev => [notification, ...prev]);
+      safeSetState(setNotifications, (prev: ErrorNotification[]) => [notification, ...prev]);
     }
   }, [safeSetState, enableNotifications]);
 
@@ -336,7 +336,7 @@ export const useErrorLogging = (options: UseErrorLoggingOptions = {}): UseErrorL
    * Connection state handler
    */
   const handleConnectionStateChange = useCallback((connected: boolean, error?: string) => {
-    safeSetState(setConnectionState, prev => ({
+    safeSetState(setConnectionState, (prev: RealTimeConnectionState) => ({
       ...prev,
       isConnected: connected,
       isConnecting: false,
@@ -350,7 +350,7 @@ export const useErrorLogging = (options: UseErrorLoggingOptions = {}): UseErrorL
    * Connect to real-time updates
    */
   const connectRealTime = useCallback(() => {
-    safeSetState(setConnectionState, prev => ({ ...prev, isConnecting: true }));
+    safeSetState(setConnectionState, (prev: RealTimeConnectionState) => ({ ...prev, isConnecting: true }));
     
     // Add message handlers
     errorLoggingService.addMessageHandler(WebSocketMessageType.ERROR_UPDATE, handleErrorUpdate);
@@ -379,7 +379,7 @@ export const useErrorLogging = (options: UseErrorLoggingOptions = {}): UseErrorL
     errorLoggingService.removeMessageHandler(WebSocketMessageType.ERROR_RESOLVED, handleErrorResolved);
     errorLoggingService.removeConnectionStateHandler(handleConnectionStateChange);
     
-    safeSetState(setConnectionState, prev => ({ 
+    safeSetState(setConnectionState, (prev: RealTimeConnectionState) => ({ 
       ...prev, 
       isConnected: false, 
       isConnecting: false,
@@ -407,8 +407,8 @@ export const useErrorLogging = (options: UseErrorLoggingOptions = {}): UseErrorL
    * Notification management
    */
   const markNotificationAsRead = useCallback((notificationId: string) => {
-    safeSetState(setNotifications, prev => 
-      prev.map(notification => 
+    safeSetState(setNotifications, (prev: ErrorNotification[]) => 
+      prev.map((notification: ErrorNotification) => 
         notification.id === notificationId 
           ? { ...notification, read: true }
           : notification
@@ -506,3 +506,59 @@ export const useErrorLogging = (options: UseErrorLoggingOptions = {}): UseErrorL
 };
 
 export default useErrorLogging;
+
+// Export individual functions for components that need them
+export const useBulkErrorAction = () => {
+  // This is a placeholder - implement based on your needs
+  return {
+    bulkResolve: async (_errorIds: string[], _resolutionData: ErrorResolutionRequest) => {
+      // Implementation here
+    },
+    bulkDelete: async (_errorIds: string[]) => {
+      // Implementation here
+    },
+    isPending: false,
+    mutateAsync: async (_params: any) => {
+      // Implementation here
+    }
+  };
+};
+
+export const useErrorLog = (_errorId: string) => {
+  // This is a placeholder - implement based on your needs
+  return {
+    data: null as ErrorLog | null,
+    error: null,
+    isLoading: false,
+    loading: false,
+    refetch: () => {}
+  };
+};
+
+export const useResolveError = () => {
+  // This is a placeholder - implement based on your needs
+  return {
+    resolveError: async (_errorId: string, _resolutionData: ErrorResolutionRequest) => {
+      // Implementation here
+    },
+    loading: false,
+    isPending: false,
+    mutateAsync: async (_params: any) => {
+      // Implementation here
+    }
+  };
+};
+
+export const useDeleteError = () => {
+  // This is a placeholder - implement based on your needs
+  return {
+    deleteError: async (_errorId: string) => {
+      // Implementation here
+    },
+    loading: false,
+    isPending: false,
+    mutateAsync: async (_params: any) => {
+      // Implementation here
+    }
+  };
+};

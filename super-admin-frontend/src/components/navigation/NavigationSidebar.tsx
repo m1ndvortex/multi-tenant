@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -19,6 +21,7 @@ interface NavigationSidebarProps {
 const NavigationSidebar: React.FC<NavigationSidebarProps> = ({ className }) => {
   const location = useLocation();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
 
   const navItems: NavItem[] = [
     {
@@ -149,116 +152,234 @@ const NavigationSidebar: React.FC<NavigationSidebarProps> = ({ className }) => {
   }, {} as Record<string, NavItem[]>);
 
   return (
-    <div className={cn(
-      "bg-gradient-to-b from-slate-50 to-slate-100 border-l border-slate-200/50 shadow-xl transition-all duration-300 flex flex-col",
-      isSidebarCollapsed ? "w-16" : "w-64",
-      className
-    )}>
+    <motion.div 
+      className={cn(
+        "glass-morphism border-l border-cyber-neon-primary/30 shadow-cyber-glass transition-all duration-cyber-normal flex flex-col relative overflow-hidden",
+        isSidebarCollapsed ? "w-16" : "w-64",
+        className
+      )}
+      initial={{ x: -100, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+    >
+      {/* Animated background accent */}
+      <div className="absolute inset-0 bg-gradient-to-b from-cyber-neon-primary/5 via-transparent to-cyber-neon-secondary/5 pointer-events-none" />
+      
+      {/* Vertical neon accent line */}
+      <div className="absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-cyber-neon-primary/50 to-transparent" />
+
       {/* Header */}
-      <div className="p-6 border-b border-slate-200/50">
+      <motion.div 
+        className="p-6 border-b border-cyber-neon-primary/20 relative"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2, duration: 0.3 }}
+      >
         <div className="flex items-center justify-between">
-          {!isSidebarCollapsed && (
-            <div>
-              <h1 className="text-xl font-bold text-slate-800">
-                HesaabPlus
-              </h1>
-              <p className="text-sm text-slate-600">
-                Super Admin
-              </p>
-            </div>
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            className="hover:bg-slate-200/50"
-            title={isSidebarCollapsed ? "گسترش منو" : "جمع کردن منو"}
+          <AnimatePresence mode="wait">
+            {!isSidebarCollapsed && (
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <h1 className="text-xl font-bold text-cyber-text-primary cyber-text-glow font-accent">
+                  HesaabPlus
+                </h1>
+                <p className="text-sm text-cyber-text-secondary">
+                  Super Admin
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          
+          <motion.div
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
           >
-            <svg 
-              className={cn(
-                "w-5 h-5 transition-transform duration-300",
-                isSidebarCollapsed && "rotate-180"
-              )} 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              className="hover:bg-cyber-neon-primary/10 hover:border-cyber-neon-primary/30 border border-transparent text-cyber-text-secondary hover:text-cyber-neon-primary transition-all duration-cyber-fast"
+              title={isSidebarCollapsed ? "گسترش منو" : "جمع کردن منو"}
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-            </svg>
-          </Button>
+              <motion.svg 
+                className="w-5 h-5"
+                animate={{ 
+                  rotate: isSidebarCollapsed ? 180 : 0,
+                }}
+                transition={{ duration: 0.3 }}
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+              </motion.svg>
+            </Button>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-6 overflow-y-auto">
-        {Object.entries(groupedNavItems).map(([sectionKey, items]) => (
-          <div key={sectionKey}>
-            {!isSidebarCollapsed && (
-              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 px-3">
-                {sections[sectionKey as keyof typeof sections]}
-              </h3>
-            )}
+        {Object.entries(groupedNavItems).map(([sectionKey, items], sectionIndex) => (
+          <motion.div 
+            key={sectionKey}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 + sectionIndex * 0.1, duration: 0.3 }}
+          >
+            <AnimatePresence mode="wait">
+              {!isSidebarCollapsed && (
+                <motion.h3 
+                  className="text-xs font-semibold text-cyber-text-muted uppercase tracking-wider mb-3 px-3 cyber-text-glow"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {sections[sectionKey as keyof typeof sections]}
+                </motion.h3>
+              )}
+            </AnimatePresence>
+            
             <div className="space-y-1">
-              {items.map((item) => {
+              {items.map((item, itemIndex) => {
                 const isActive = location.pathname === item.path;
                 return (
-                  <Link
+                  <motion.div
                     key={item.path}
-                    to={item.path}
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-300 group relative",
-                      isActive
-                        ? `bg-gradient-to-r ${item.gradient} text-white shadow-lg`
-                        : "hover:bg-slate-200/50 text-slate-700 hover:text-slate-900"
-                    )}
-                    title={isSidebarCollapsed ? `${item.label} (${item.shortcut})` : undefined}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ 
+                      delay: 0.4 + sectionIndex * 0.1 + itemIndex * 0.05, 
+                      duration: 0.3 
+                    }}
                   >
-                    <div className={cn(
-                      "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300",
-                      isActive
-                        ? "bg-white/20"
-                        : `bg-gradient-to-br ${item.gradient} text-white shadow-md group-hover:shadow-lg`
-                    )}>
-                      {item.icon}
-                    </div>
-                    {!isSidebarCollapsed && (
-                      <div className="flex-1 flex items-center justify-between">
-                        <span className="font-medium">{item.label}</span>
-                        {item.shortcut && (
-                          <span className={cn(
-                            "text-xs px-2 py-1 rounded transition-colors duration-200",
-                            isActive 
-                              ? "bg-white/20 text-white/80" 
-                              : "bg-slate-200/50 text-slate-500"
-                          )}>
-                            {item.shortcut}
-                          </span>
+                    <Link
+                      to={item.path}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-cyber-normal group relative overflow-hidden",
+                        isActive
+                          ? "bg-cyber-neon-primary/20 text-cyber-neon-primary border border-cyber-neon-primary/50 shadow-neon-cyan"
+                          : "hover:bg-cyber-neon-primary/10 text-cyber-text-secondary hover:text-cyber-text-primary border border-transparent hover:border-cyber-neon-primary/30"
+                      )}
+                      title={isSidebarCollapsed ? `${item.label} (${item.shortcut})` : undefined}
+                    >
+                      {/* Hover glow effect */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-cyber-neon-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-cyber-normal" />
+                      
+                      <motion.div 
+                        className={cn(
+                          "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-cyber-normal relative z-10",
+                          isActive
+                            ? "bg-cyber-neon-primary/30 text-cyber-neon-primary shadow-cyber-glow-sm"
+                            : "bg-cyber-bg-surface/50 text-cyber-text-muted group-hover:bg-cyber-neon-primary/20 group-hover:text-cyber-neon-primary"
                         )}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        {item.icon}
+                      </motion.div>
+                      
+                      <AnimatePresence mode="wait">
+                        {!isSidebarCollapsed && (
+                          <motion.div 
+                            className="flex-1 flex items-center justify-between relative z-10"
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -10 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            <span className="font-medium">{item.label}</span>
+                            {item.shortcut && (
+                              <motion.span 
+                                className={cn(
+                                  "text-xs px-2 py-1 rounded transition-colors duration-cyber-fast border",
+                                  isActive 
+                                    ? "bg-cyber-neon-primary/20 text-cyber-neon-primary border-cyber-neon-primary/30" 
+                                    : "bg-cyber-bg-surface/50 text-cyber-text-muted border-cyber-bg-elevated/50 group-hover:border-cyber-neon-primary/30"
+                                )}
+                                whileHover={{ scale: 1.05 }}
+                              >
+                                {item.shortcut}
+                              </motion.span>
+                            )}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                      
+                      {/* Active indicator */}
+                      {isActive && (
+                        <motion.div 
+                          className="absolute left-0 top-0 bottom-0 w-1 bg-cyber-neon-primary rounded-r-full shadow-cyber-glow-sm"
+                          initial={{ scaleY: 0 }}
+                          animate={{ scaleY: 1 }}
+                          transition={{ duration: 0.3, ease: "easeOut" }}
+                        />
+                      )}
+                      
+                      {/* Particle trail effect on hover */}
+                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-cyber-normal pointer-events-none">
+                        {[...Array(3)].map((_, i) => (
+                          <motion.div
+                            key={i}
+                            className="absolute w-1 h-1 bg-cyber-neon-primary rounded-full"
+                            animate={{
+                              x: [0, Math.random() * 20 - 10],
+                              y: [0, Math.random() * 20 - 10],
+                              opacity: [0, 1, 0],
+                            }}
+                            transition={{
+                              duration: 1,
+                              repeat: Infinity,
+                              delay: i * 0.2,
+                            }}
+                            style={{
+                              left: `${20 + Math.random() * 60}%`,
+                              top: `${30 + Math.random() * 40}%`,
+                            }}
+                          />
+                        ))}
                       </div>
-                    )}
-                    
-                    {/* Active indicator */}
-                    {isActive && (
-                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-white/50 rounded-r-full" />
-                    )}
-                  </Link>
+                    </Link>
+                  </motion.div>
                 );
               })}
             </div>
-          </div>
+          </motion.div>
         ))}
       </nav>
 
       {/* Footer */}
-      {!isSidebarCollapsed && (
-        <div className="p-4 border-t border-slate-200/50">
-          <div className="text-xs text-slate-500 text-center">
-            <p>نسخه 2.0.0</p>
-            <p className="mt-1">© 2024 HesaabPlus</p>
-          </div>
-        </div>
-      )}
-    </div>
+      <AnimatePresence mode="wait">
+        {!isSidebarCollapsed && (
+          <motion.div 
+            className="p-4 border-t border-cyber-neon-primary/20 relative"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.2 }}
+          >
+            {/* Footer accent line */}
+            <div className="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-cyber-neon-primary/50 to-transparent" />
+            
+            <div className="text-xs text-cyber-text-muted text-center">
+              <motion.p
+                className="cyber-text-glow"
+                animate={{ opacity: [0.7, 1, 0.7] }}
+                transition={{ duration: 3, repeat: Infinity }}
+              >
+                نسخه 2.0.0
+              </motion.p>
+              <p className="mt-1">© 2024 HesaabPlus</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
 

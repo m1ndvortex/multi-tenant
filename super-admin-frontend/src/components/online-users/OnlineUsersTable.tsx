@@ -110,15 +110,7 @@ export const OnlineUsersTable: React.FC<OnlineUsersTableProps> = ({
     }
   };
 
-  const handleUserSelect = (userId: string) => {
-    const newSelected = new Set(selectedUsers);
-    if (newSelected.has(userId)) {
-      newSelected.delete(userId);
-    } else {
-      newSelected.add(userId);
-    }
-    setSelectedUsers(newSelected);
-  };
+  // Removed unused handleUserSelect function
 
   const handleSetOffline = (userId: string) => {
     onSetOffline?.(userId);

@@ -14,7 +14,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '../ui/select';
-import { Input } from '../ui/input';
+// Input import removed as it's not used
 import { Label } from '../ui/label';
 import { 
   Filter, 
