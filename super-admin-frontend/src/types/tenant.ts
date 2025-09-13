@@ -1,6 +1,7 @@
 export interface Tenant {
   id: string;
   name: string;
+  email?: string;
   domain?: string;
   // Backend enums
   subscription_type: 'free' | 'pro' | 'enterprise';

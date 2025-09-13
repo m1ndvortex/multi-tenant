@@ -13,6 +13,7 @@ export interface OnlineUser {
   user_id: string;
   tenant_id: string;
   user_email: string;
+  email: string;
   user_full_name: string;
   tenant_name: string;
   is_online: boolean;
@@ -21,6 +22,7 @@ export interface OnlineUser {
   user_agent?: string;
   ip_address?: string;
   session_duration_minutes?: number;
+  is_impersonation?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -28,10 +30,13 @@ export interface OnlineUser {
 export interface OnlineUsersStats {
   total_online_users: number;
   total_offline_users: number;
+  total_count: number;
   online_by_tenant: Record<string, number>;
   recent_activity_count: number;
   peak_online_today: number;
   average_session_duration: number;
+  users: OnlineUser[];
+  last_updated: string;
 }
 
 export interface TenantOnlineUsers {
@@ -63,7 +68,7 @@ export interface UserSession {
 }
 
 export interface OnlineUsersWebSocketMessage {
-  type: 'user_online' | 'user_offline' | 'activity_update' | 'stats_update' | 'users_update' | 'initial_stats' | 'ping' | 'pong';
+  type: 'user_online' | 'user_offline' | 'activity_update' | 'stats_update' | 'users_update' | 'initial_stats' | 'ping' | 'pong' | 'request_users' | 'request_stats';
   data: any;
   timestamp: string;
 }

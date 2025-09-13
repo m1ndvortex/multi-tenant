@@ -18,8 +18,11 @@ export enum ErrorCategory {
   VALIDATION = 'validation',
   BUSINESS_LOGIC = 'business_logic',
   EXTERNAL_SERVICE = 'external_service',
+  EXTERNAL_API = 'external_api',
   PERFORMANCE = 'performance',
-  SECURITY = 'security'
+  SECURITY = 'security',
+  NETWORK = 'network',
+  UNKNOWN = 'unknown'
 }
 
 export enum WebSocketMessageType {
@@ -49,6 +52,10 @@ export interface ErrorLog {
   session_id?: string;
   request_id?: string;
   ip_address?: string;
+  user_agent?: string;
+  request_data?: any;
+  response_data?: any;
+  error_code?: string;
   
   // Error details
   stack_trace?: string;
@@ -81,6 +88,7 @@ export interface ErrorStatistics {
   total_errors: number;
   active_errors_count: number;
   resolved_errors_count: number;
+  unresolved_errors: number;
   
   // Severity breakdown
   severity_breakdown: Record<string, number>;
@@ -158,6 +166,12 @@ export interface ErrorFilters {
   error_type?: string;
   hours_back: number;
   limit: number;
+  search_term?: string;
+  status_code?: number;
+  is_resolved?: boolean;
+  user_id?: string;
+  start_date?: string;
+  end_date?: string;
 }
 
 export interface ErrorListResponse {
@@ -243,4 +257,15 @@ export interface ErrorNotification {
   timestamp: string;
   read: boolean;
   actionRequired: boolean;
+}
+
+export interface ErrorTrends {
+  daily_counts: Array<{ date: string; count: number }>;
+  severity_trends: Record<string, Array<{ date: string; count: number }>>;
+  category_trends: Record<string, Array<{ date: string; count: number }>>;
+  total_period_errors: number;
+  period_start: string;
+  period_end: string;
+  trend_direction: 'up' | 'down' | 'stable';
+  growth_rate: number;
 }

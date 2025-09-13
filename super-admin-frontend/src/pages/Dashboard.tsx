@@ -9,7 +9,7 @@ import { usePlatformMetrics } from '@/hooks/useAnalytics';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { OfflineIndicator } from '@/components/OfflineIndicator';
-import { SystemHealthSkeleton } from '@/components/ui/skeleton';
+import { CyberSystemHealthSkeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 interface StatCardProps {
@@ -602,7 +602,7 @@ const Dashboard: React.FC = () => {
             </CardHeader>
             <CardContent>
               {systemHealth.isLoading ? (
-                <SystemHealthSkeleton />
+                <CyberSystemHealthSkeleton />
               ) : systemHealth.error ? (
                 <ErrorDisplay
                   error={systemHealth.error}

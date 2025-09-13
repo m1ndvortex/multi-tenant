@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { UserCheck, Eye, Clock, ExternalLink } from 'lucide-react';
+import { Eye, Clock, ExternalLink } from 'lucide-react';
 import { User } from '@/types/impersonation';
 import { formatDistanceToNow } from 'date-fns';
 import { faIR } from 'date-fns/locale';

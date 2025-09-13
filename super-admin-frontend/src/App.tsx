@@ -34,7 +34,7 @@ function App() {
       <ThemeProvider>
         <AuthProvider>
           <Router>
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100" dir="rtl">
+            <div className="min-h-screen bg-gradient-to-br from-[#0B0E1A] via-[#1A1D29] to-[#252A3A]" dir="rtl">
               <Routes>
                 {/* Public route */}
                 <Route path="/login" element={<Login />} />

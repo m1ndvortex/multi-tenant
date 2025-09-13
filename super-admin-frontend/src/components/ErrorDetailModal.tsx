@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useErrorLog, useResolveError, useDeleteError } from '@/hooks/useErrorLogging';
-import { ErrorSeverity, ErrorCategory } from '@/services/errorLoggingService';
+import { ErrorSeverity, ErrorCategory } from '@/types/errorLogging';
 import { cn } from '@/lib/utils';
 
 interface ErrorDetailModalProps {
@@ -112,12 +112,14 @@ export const ErrorDetailModal: React.FC<ErrorDetailModalProps> = ({
   };
 
   const formatCategoryName = (category: ErrorCategory) => {
-    const categoryNames = {
+    const categoryNames: Record<ErrorCategory, string> = {
       [ErrorCategory.AUTHENTICATION]: 'احراز هویت',
       [ErrorCategory.AUTHORIZATION]: 'مجوز دسترسی',
       [ErrorCategory.VALIDATION]: 'اعتبارسنجی',
       [ErrorCategory.DATABASE]: 'پایگاه داده',
+      [ErrorCategory.API]: 'API',
       [ErrorCategory.EXTERNAL_API]: 'API خارجی',
+      [ErrorCategory.EXTERNAL_SERVICE]: 'سرویس خارجی',
       [ErrorCategory.BUSINESS_LOGIC]: 'منطق کسب‌وکار',
       [ErrorCategory.SYSTEM]: 'سیستم',
       [ErrorCategory.NETWORK]: 'شبکه',

@@ -30,7 +30,6 @@ import {
   CheckCircle, 
   AlertTriangle, 
   Clock,
-  User,
   FileText,
   Settings,
   ExternalLink,
@@ -51,7 +50,6 @@ const ErrorResolutionDialog: React.FC<ErrorResolutionDialogProps> = ({
   isOpen,
   onClose,
   onSubmit,
-  errorId,
   error
 }) => {
   const [resolutionData, setResolutionData] = useState<ErrorResolutionRequest>({

@@ -48,7 +48,7 @@ const TenantFullEditDialog: React.FC<TenantFullEditDialogProps> = ({
   const [activeTab, setActiveTab] = useState('basic');
 
   const fullUpdateMutation = useFullTenantUpdate();
-  const { data: enhancedTenant, isLoading: isLoadingEnhanced } = useEnhancedTenantDetails(
+  const { data: enhancedTenant } = useEnhancedTenantDetails(
     tenant?.id || ''
   );
 

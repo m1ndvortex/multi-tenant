@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -12,6 +13,8 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { animationPresets, cyberAnimations } from '@/lib/theme/animations';
+import { glassmorphismClasses, neonClasses } from '@/lib/theme/cybersecurity';
 
 ChartJS.register(
   CategoryScale,
@@ -40,30 +43,36 @@ const ConversionRatesChart: React.FC<ConversionRatesChartProps> = ({ data, isLoa
       {
         label: 'تبدیل رایگان به پرو (%)',
         data: data.free_to_pro,
-        borderColor: 'rgb(34, 197, 94)',
-        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+        borderColor: '#00FF88',
+        backgroundColor: 'rgba(0, 255, 136, 0.1)',
         borderWidth: 3,
         fill: true,
         tension: 0.4,
-        pointBackgroundColor: 'rgb(34, 197, 94)',
-        pointBorderColor: 'white',
+        pointBackgroundColor: '#00FF88',
+        pointBorderColor: '#FFFFFF',
         pointBorderWidth: 2,
         pointRadius: 6,
-        pointHoverRadius: 8,
+        pointHoverRadius: 10,
+        pointHoverBorderWidth: 3,
+        shadowColor: 'rgba(0, 255, 136, 0.4)',
+        shadowBlur: 10,
       },
       {
         label: 'نرخ ترک (%)',
         data: data.churn_rate,
-        borderColor: 'rgb(239, 68, 68)',
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        borderColor: '#FF4757',
+        backgroundColor: 'rgba(255, 71, 87, 0.1)',
         borderWidth: 3,
         fill: true,
         tension: 0.4,
-        pointBackgroundColor: 'rgb(239, 68, 68)',
-        pointBorderColor: 'white',
+        pointBackgroundColor: '#FF4757',
+        pointBorderColor: '#FFFFFF',
         pointBorderWidth: 2,
         pointRadius: 6,
-        pointHoverRadius: 8,
+        pointHoverRadius: 10,
+        pointHoverBorderWidth: 3,
+        shadowColor: 'rgba(255, 71, 87, 0.4)',
+        shadowBlur: 10,
       },
     ],
   };
@@ -71,27 +80,43 @@ const ConversionRatesChart: React.FC<ConversionRatesChartProps> = ({ data, isLoa
   const options = {
     responsive: true,
     maintainAspectRatio: false,
+    animation: {
+      duration: 1000,
+      easing: 'easeInOutQuart' as const,
+    },
     plugins: {
       legend: {
         position: 'top' as const,
         labels: {
           font: {
-            family: 'Inter',
+            family: "'Inter', system-ui, sans-serif",
             size: 12,
+            weight: '500',
           },
-          color: 'rgb(71, 85, 105)',
+          color: '#B8BCC8',
           usePointStyle: true,
           pointStyle: 'circle',
+          padding: 20,
         },
       },
       tooltip: {
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        titleColor: 'white',
-        bodyColor: 'white',
-        borderColor: 'rgb(34, 197, 94)',
+        backgroundColor: 'rgba(11, 14, 26, 0.95)',
+        titleColor: '#FFFFFF',
+        bodyColor: '#B8BCC8',
+        borderColor: '#00FF88',
         borderWidth: 1,
-        cornerRadius: 8,
+        cornerRadius: 12,
         displayColors: true,
+        padding: 12,
+        titleFont: {
+          family: "'Inter', system-ui, sans-serif",
+          size: 13,
+          weight: '600',
+        },
+        bodyFont: {
+          family: "'JetBrains Mono', monospace",
+          size: 12,
+        },
         callbacks: {
           title: (context: any) => {
             return `ماه: ${context[0].label}`;
@@ -113,27 +138,34 @@ const ConversionRatesChart: React.FC<ConversionRatesChartProps> = ({ data, isLoa
         },
         ticks: {
           font: {
-            family: 'Inter',
+            family: "'Inter', system-ui, sans-serif",
             size: 11,
           },
-          color: 'rgb(100, 116, 139)',
+          color: '#6B7280',
+        },
+        border: {
+          color: 'rgba(255, 255, 255, 0.1)',
         },
       },
       y: {
         beginAtZero: true,
         max: 100,
         grid: {
-          color: 'rgba(148, 163, 184, 0.1)',
+          color: 'rgba(255, 255, 255, 0.05)',
+          lineWidth: 1,
         },
         ticks: {
           font: {
-            family: 'Inter',
+            family: "'JetBrains Mono', monospace",
             size: 11,
           },
-          color: 'rgb(100, 116, 139)',
+          color: '#6B7280',
           callback: function(value: any) {
             return value + '%';
           },
+        },
+        border: {
+          color: 'rgba(255, 255, 255, 0.1)',
         },
       },
     },
@@ -145,44 +177,89 @@ const ConversionRatesChart: React.FC<ConversionRatesChartProps> = ({ data, isLoa
 
   if (isLoading) {
     return (
-      <Card variant="professional" className="h-full">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
+      <motion.div
+        variants={animationPresets.cardEntrance}
+        initial="hidden"
+        animate="visible"
+      >
+        <Card className={`${glassmorphismClasses.cardCrypto} border-[#FF6B35]/20 h-full`}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <motion.div 
+                className="w-8 h-8 bg-gradient-to-br from-[#FF6B35] to-[#E55A2B] rounded-lg flex items-center justify-center"
+                variants={cyberAnimations.cyberPulse}
+                animate="animate"
+              >
+                <svg className="w-4 h-4 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" 
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                        d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </motion.div>
+              <span className={neonClasses.text.tertiary}>تبدیل اشتراک‌ها</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-80 flex items-center justify-center">
+              <motion.div 
+                className="w-8 h-8 border-2 border-[#FF6B35] border-t-transparent rounded-full"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                role="status" 
+                aria-label="Loading"
+              />
             </div>
-            تبدیل اشتراک‌ها
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-80 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600" role="status" aria-label="Loading"></div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </motion.div>
     );
   }
 
   return (
-    <Card variant="professional" className="h-full">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center">
-            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-          تبدیل اشتراک‌ها
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="h-80">
-          <Line data={chartData} options={options} />
-        </div>
-      </CardContent>
-    </Card>
+    <motion.div
+      variants={animationPresets.cardEntrance}
+      initial="hidden"
+      animate="visible"
+      whileHover="hover"
+    >
+      <Card className={`${glassmorphismClasses.cardCrypto} border-[#FF6B35]/20 hover:border-[#FF6B35]/40 
+                       hover:shadow-[0_0_30px_rgba(255,107,53,0.2)] transition-all duration-300 h-full`}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <motion.div 
+              className="w-8 h-8 bg-gradient-to-br from-[#FF6B35] to-[#E55A2B] rounded-lg flex items-center justify-center"
+              whileHover={{ 
+                scale: 1.1,
+                boxShadow: "0 0 20px rgba(255,107,53,0.6)",
+                transition: { duration: 0.2 }
+              }}
+            >
+              <svg className="w-4 h-4 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" 
+                   fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                      d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </motion.div>
+            <span className={neonClasses.text.tertiary}>تبدیل اشتراک‌ها</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <motion.div 
+            className="h-80 relative"
+            variants={animationPresets.fadeIn}
+          >
+            {/* Glowing background effect */}
+            <div 
+              className="absolute inset-0 opacity-5 rounded-lg"
+              style={{
+                background: `radial-gradient(ellipse at center, rgba(255,107,53,0.4) 0%, transparent 70%)`
+              }}
+            />
+            <Line data={chartData} options={options} />
+          </motion.div>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 };
 

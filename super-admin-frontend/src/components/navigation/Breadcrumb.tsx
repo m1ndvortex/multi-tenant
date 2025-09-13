@@ -1,6 +1,9 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { createHoverAnimation } from '@/lib/theme/animations';
+import { neonClasses } from '@/lib/theme/cybersecurity';
 
 interface BreadcrumbItem {
   label: string;
@@ -75,34 +78,88 @@ const Breadcrumb: React.FC<BreadcrumbProps> = ({ className }) => {
   const breadcrumbItems = getBreadcrumbItems();
 
   return (
-    <nav className={cn("flex items-center space-x-2 text-sm", className)} dir="ltr">
+    <motion.nav 
+      className={cn("flex items-center space-x-2 text-sm", className)} 
+      dir="ltr"
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.3 }}
+    >
       {breadcrumbItems.map((item, index) => (
         <React.Fragment key={item.path || index}>
           {index > 0 && (
-            <svg className="w-4 h-4 text-slate-400 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.2, delay: index * 0.1 }}
+            >
+              <svg className="w-4 h-4 text-slate-400 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </motion.div>
           )}
-          <div className="flex items-center space-x-2">
+          
+          <motion.div 
+            className="flex items-center space-x-2"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.1 }}
+          >
             {item.icon && (
-              <div className="text-slate-500">
+              <motion.div 
+                className="text-slate-400"
+                whileHover={{ 
+                  scale: 1.1, 
+                  color: "#00D4FF",
+                  filter: "drop-shadow(0 0 8px rgba(0, 212, 255, 0.6))"
+                }}
+                transition={{ duration: 0.2 }}
+              >
                 {item.icon}
-              </div>
+              </motion.div>
             )}
+            
             {item.path && index < breadcrumbItems.length - 1 ? (
-              <Link
-                to={item.path}
-                className="text-slate-600 hover:text-slate-900 transition-colors duration-200"
+              <motion.div
+                whileHover="hover"
+                initial="rest"
+                variants={createHoverAnimation(1.05, "rgba(0, 212, 255, 0.3)", 'low')}
+              >
+                <Link
+                  to={item.path}
+                  className={cn(
+                    "text-slate-300 hover:text-cyan-400 transition-all duration-200",
+                    "hover:drop-shadow-[0_0_8px_rgba(0,212,255,0.6)]",
+                    "px-2 py-1 rounded-md hover:bg-cyan-500/10"
+                  )}
+                >
+                  {item.label}
+                </Link>
+              </motion.div>
+            ) : (
+              <motion.span 
+                className={cn(
+                  "font-medium px-2 py-1 rounded-md",
+                  neonClasses.text.primary,
+                  "bg-gradient-to-r from-cyan-500/10 to-emerald-500/10",
+                  "border border-cyan-400/20"
+                )}
+                animate={{
+                  textShadow: [
+                    "0 0 5px rgba(0, 212, 255, 0.6)",
+                    "0 0 15px rgba(0, 212, 255, 0.8)",
+                    "0 0 5px rgba(0, 212, 255, 0.6)"
+                  ]
+                }}
+                transition={{ duration: 2, repeat: Infinity }}
               >
                 {item.label}
-              </Link>
-            ) : (
-              <span className="text-slate-900 font-medium">{item.label}</span>
+              </motion.span>
             )}
-          </div>
+          </motion.div>
         </React.Fragment>
       ))}
-    </nav>
+    </motion.nav>
   );
 };
 

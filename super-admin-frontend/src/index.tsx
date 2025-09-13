@@ -1,4 +1,4 @@
-import React from 'react';
+// React is imported automatically by Vite
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';

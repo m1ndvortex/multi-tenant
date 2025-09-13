@@ -42,7 +42,7 @@ import {
   Copy
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { ErrorLog, ErrorSeverity, ErrorCategory } from '../../types/errorLogging';
+import { ErrorLog, ErrorSeverity } from '../../types/errorLogging';
 
 interface ActiveErrorsTableProps {
   errors: ErrorLog[];
@@ -68,7 +68,7 @@ const ActiveErrorsTable: React.FC<ActiveErrorsTableProps> = ({
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [sortField, setSortField] = useState<SortField>('last_occurrence');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
-  const [selectedError, setSelectedError] = useState<ErrorLog | null>(null);
+  // const [selectedError, setSelectedError] = useState<ErrorLog | null>(null);
 
   /**
    * Get severity color and styling
@@ -406,7 +406,7 @@ Last Occurrence: ${error.last_occurrence}`;
                         <CheckCircle className="mr-2 h-4 w-4" />
                         Resolve Error
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setSelectedError(error)}>
+                      <DropdownMenuItem onClick={() => console.log('View details:', error)}>
                         <Eye className="mr-2 h-4 w-4" />
                         View Details
                       </DropdownMenuItem>

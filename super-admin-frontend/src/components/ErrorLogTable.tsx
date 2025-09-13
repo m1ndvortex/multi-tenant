@@ -10,7 +10,7 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { ErrorLog, ErrorSeverity, ErrorCategory } from '@/services/errorLoggingService';
+import { ErrorLog, ErrorSeverity, ErrorCategory } from '@/types/errorLogging';
 import { cn } from '@/lib/utils';
 
 interface ErrorLogTableProps {
@@ -128,12 +128,14 @@ export const ErrorLogTable: React.FC<ErrorLogTableProps> = ({
   };
 
   const formatCategoryName = (category: ErrorCategory) => {
-    const categoryNames = {
+    const categoryNames: Record<ErrorCategory, string> = {
       [ErrorCategory.AUTHENTICATION]: 'احراز هویت',
       [ErrorCategory.AUTHORIZATION]: 'مجوز دسترسی',
       [ErrorCategory.VALIDATION]: 'اعتبارسنجی',
       [ErrorCategory.DATABASE]: 'پایگاه داده',
+      [ErrorCategory.API]: 'API',
       [ErrorCategory.EXTERNAL_API]: 'API خارجی',
+      [ErrorCategory.EXTERNAL_SERVICE]: 'سرویس خارجی',
       [ErrorCategory.BUSINESS_LOGIC]: 'منطق کسب‌وکار',
       [ErrorCategory.SYSTEM]: 'سیستم',
       [ErrorCategory.NETWORK]: 'شبکه',

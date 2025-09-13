@@ -26,14 +26,17 @@ export interface UseOnlineUsersReturn {
   users: OnlineUser[];
   stats: OnlineUsersStats | null;
   tenantUsers: Record<string, TenantOnlineUsers>;
+  data: OnlineUsersStats | null; // Alias for stats
   
   // Loading states
   loading: boolean;
   statsLoading: boolean;
   usersLoading: boolean;
+  isLoading: boolean; // Alias for loading
   
   // Real-time connection
   isConnected: boolean;
+  isRefetching: boolean;
   
   // Actions
   refreshUsers: () => Promise<void>;
@@ -293,14 +296,17 @@ export const useOnlineUsers = (options: UseOnlineUsersOptions = {}): UseOnlineUs
     users,
     stats,
     tenantUsers,
+    data: stats, // Alias for stats
     
     // Loading states
     loading,
     statsLoading,
     usersLoading,
+    isLoading: loading, // Alias for loading
     
     // Real-time connection
     isConnected,
+    isRefetching: loading, // Alias for loading
     
     // Actions
     refreshUsers,

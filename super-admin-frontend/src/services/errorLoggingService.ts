@@ -161,6 +161,7 @@ class ErrorLoggingService {
         total_errors: data.total_errors || 0,
         active_errors_count: data.unresolved_errors || 0,
         resolved_errors_count: (data.total_errors || 0) - (data.unresolved_errors || 0),
+        unresolved_errors: data.unresolved_errors || 0,
         
         // Direct mappings
         severity_breakdown: data.severity_breakdown || {},

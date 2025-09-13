@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -14,6 +15,8 @@ import { Line } from 'react-chartjs-2';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { animationPresets, cyberAnimations } from '@/lib/theme/animations';
+import { glassmorphismClasses, neonClasses } from '@/lib/theme/cybersecurity';
 
 ChartJS.register(
   CategoryScale,
@@ -82,18 +85,21 @@ const RevenueChart: React.FC<RevenueChartProps> = ({
       switch (viewType) {
         case 'arr':
           return {
-            border: 'rgb(34, 197, 94)',
-            background: 'rgba(34, 197, 94, 0.1)',
+            border: '#00FF88',
+            background: 'rgba(0, 255, 136, 0.1)',
+            glow: 'rgba(0, 255, 136, 0.4)',
           };
         case 'forecast':
           return {
-            border: 'rgb(251, 146, 60)',
-            background: 'rgba(251, 146, 60, 0.1)',
+            border: '#FF6B35',
+            background: 'rgba(255, 107, 53, 0.1)',
+            glow: 'rgba(255, 107, 53, 0.4)',
           };
         default:
           return {
-            border: 'rgb(59, 130, 246)',
-            background: 'rgba(59, 130, 246, 0.1)',
+            border: '#00D4FF',
+            background: 'rgba(0, 212, 255, 0.1)',
+            glow: 'rgba(0, 212, 255, 0.4)',
           };
       }
     };
@@ -109,11 +115,14 @@ const RevenueChart: React.FC<RevenueChartProps> = ({
         fill: true,
         tension: 0.4,
         pointBackgroundColor: revenueColor.border,
-        pointBorderColor: 'white',
+        pointBorderColor: '#FFFFFF',
         pointBorderWidth: 2,
         pointRadius: 6,
-        pointHoverRadius: 8,
+        pointHoverRadius: 10,
+        pointHoverBorderWidth: 3,
         yAxisID: 'y',
+        shadowColor: revenueColor.glow,
+        shadowBlur: 10,
       },
     ];
 
@@ -121,17 +130,20 @@ const RevenueChart: React.FC<RevenueChartProps> = ({
       datasets.push({
         label: 'نرخ رشد (%)',
         data: data.growth_rate,
-        borderColor: 'rgb(168, 85, 247)',
-        backgroundColor: 'rgba(168, 85, 247, 0.1)',
+        borderColor: '#A55EEA',
+        backgroundColor: 'rgba(165, 94, 234, 0.1)',
         borderWidth: 2,
         fill: false,
         tension: 0.4,
-        pointBackgroundColor: 'rgb(168, 85, 247)',
-        pointBorderColor: 'white',
+        pointBackgroundColor: '#A55EEA',
+        pointBorderColor: '#FFFFFF',
         pointBorderWidth: 2,
         pointRadius: 4,
-        pointHoverRadius: 6,
+        pointHoverRadius: 8,
+        pointHoverBorderWidth: 3,
         yAxisID: 'y1',
+        shadowColor: 'rgba(165, 94, 234, 0.4)',
+        shadowBlur: 8,
       });
     }
 
@@ -145,7 +157,7 @@ const RevenueChart: React.FC<RevenueChartProps> = ({
     responsive: true,
     maintainAspectRatio: false,
     animation: {
-      duration: 750,
+      duration: 1000,
       easing: 'easeInOutQuart' as const,
     },
     plugins: {
@@ -153,22 +165,34 @@ const RevenueChart: React.FC<RevenueChartProps> = ({
         position: 'top' as const,
         labels: {
           font: {
-            family: 'Inter',
+            family: "'Inter', system-ui, sans-serif",
             size: 12,
+            weight: '500',
           },
-          color: 'rgb(71, 85, 105)',
+          color: '#B8BCC8',
           usePointStyle: true,
           pointStyle: 'circle',
+          padding: 20,
         },
       },
       tooltip: {
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        titleColor: 'white',
-        bodyColor: 'white',
-        borderColor: 'rgb(59, 130, 246)',
+        backgroundColor: 'rgba(11, 14, 26, 0.95)',
+        titleColor: '#FFFFFF',
+        bodyColor: '#B8BCC8',
+        borderColor: '#00D4FF',
         borderWidth: 1,
-        cornerRadius: 8,
+        cornerRadius: 12,
         displayColors: true,
+        padding: 12,
+        titleFont: {
+          family: "'Inter', system-ui, sans-serif",
+          size: 13,
+          weight: '600',
+        },
+        bodyFont: {
+          family: "'JetBrains Mono', monospace",
+          size: 12,
+        },
         callbacks: {
           title: (context: any) => {
             return `ماه: ${context[0].label}`;
@@ -191,11 +215,14 @@ const RevenueChart: React.FC<RevenueChartProps> = ({
         },
         ticks: {
           font: {
-            family: 'Inter',
+            family: "'Inter', system-ui, sans-serif",
             size: 11,
           },
-          color: 'rgb(100, 116, 139)',
+          color: '#6B7280',
           maxTicksLimit: 8,
+        },
+        border: {
+          color: 'rgba(255, 255, 255, 0.1)',
         },
       },
       y: {
@@ -204,17 +231,21 @@ const RevenueChart: React.FC<RevenueChartProps> = ({
         position: 'left' as const,
         beginAtZero: true,
         grid: {
-          color: 'rgba(148, 163, 184, 0.1)',
+          color: 'rgba(255, 255, 255, 0.05)',
+          lineWidth: 1,
         },
         ticks: {
           font: {
-            family: 'Inter',
+            family: "'JetBrains Mono', monospace",
             size: 11,
           },
-          color: 'rgb(100, 116, 139)',
+          color: '#6B7280',
           callback: function(value: any) {
             return value.toLocaleString() + ' تومان';
           },
+        },
+        border: {
+          color: 'rgba(255, 255, 255, 0.1)',
         },
       },
       ...(showGrowthRate && {
@@ -227,13 +258,16 @@ const RevenueChart: React.FC<RevenueChartProps> = ({
           },
           ticks: {
             font: {
-              family: 'Inter',
+              family: "'JetBrains Mono', monospace",
               size: 11,
             },
-            color: 'rgb(100, 116, 139)',
+            color: '#6B7280',
             callback: function(value: any) {
               return value + '%';
             },
+          },
+          border: {
+            color: 'rgba(255, 255, 255, 0.1)',
           },
         },
       }),
@@ -246,98 +280,171 @@ const RevenueChart: React.FC<RevenueChartProps> = ({
 
   if (isLoading) {
     return (
-      <Card variant="professional" className="h-full">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+      <motion.div
+        variants={animationPresets.cardEntrance}
+        initial="hidden"
+        animate="visible"
+      >
+        <Card className={`${glassmorphismClasses.cardCrypto} border-[#00D4FF]/20 h-full`}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <motion.div 
+                className="w-8 h-8 bg-gradient-to-br from-[#00D4FF] to-[#0099CC] rounded-lg flex items-center justify-center"
+                variants={cyberAnimations.cyberPulse}
+                animate="animate"
+              >
+                <svg className="w-4 h-4 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" 
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </motion.div>
+              <span className={neonClasses.text.primary}>روند درآمد و رشد</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-80 flex items-center justify-center">
+              <motion.div 
+                className="w-8 h-8 border-2 border-[#00D4FF] border-t-transparent rounded-full"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                role="status" 
+                aria-label="Loading"
+              />
             </div>
-            روند درآمد و رشد
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-80 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" role="status" aria-label="Loading"></div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </motion.div>
     );
   }
 
   return (
-    <Card variant="professional" className="h-full">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+    <motion.div
+      variants={animationPresets.cardEntrance}
+      initial="hidden"
+      animate="visible"
+      whileHover="hover"
+    >
+      <Card className={`${glassmorphismClasses.cardCrypto} border-[#00D4FF]/20 hover:border-[#00D4FF]/40 
+                       hover:shadow-[0_0_30px_rgba(0,212,255,0.2)] transition-all duration-300 h-full`}>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <motion.div 
+                className="w-8 h-8 bg-gradient-to-br from-[#00D4FF] to-[#0099CC] rounded-lg flex items-center justify-center"
+                whileHover={{ 
+                  scale: 1.1,
+                  boxShadow: "0 0 20px rgba(0,212,255,0.6)",
+                  transition: { duration: 0.2 }
+                }}
+              >
+                <svg className="w-4 h-4 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" 
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </motion.div>
+              <span className={neonClasses.text.primary}>روند درآمد و رشد</span>
             </div>
-            روند درآمد و رشد
-          </div>
-          <div className="flex items-center gap-2">
-            {onTimeRangeChange && (
-              <Select value={currentTimeRange} onValueChange={onTimeRangeChange}>
-                <SelectTrigger className="w-24 h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {timeRangeOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-        </CardTitle>
-        
-        {/* Chart Controls */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Button
-              variant={viewType === 'mrr' ? 'gradient-blue' : 'outline'}
-              size="sm"
-              onClick={() => setViewType('mrr')}
-            >
-              MRR
-            </Button>
-            <Button
-              variant={viewType === 'arr' ? 'gradient-green' : 'outline'}
-              size="sm"
-              onClick={() => setViewType('arr')}
-            >
-              ARR
-            </Button>
-            <Button
-              variant={viewType === 'forecast' ? 'gradient-purple' : 'outline'}
-              size="sm"
-              onClick={() => setViewType('forecast')}
-            >
-              پیش‌بینی
-            </Button>
-          </div>
+            <div className="flex items-center gap-2">
+              {onTimeRangeChange && (
+                <Select value={currentTimeRange} onValueChange={onTimeRangeChange}>
+                  <SelectTrigger className={`w-24 h-8 text-xs ${glassmorphismClasses.base} 
+                                             border-[#00D4FF]/30 hover:border-[#00D4FF]/60 
+                                             text-[#B8BCC8] hover:text-[#00D4FF] transition-all duration-300`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className={`${glassmorphismClasses.elevated} border-[#00D4FF]/30`}>
+                    {timeRangeOptions.map((option) => (
+                      <SelectItem 
+                        key={option.value} 
+                        value={option.value}
+                        className="text-[#B8BCC8] hover:text-[#00D4FF] hover:bg-[#00D4FF]/10"
+                      >
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </CardTitle>
           
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowGrowthRate(!showGrowthRate)}
-            className="text-xs"
+          {/* Cybersecurity Chart Controls */}
+          <motion.div 
+            className="flex items-center justify-between mb-4"
+            variants={animationPresets.fadeIn}
           >
-            {showGrowthRate ? 'مخفی کردن رشد' : 'نمایش رشد'}
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="h-80">
-          <Line data={chartData} options={options} />
-        </div>
-      </CardContent>
-    </Card>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={viewType === 'mrr' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewType('mrr')}
+                className={viewType === 'mrr' 
+                  ? `bg-gradient-to-r from-[#00D4FF] to-[#0099CC] text-black font-medium
+                     hover:shadow-[0_0_20px_rgba(0,212,255,0.4)] transition-all duration-300`
+                  : `${glassmorphismClasses.base} border-[#00D4FF]/30 hover:border-[#00D4FF]/60 
+                     hover:bg-[#00D4FF]/10 text-[#B8BCC8] hover:text-[#00D4FF] transition-all duration-300`
+                }
+              >
+                MRR
+              </Button>
+              <Button
+                variant={viewType === 'arr' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewType('arr')}
+                className={viewType === 'arr' 
+                  ? `bg-gradient-to-r from-[#00FF88] to-[#00CC6A] text-black font-medium
+                     hover:shadow-[0_0_20px_rgba(0,255,136,0.4)] transition-all duration-300`
+                  : `${glassmorphismClasses.base} border-[#00FF88]/30 hover:border-[#00FF88]/60 
+                     hover:bg-[#00FF88]/10 text-[#B8BCC8] hover:text-[#00FF88] transition-all duration-300`
+                }
+              >
+                ARR
+              </Button>
+              <Button
+                variant={viewType === 'forecast' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewType('forecast')}
+                className={viewType === 'forecast' 
+                  ? `bg-gradient-to-r from-[#FF6B35] to-[#E55A2B] text-white font-medium
+                     hover:shadow-[0_0_20px_rgba(255,107,53,0.4)] transition-all duration-300`
+                  : `${glassmorphismClasses.base} border-[#FF6B35]/30 hover:border-[#FF6B35]/60 
+                     hover:bg-[#FF6B35]/10 text-[#B8BCC8] hover:text-[#FF6B35] transition-all duration-300`
+                }
+              >
+                پیش‌بینی
+              </Button>
+            </div>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowGrowthRate(!showGrowthRate)}
+              className={`text-xs ${glassmorphismClasses.base} border-[#A55EEA]/30 hover:border-[#A55EEA]/60 
+                         hover:bg-[#A55EEA]/10 text-[#B8BCC8] hover:text-[#A55EEA] transition-all duration-300`}
+            >
+              {showGrowthRate ? 'مخفی کردن رشد' : 'نمایش رشد'}
+            </Button>
+          </motion.div>
+        </CardHeader>
+        <CardContent>
+          <motion.div 
+            className="h-80 relative"
+            variants={animationPresets.fadeIn}
+          >
+            {/* Glowing background effect */}
+            <div 
+              className="absolute inset-0 opacity-5 rounded-lg"
+              style={{
+                background: `radial-gradient(ellipse at center, ${getRevenueColor().glow} 0%, transparent 70%)`
+              }}
+            />
+            <Line data={chartData} options={options} />
+          </motion.div>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 };
 

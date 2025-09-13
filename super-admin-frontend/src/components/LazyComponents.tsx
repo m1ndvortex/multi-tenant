@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { StatCardSkeleton } from '@/components/ui/skeleton';
+import { CyberStatCardSkeleton } from '@/components/ui/skeleton';
 
 // Lazy load heavy components
 export const LazyWhoIsOnlineWidget = lazy(() => import('@/components/WhoIsOnlineWidget'));
@@ -9,7 +9,7 @@ export const LazyWhoIsOnlineWidget = lazy(() => import('@/components/WhoIsOnline
 
 // Wrapper components with suspense and error boundaries
 export const WhoIsOnlineWidgetLazy = () => (
-  <Suspense fallback={<StatCardSkeleton />}>
+  <Suspense fallback={<CyberStatCardSkeleton />}>
     <LazyWhoIsOnlineWidget />
   </Suspense>
 );

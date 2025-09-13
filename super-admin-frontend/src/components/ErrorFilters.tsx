@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePickerWithRange } from '@/components/ui/date-range-picker';
-import { ErrorLogFilters, ErrorSeverity, ErrorCategory } from '@/services/errorLoggingService';
+import { ErrorFilters as ErrorLogFilters, ErrorSeverity, ErrorCategory } from '@/types/errorLogging';
 import { DateRange } from 'react-day-picker';
 
 interface ErrorFiltersProps {
@@ -38,7 +38,7 @@ export const ErrorFilters: React.FC<ErrorFiltersProps> = ({
   });
 
   const handleLocalFilterChange = (key: keyof ErrorLogFilters, value: any) => {
-    setLocalFilters(prev => ({
+    setLocalFilters((prev: any) => ({
       ...prev,
       [key]: value === '' ? undefined : value,
     }));
@@ -47,13 +47,13 @@ export const ErrorFilters: React.FC<ErrorFiltersProps> = ({
   const handleDateRangeChange = (range: DateRange | undefined) => {
     setDateRange(range);
     if (range?.from && range?.to) {
-      setLocalFilters(prev => ({
+      setLocalFilters((prev: any) => ({
         ...prev,
         start_date: range.from!.toISOString(),
         end_date: range.to!.toISOString(),
       }));
     } else {
-      setLocalFilters(prev => ({
+      setLocalFilters((prev: any) => ({
         ...prev,
         start_date: undefined,
         end_date: undefined,
@@ -96,12 +96,14 @@ export const ErrorFilters: React.FC<ErrorFiltersProps> = ({
   };
 
   const formatCategoryName = (category: ErrorCategory) => {
-    const categoryNames = {
+    const categoryNames: Record<ErrorCategory, string> = {
       [ErrorCategory.AUTHENTICATION]: 'احراز هویت',
       [ErrorCategory.AUTHORIZATION]: 'مجوز دسترسی',
       [ErrorCategory.VALIDATION]: 'اعتبارسنجی',
       [ErrorCategory.DATABASE]: 'پایگاه داده',
+      [ErrorCategory.API]: 'API',
       [ErrorCategory.EXTERNAL_API]: 'API خارجی',
+      [ErrorCategory.EXTERNAL_SERVICE]: 'سرویس خارجی',
       [ErrorCategory.BUSINESS_LOGIC]: 'منطق کسب‌وکار',
       [ErrorCategory.SYSTEM]: 'سیستم',
       [ErrorCategory.NETWORK]: 'شبکه',
@@ -132,7 +134,7 @@ export const ErrorFilters: React.FC<ErrorFiltersProps> = ({
           <SelectContent>
             <SelectItem value="all">همه سطوح</SelectItem>
             {Object.values(ErrorSeverity).map((severity) => (
-              <SelectItem key={severity} value={severity}>
+              <SelectItem key={severity as string} value={severity as string}>
                 {formatSeverityName(severity)}
               </SelectItem>
             ))}
@@ -149,7 +151,7 @@ export const ErrorFilters: React.FC<ErrorFiltersProps> = ({
           <SelectContent>
             <SelectItem value="all">همه دسته‌ها</SelectItem>
             {Object.values(ErrorCategory).map((category) => (
-              <SelectItem key={category} value={category}>
+              <SelectItem key={category as string} value={category as string}>
                 {formatCategoryName(category)}
               </SelectItem>
             ))}

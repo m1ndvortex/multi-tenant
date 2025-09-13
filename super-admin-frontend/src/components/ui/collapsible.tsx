@@ -3,7 +3,7 @@
  * Based on Radix UI Collapsible primitive
  */
 
-import * as React from "react"
+// React is imported automatically by Vite
 import * as CollapsiblePrimitive from "@radix-ui/react-collapsible"
 
 const Collapsible = CollapsiblePrimitive.Root
