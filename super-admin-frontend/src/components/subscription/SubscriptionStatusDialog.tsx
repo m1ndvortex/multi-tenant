@@ -1,9 +1,11 @@
 /**
  * Subscription Status Dialog Component
  * Allows updating subscription status (activate/deactivate/suspend/disable)
+ * Enhanced with cybersecurity theme, glassmorphism, and neon effects
  */
 
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Dialog,
   DialogContent,
@@ -25,6 +27,9 @@ import {
   SubscriptionType,
   TenantStatus
 } from '@/types/subscription';
+import { NeonText, CyberSpinner } from '@/components/animations/CyberAnimations';
+import { createModalAnimation } from '@/lib/theme/animations';
+import { glassmorphismClasses, neonClasses } from '@/lib/theme/cybersecurity';
 
 interface SubscriptionStatusDialogProps {
   open: boolean;
@@ -113,15 +118,30 @@ const SubscriptionStatusDialog: React.FC<SubscriptionStatusDialogProps> = ({
     }
   };
 
+  const modalAnimation = createModalAnimation();
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]" dir="rtl">
-        <DialogHeader>
-          <DialogTitle>تغییر وضعیت اشتراک</DialogTitle>
-          <DialogDescription>
-            مدیریت وضعیت اشتراک تنانت با کنترل کامل
-          </DialogDescription>
-        </DialogHeader>
+    <AnimatePresence>
+      {open && (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+          <DialogContent className={`sm:max-w-[500px] ${glassmorphismClasses.modal} border-orange-500/20 bg-gray-900/95`} dir="rtl">
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              variants={modalAnimation.content}
+            >
+              <DialogHeader className="space-y-3">
+                <DialogTitle className="flex items-center gap-3">
+                  <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse shadow-[0_0_10px_rgba(255,107,53,0.8)]"></div>
+                  <NeonText color="#FF6B35" intensity="high">
+                    تغییر وضعیت اشتراک
+                  </NeonText>
+                </DialogTitle>
+                <DialogDescription className="text-gray-400">
+                  مدیریت وضعیت اشتراک تنانت با کنترل کامل
+                </DialogDescription>
+              </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Tenant Info */}
