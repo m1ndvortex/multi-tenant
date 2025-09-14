@@ -224,14 +224,7 @@ export const AnimatedCurrency: React.FC<AnimatedCurrencyProps> = ({
   className = '',
   size = 'md'
 }) => {
-  const formatCurrency = (val: number) => {
-    if (val >= 1000000) {
-      return (val / 1000000).toFixed(1) + 'M';
-    } else if (val >= 1000) {
-      return (val / 1000).toFixed(1) + 'K';
-    }
-    return val.toFixed(0);
-  };
+
 
   return (
     <AnimatedCounter

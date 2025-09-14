@@ -144,7 +144,7 @@ const UserGrowthChart: React.FC<UserGrowthChartProps> = ({
           font: {
             family: "'Inter', system-ui, sans-serif",
             size: 12,
-            weight: '500',
+            weight: 500,
           },
           color: '#B8BCC8',
           usePointStyle: true,
@@ -164,7 +164,7 @@ const UserGrowthChart: React.FC<UserGrowthChartProps> = ({
         titleFont: {
           family: "'Inter', system-ui, sans-serif",
           size: 13,
-          weight: '600',
+          weight: 600,
         },
         bodyFont: {
           family: "'JetBrains Mono', monospace",
@@ -384,7 +384,7 @@ const UserGrowthChart: React.FC<UserGrowthChartProps> = ({
             <div 
               className="absolute inset-0 opacity-5 rounded-lg"
               style={{
-                background: `radial-gradient(ellipse at center, ${getColorForViewType().glow} 0%, transparent 70%)`
+                background: `radial-gradient(ellipse at center, rgba(0, 255, 136, 0.4) 0%, transparent 70%)`
               }}
             />
             <Line data={chartData} options={options} />

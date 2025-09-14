@@ -167,7 +167,7 @@ const RevenueChart: React.FC<RevenueChartProps> = ({
           font: {
             family: "'Inter', system-ui, sans-serif",
             size: 12,
-            weight: '500',
+            weight: 500,
           },
           color: '#B8BCC8',
           usePointStyle: true,
@@ -187,7 +187,7 @@ const RevenueChart: React.FC<RevenueChartProps> = ({
         titleFont: {
           family: "'Inter', system-ui, sans-serif",
           size: 13,
-          weight: '600',
+          weight: 600,
         },
         bodyFont: {
           family: "'JetBrains Mono', monospace",
@@ -437,7 +437,7 @@ const RevenueChart: React.FC<RevenueChartProps> = ({
             <div 
               className="absolute inset-0 opacity-5 rounded-lg"
               style={{
-                background: `radial-gradient(ellipse at center, ${getRevenueColor().glow} 0%, transparent 70%)`
+                background: `radial-gradient(ellipse at center, rgba(0, 212, 255, 0.4) 0%, transparent 70%)`
               }}
             />
             <Line data={chartData} options={options} />

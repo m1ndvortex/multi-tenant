@@ -26,7 +26,7 @@ export const CyberMiniChart: React.FC<CyberMiniChartProps> = ({
   className = '',
   animated = true
 }) => {
-  const { chartBars, maxValue, minValue } = useMemo(() => {
+  const { chartBars } = useMemo(() => {
     const max = Math.max(...data);
     const min = Math.min(...data);
     const range = max - min || 1;
@@ -38,7 +38,7 @@ export const CyberMiniChart: React.FC<CyberMiniChartProps> = ({
       value
     }));
 
-    return { chartBars, maxValue: max, minValue: min };
+    return { chartBars };
   }, [data]);
 
   const effectiveGlowColor = glowColor || color;
@@ -105,7 +105,6 @@ interface CyberLineChartProps {
   width?: number;
   height?: number;
   color?: string;
-  glowColor?: string;
   strokeWidth?: number;
   className?: string;
   animated?: boolean;
@@ -117,7 +116,6 @@ export const CyberLineChart: React.FC<CyberLineChartProps> = ({
   width = 300,
   height = 100,
   color = '#00D4FF',
-  glowColor,
   strokeWidth = 2,
   className = '',
   animated = true,
@@ -145,8 +143,6 @@ export const CyberLineChart: React.FC<CyberLineChartProps> = ({
 
     return { pathData, points };
   }, [data, width, height]);
-
-  const effectiveGlowColor = glowColor || color;
 
   return (
     <div className={cn("relative", className)}>

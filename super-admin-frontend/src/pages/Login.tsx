@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Eye, EyeOff, Shield, Lock, Mail, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import ElectricBorder from '@/components/ElectricBorder';
 
 interface LoginFormData {
   email: string;
@@ -177,8 +178,9 @@ const Login: React.FC = () => {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.4 }}
         >
-          <Card className="border border-emerald-500/20 bg-slate-900/60 backdrop-blur-xl shadow-[0_0_0_1px_rgba(16,185,129,0.15),0_20px_60px_-20px_rgba(16,185,129,0.25)]">
-            <CardHeader className="text-center pb-2">
+          <ElectricBorder color="#7df9ff" speed={1} chaos={0.5} thickness={2} style={{ borderRadius: 16 }}>
+            <Card className="border border-emerald-500/20 bg-slate-900/60 backdrop-blur-xl shadow-[0_0_0_1px_rgba(16,185,129,0.15),0_20px_60px_-20px_rgba(16,185,129,0.25)]">
+              <CardHeader className="text-center pb-2">
               {/* Logo/Icon */}
               <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
@@ -195,9 +197,9 @@ const Login: React.FC = () => {
                 </span>
               </CardTitle>
               <p className="text-slate-300 mt-2">برای ورود به سیستم مدیریت، اطلاعات خود را وارد کنید</p>
-            </CardHeader>
+              </CardHeader>
 
-            <CardContent className="pt-6">
+              <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* General error */}
               <AnimatePresence>
@@ -334,8 +336,9 @@ const Login: React.FC = () => {
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </ElectricBorder>
         </motion.div>
       </div>
     </div>

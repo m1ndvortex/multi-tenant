@@ -162,7 +162,7 @@ const InvoiceVolumeChart: React.FC<InvoiceVolumeChartProps> = ({
           font: {
             family: "'Inter', system-ui, sans-serif",
             size: 12,
-            weight: '500',
+            weight: 500,
           },
           color: '#B8BCC8',
           usePointStyle: true,
@@ -182,7 +182,7 @@ const InvoiceVolumeChart: React.FC<InvoiceVolumeChartProps> = ({
         titleFont: {
           family: "'Inter', system-ui, sans-serif",
           size: 13,
-          weight: '600',
+          weight: 600,
         },
         bodyFont: {
           family: "'JetBrains Mono', monospace",

@@ -91,7 +91,7 @@ const ConversionRatesChart: React.FC<ConversionRatesChartProps> = ({ data, isLoa
           font: {
             family: "'Inter', system-ui, sans-serif",
             size: 12,
-            weight: '500',
+            weight: 500,
           },
           color: '#B8BCC8',
           usePointStyle: true,
@@ -111,7 +111,7 @@ const ConversionRatesChart: React.FC<ConversionRatesChartProps> = ({ data, isLoa
         titleFont: {
           family: "'Inter', system-ui, sans-serif",
           size: 13,
-          weight: '600',
+          weight: 600,
         },
         bodyFont: {
           family: "'JetBrains Mono', monospace",
