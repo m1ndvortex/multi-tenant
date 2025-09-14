@@ -27,9 +27,9 @@ import {
   SubscriptionType,
   TenantStatus
 } from '@/types/subscription';
-import { NeonText, CyberSpinner } from '@/components/animations/CyberAnimations';
+import { NeonText } from '@/components/animations/CyberAnimations';
 import { createModalAnimation } from '@/lib/theme/animations';
-import { glassmorphismClasses, neonClasses } from '@/lib/theme/cybersecurity';
+import { glassmorphismClasses } from '@/lib/theme/cybersecurity';
 
 interface SubscriptionStatusDialogProps {
   open: boolean;
@@ -264,8 +264,11 @@ const SubscriptionStatusDialog: React.FC<SubscriptionStatusDialogProps> = ({
             </Button>
           </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+            </motion.div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </AnimatePresence>
   );
 };
 

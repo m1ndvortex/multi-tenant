@@ -1,9 +1,10 @@
 /**
- * Error Notifications Panel Component
- * Displays real-time error notifications with read/unread status
+ * Error Notifications Panel Component - Cybersecurity Theme
+ * Displays real-time error notifications with cybersecurity aesthetics and neon effects
  */
 
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -23,6 +24,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { ErrorNotification } from '../../types/errorLogging';
+import { glassmorphismClasses, neonClasses } from '../../lib/theme/cybersecurity';
 
 interface ErrorNotificationsPanelProps {
   notifications: ErrorNotification[];
@@ -67,24 +69,26 @@ const ErrorNotificationsPanel: React.FC<ErrorNotificationsPanelProps> = ({
   };
 
   /**
-   * Get notification color based on severity and read status
+   * Get notification styling with cybersecurity theme
    */
   const getNotificationColor = (notification: ErrorNotification): string => {
+    const baseClass = glassmorphismClasses.card;
+    
     if (notification.read) {
-      return 'bg-gray-50 border-gray-200';
+      return `${baseClass} border-l-4 border-l-[#6B7280] opacity-60`;
     }
 
     switch (notification.severity) {
       case 'critical':
-        return 'bg-red-50 border-red-200 border-l-red-500';
+        return `${baseClass} border-l-4 border-l-[#FF4757] ${neonClasses.glow.danger}`;
       case 'high':
-        return 'bg-orange-50 border-orange-200 border-l-orange-500';
+        return `${baseClass} border-l-4 border-l-[#FFB800] ${neonClasses.glow.warning}`;
       case 'medium':
-        return 'bg-yellow-50 border-yellow-200 border-l-yellow-500';
+        return `${baseClass} border-l-4 border-l-[#00D4FF] ${neonClasses.glow.primary}`;
       case 'low':
-        return 'bg-blue-50 border-blue-200 border-l-blue-500';
+        return `${baseClass} border-l-4 border-l-[#5352ED] ${neonClasses.glow.info}`;
       default:
-        return 'bg-gray-50 border-gray-200 border-l-gray-500';
+        return `${baseClass} border-l-4 border-l-[#6B7280]`;
     }
   };
 
@@ -114,105 +118,168 @@ const ErrorNotificationsPanel: React.FC<ErrorNotificationsPanelProps> = ({
 
   if (notifications.length === 0) {
     return (
-      <div className={cn('text-center py-8', className)}>
-        <BellOff className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">No Notifications</h3>
-        <p className="text-gray-500">
+      <motion.div 
+        className={cn('text-center py-8', className)}
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3 }}
+      >
+        <motion.div
+          animate={{ 
+            rotate: [0, 10, -10, 0],
+            scale: [1, 1.1, 1]
+          }}
+          transition={{ duration: 3, repeat: Infinity }}
+        >
+          <BellOff className={`h-12 w-12 mx-auto mb-4 ${neonClasses.text.muted}`} />
+        </motion.div>
+        <h3 className="text-lg font-medium text-white mb-2">No Notifications</h3>
+        <p className="text-[#B8BCC8]">
           You'll see real-time error notifications here when they occur.
         </p>
-      </div>
+      </motion.div>
     );
   }
 
   return (
     <div className={cn('space-y-4', className)}>
       {/* Notification Controls */}
-      <div className="flex items-center justify-between">
+      <motion.div 
+        className="flex items-center justify-between"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
         <div className="flex items-center gap-4">
           {/* Filter Buttons */}
           <div className="flex gap-1">
-            <Button
-              variant={filter === 'all' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setFilter('all')}
-            >
-              All
-              <Badge variant="secondary" className="ml-2">
-                {notifications.length}
-              </Badge>
-            </Button>
-            <Button
-              variant={filter === 'unread' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setFilter('unread')}
-            >
-              Unread
-              {unreadCount > 0 && (
-                <Badge variant="destructive" className="ml-2">
-                  {unreadCount}
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                variant={filter === 'all' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilter('all')}
+                className={filter === 'all' 
+                  ? `bg-[#00D4FF]/20 border border-[#00D4FF]/30 text-[#00D4FF] ${neonClasses.glow.primary}`
+                  : `${glassmorphismClasses.base} border-white/10 text-[#B8BCC8] hover:border-[#00D4FF]/30 hover:text-[#00D4FF]`
+                }
+              >
+                All
+                <Badge className="ml-2 bg-white/10 text-white border-white/20">
+                  {notifications.length}
                 </Badge>
-              )}
-            </Button>
-            <Button
-              variant={filter === 'action-required' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setFilter('action-required')}
-            >
-              Action Required
-              {actionRequiredCount > 0 && (
-                <Badge variant="destructive" className="ml-2">
-                  {actionRequiredCount}
-                </Badge>
-              )}
-            </Button>
+              </Button>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                variant={filter === 'unread' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilter('unread')}
+                className={filter === 'unread' 
+                  ? `bg-[#FFB800]/20 border border-[#FFB800]/30 text-[#FFB800] ${neonClasses.glow.warning}`
+                  : `${glassmorphismClasses.base} border-white/10 text-[#B8BCC8] hover:border-[#FFB800]/30 hover:text-[#FFB800]`
+                }
+              >
+                Unread
+                {unreadCount > 0 && (
+                  <motion.div
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 1, repeat: Infinity }}
+                  >
+                    <Badge className={`ml-2 bg-[#FF4757]/20 text-[#FF4757] border border-[#FF4757]/30 ${neonClasses.glow.danger}`}>
+                      {unreadCount}
+                    </Badge>
+                  </motion.div>
+                )}
+              </Button>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                variant={filter === 'action-required' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilter('action-required')}
+                className={filter === 'action-required' 
+                  ? `bg-[#FF4757]/20 border border-[#FF4757]/30 text-[#FF4757] ${neonClasses.glow.danger}`
+                  : `${glassmorphismClasses.base} border-white/10 text-[#B8BCC8] hover:border-[#FF4757]/30 hover:text-[#FF4757]`
+                }
+              >
+                Action Required
+                {actionRequiredCount > 0 && (
+                  <motion.div
+                    animate={{ 
+                      scale: [1, 1.3, 1],
+                      rotate: [0, 5, -5, 0]
+                    }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  >
+                    <Badge className={`ml-2 bg-[#FF4757]/20 text-[#FF4757] border border-[#FF4757]/30 ${neonClasses.glow.danger}`}>
+                      {actionRequiredCount}
+                    </Badge>
+                  </motion.div>
+                )}
+              </Button>
+            </motion.div>
           </div>
 
           {/* Show/Hide Read Toggle */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowReadNotifications(!showReadNotifications)}
-          >
-            {showReadNotifications ? (
-              <>
-                <EyeOff className="h-4 w-4 mr-2" />
-                Hide Read
-              </>
-            ) : (
-              <>
-                <Eye className="h-4 w-4 mr-2" />
-                Show Read
-              </>
-            )}
-          </Button>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowReadNotifications(!showReadNotifications)}
+              className={`${glassmorphismClasses.base} border-white/10 text-[#B8BCC8] hover:border-[#A55EEA]/30 hover:text-[#A55EEA]`}
+            >
+              {showReadNotifications ? (
+                <>
+                  <EyeOff className="h-4 w-4 mr-2" />
+                  Hide Read
+                </>
+              ) : (
+                <>
+                  <Eye className="h-4 w-4 mr-2" />
+                  Show Read
+                </>
+              )}
+            </Button>
+          </motion.div>
         </div>
 
         {/* Clear All Button */}
         {notifications.length > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onClearAll}
-          >
-            <X className="h-4 w-4 mr-2" />
-            Clear All
-          </Button>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onClearAll}
+              className={`${glassmorphismClasses.base} border-[#FF4757]/30 text-[#FF4757] hover:bg-[#FF4757]/10 ${neonClasses.glow.danger}`}
+            >
+              <X className="h-4 w-4 mr-2" />
+              Clear All
+            </Button>
+          </motion.div>
         )}
-      </div>
+      </motion.div>
 
       {/* Notifications List */}
       <ScrollArea className="h-96">
-        <div className="space-y-2">
-          {filteredNotifications.map((notification) => (
-            <Card
-              key={notification.id}
-              className={cn(
-                'border-l-4 transition-all duration-200 hover:shadow-sm cursor-pointer',
-                getNotificationColor(notification),
-                !notification.read && 'shadow-sm'
-              )}
-              onClick={() => !notification.read && onMarkAsRead(notification.id)}
-            >
+        <AnimatePresence>
+          <div className="space-y-2">
+            {filteredNotifications.map((notification, index) => (
+              <motion.div
+                key={notification.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ delay: index * 0.05 }}
+                whileHover={{ scale: 1.02, y: -2 }}
+              >
+                <Card
+                  className={cn(
+                    'transition-all duration-300 hover:shadow-2xl cursor-pointer',
+                    getNotificationColor(notification),
+                    !notification.read && 'shadow-lg'
+                  )}
+                  onClick={() => !notification.read && onMarkAsRead(notification.id)}
+                >
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -225,50 +292,68 @@ const ErrorNotificationsPanel: React.FC<ErrorNotificationsPanelProps> = ({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <h4 className={cn(
-                          'font-medium text-sm',
-                          notification.read ? 'text-gray-600' : 'text-gray-900'
+                          'font-medium text-sm font-mono',
+                          notification.read ? 'text-[#6B7280]' : 'text-white'
                         )}>
                           {notification.title}
                         </h4>
                         
                         {!notification.read && (
-                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <motion.div
+                            animate={{ 
+                              scale: [1, 1.3, 1],
+                              boxShadow: [
+                                '0 0 5px rgba(0, 212, 255, 0.5)',
+                                '0 0 15px rgba(0, 212, 255, 0.8)',
+                                '0 0 5px rgba(0, 212, 255, 0.5)'
+                              ]
+                            }}
+                            transition={{ duration: 2, repeat: Infinity }}
+                            className="w-2 h-2 bg-[#00D4FF] rounded-full"
+                          />
                         )}
                         
                         {notification.actionRequired && (
-                          <Badge variant="destructive" className="text-xs">
-                            Action Required
-                          </Badge>
+                          <motion.div
+                            animate={{ 
+                              scale: [1, 1.1, 1],
+                              rotate: [0, 2, -2, 0]
+                            }}
+                            transition={{ duration: 1.5, repeat: Infinity }}
+                          >
+                            <Badge className={`text-xs bg-[#FF4757]/20 text-[#FF4757] border border-[#FF4757]/30 ${neonClasses.glow.danger}`}>
+                              Action Required
+                            </Badge>
+                          </motion.div>
                         )}
                       </div>
 
                       <p className={cn(
                         'text-sm mb-2',
-                        notification.read ? 'text-gray-500' : 'text-gray-700'
+                        notification.read ? 'text-[#6B7280]' : 'text-[#B8BCC8]'
                       )}>
                         {notification.message}
                       </p>
 
-                      <div className="flex items-center gap-4 text-xs text-gray-500">
+                      <div className="flex items-center gap-4 text-xs text-[#6B7280]">
                         <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {formatNotificationTime(notification.timestamp)}
+                          <Clock className={`h-3 w-3 ${neonClasses.text.tertiary}`} />
+                          <span className="font-mono">{formatNotificationTime(notification.timestamp)}</span>
                         </div>
                         
                         <Badge 
-                          variant="outline" 
                           className={cn(
                             'capitalize text-xs',
-                            notification.severity === 'critical' && 'border-red-200 text-red-700',
-                            notification.severity === 'high' && 'border-orange-200 text-orange-700',
-                            notification.severity === 'medium' && 'border-yellow-200 text-yellow-700',
-                            notification.severity === 'low' && 'border-blue-200 text-blue-700'
+                            notification.severity === 'critical' && `bg-[#FF4757]/20 text-[#FF4757] border border-[#FF4757]/30`,
+                            notification.severity === 'high' && `bg-[#FFB800]/20 text-[#FFB800] border border-[#FFB800]/30`,
+                            notification.severity === 'medium' && `bg-[#00D4FF]/20 text-[#00D4FF] border border-[#00D4FF]/30`,
+                            notification.severity === 'low' && `bg-[#5352ED]/20 text-[#5352ED] border border-[#5352ED]/30`
                           )}
                         >
                           {notification.severity}
                         </Badge>
 
-                        <Badge variant="outline" className="capitalize text-xs">
+                        <Badge className="capitalize text-xs bg-white/10 text-[#B8BCC8] border border-white/20">
                           {notification.type.replace('_', ' ')}
                         </Badge>
                       </div>
@@ -278,88 +363,130 @@ const ErrorNotificationsPanel: React.FC<ErrorNotificationsPanelProps> = ({
                   {/* Action Buttons */}
                   <div className="flex items-center gap-1 ml-2">
                     {!notification.read && (
+                      <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onMarkAsRead(notification.id);
+                          }}
+                          className={`h-8 w-8 p-0 ${glassmorphismClasses.base} border-[#00FF88]/30 text-[#00FF88] hover:bg-[#00FF88]/10`}
+                        >
+                          <Check className="h-3 w-3" />
+                        </Button>
+                      </motion.div>
+                    )}
+                    
+                    <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onMarkAsRead(notification.id);
-                        }}
-                        className="h-8 w-8 p-0"
+                        className={`h-8 w-8 p-0 ${glassmorphismClasses.base} border-white/10 text-[#B8BCC8] hover:border-[#A55EEA]/30 hover:text-[#A55EEA]`}
                       >
-                        <Check className="h-3 w-3" />
+                        <MoreHorizontal className="h-3 w-3" />
                       </Button>
-                    )}
-                    
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                    >
-                      <MoreHorizontal className="h-3 w-3" />
-                    </Button>
+                    </motion.div>
                   </div>
                 </div>
 
                 {/* Action Required Details */}
                 {notification.actionRequired && !notification.read && (
-                  <div className="mt-3 p-2 bg-red-100 border border-red-200 rounded-md">
-                    <div className="flex items-center gap-2 text-red-800 text-sm">
-                      <AlertTriangle className="h-4 w-4" />
+                  <motion.div 
+                    className={`mt-3 p-2 ${glassmorphismClasses.base} border-[#FF4757]/30 bg-[#FF4757]/10 rounded-md ${neonClasses.glow.danger}`}
+                    animate={{ 
+                      boxShadow: [
+                        '0 0 10px rgba(255, 71, 87, 0.3)',
+                        '0 0 20px rgba(255, 71, 87, 0.6)',
+                        '0 0 10px rgba(255, 71, 87, 0.3)'
+                      ]
+                    }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    <div className="flex items-center gap-2 text-[#FF4757] text-sm">
+                      <motion.div
+                        animate={{ rotate: [0, 10, -10, 0] }}
+                        transition={{ duration: 1, repeat: Infinity }}
+                      >
+                        <AlertTriangle className="h-4 w-4" />
+                      </motion.div>
                       <span className="font-medium">This notification requires your attention</span>
                     </div>
-                  </div>
+                  </motion.div>
                 )}
               </CardContent>
             </Card>
-          ))}
-        </div>
-      </ScrollArea>
+          </motion.div>
+        ))}
+      </div>
+    </AnimatePresence>
+  </ScrollArea>
 
       {/* No Filtered Results */}
       {filteredNotifications.length === 0 && notifications.length > 0 && (
-        <div className="text-center py-8">
-          <Filter className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No matching notifications</h3>
-          <p className="text-gray-500">
+        <motion.div 
+          className="text-center py-8"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <motion.div
+            animate={{ rotate: [0, 360] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+          >
+            <Filter className={`h-12 w-12 mx-auto mb-4 ${neonClasses.text.muted}`} />
+          </motion.div>
+          <h3 className="text-lg font-medium text-white mb-2">No matching notifications</h3>
+          <p className="text-[#B8BCC8]">
             Try adjusting your filter criteria or check back later.
           </p>
-        </div>
+        </motion.div>
       )}
 
       {/* Notification Summary */}
       {notifications.length > 0 && (
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="font-medium text-blue-900 mb-1">
-                  Notification Summary
-                </h4>
-                <p className="text-sm text-blue-700">
-                  {unreadCount} unread • {actionRequiredCount} require action • {notifications.length} total
-                </p>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <Card className={`${glassmorphismClasses.card} border-[#5352ED]/30 ${neonClasses.glow.info}`}>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium text-[#5352ED] mb-1">
+                    Notification Summary
+                  </h4>
+                  <p className="text-sm text-[#B8BCC8]">
+                    <span className={neonClasses.text.warning}>{unreadCount} unread</span> • 
+                    <span className={neonClasses.text.danger}> {actionRequiredCount} require action</span> • 
+                    <span className={neonClasses.text.primary}> {notifications.length} total</span>
+                  </p>
+                </div>
+                
+                <div className="flex gap-2">
+                  {unreadCount > 0 && (
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          notifications
+                            .filter(n => !n.read)
+                            .forEach(n => onMarkAsRead(n.id));
+                        }}
+                        className={`${glassmorphismClasses.base} border-[#00FF88]/30 text-[#00FF88] hover:bg-[#00FF88]/10 ${neonClasses.glow.secondary}`}
+                      >
+                        <Check className="h-3 w-3 mr-1" />
+                        Mark All Read
+                      </Button>
+                    </motion.div>
+                  )}
+                </div>
               </div>
-              
-              <div className="flex gap-2">
-                {unreadCount > 0 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      notifications
-                        .filter(n => !n.read)
-                        .forEach(n => onMarkAsRead(n.id));
-                    }}
-                  >
-                    <Check className="h-3 w-3 mr-1" />
-                    Mark All Read
-                  </Button>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
       )}
     </div>
   );

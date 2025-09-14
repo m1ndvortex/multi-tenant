@@ -1,9 +1,10 @@
 /**
- * Error Resolution Dialog Component
- * Provides interface for resolving errors with admin tracking
+ * Error Resolution Dialog Component - Cybersecurity Theme
+ * Provides interface for resolving errors with elevated glassmorphism and neon borders
  */
 
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Dialog,
   DialogContent,
@@ -37,6 +38,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { ErrorLog, ErrorResolutionRequest } from '../../types/errorLogging';
+import { glassmorphismClasses, neonClasses } from '../../lib/theme/cybersecurity';
 
 interface ErrorResolutionDialogProps {
   isOpen: boolean;
@@ -133,114 +135,189 @@ Stack Trace: ${error.stack_trace || 'N/A'}`;
   };
 
   /**
-   * Get severity color
+   * Get severity styling with cybersecurity theme
    */
   const getSeverityColor = (severity: string): string => {
     switch (severity.toLowerCase()) {
       case 'critical':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return `bg-[#FF4757]/20 text-[#FF4757] border border-[#FF4757]/30 ${neonClasses.glow.danger}`;
       case 'high':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
+        return `bg-[#FFB800]/20 text-[#FFB800] border border-[#FFB800]/30 ${neonClasses.glow.warning}`;
       case 'medium':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return `bg-[#00D4FF]/20 text-[#00D4FF] border border-[#00D4FF]/30 ${neonClasses.glow.primary}`;
       case 'low':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return `bg-[#5352ED]/20 text-[#5352ED] border border-[#5352ED]/30 ${neonClasses.glow.info}`;
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-white/10 text-[#B8BCC8] border border-white/20';
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-green-600" />
-            Resolve Error
-          </DialogTitle>
-          <DialogDescription>
-            Provide resolution details and mark this error as resolved.
-          </DialogDescription>
-        </DialogHeader>
+    <AnimatePresence>
+      {isOpen && (
+        <Dialog open={isOpen} onOpenChange={onClose}>
+          <DialogContent className={`max-w-2xl max-h-[90vh] overflow-y-auto ${glassmorphismClasses.modal} border-[#00FF88]/30 ${neonClasses.glow.secondary}`}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <motion.div
+                    animate={{ 
+                      rotate: [0, 360],
+                      scale: [1, 1.2, 1]
+                    }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                  >
+                    <CheckCircle className={`h-5 w-5 ${neonClasses.text.secondary}`} />
+                  </motion.div>
+                  <span className="text-white">Resolve Error</span>
+                </DialogTitle>
+                <DialogDescription className="text-[#B8BCC8]">
+                  Provide resolution details and mark this error as resolved.
+                </DialogDescription>
+              </DialogHeader>
 
         {/* Error Details Summary */}
         {error && (
-          <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+          <motion.div 
+            className={`${glassmorphismClasses.base} rounded-lg p-4 space-y-3 border-white/10`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
             <div className="flex items-center justify-between">
-              <h4 className="font-medium text-gray-900">Error Details</h4>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={copyErrorDetails}
-              >
-                <Copy className="h-3 w-3 mr-1" />
-                Copy
-              </Button>
+              <h4 className="font-medium text-white">Error Details</h4>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={copyErrorDetails}
+                  className={`${glassmorphismClasses.base} border-[#A55EEA]/30 text-[#A55EEA] hover:bg-[#A55EEA]/10`}
+                >
+                  <Copy className="h-3 w-3 mr-1" />
+                  Copy
+                </Button>
+              </motion.div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-              <div>
-                <Label className="text-xs text-gray-500">Error Type</Label>
-                <p className="font-medium">{error.error_type}</p>
-              </div>
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <Label className="text-xs text-[#6B7280]">Error Type</Label>
+                <p className="font-medium text-white font-mono">{error.error_type}</p>
+              </motion.div>
               
-              <div>
-                <Label className="text-xs text-gray-500">Severity</Label>
-                <Badge className={cn('capitalize', getSeverityColor(error.severity))}>
-                  {error.severity}
-                </Badge>
-              </div>
+              <motion.div
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <Label className="text-xs text-[#6B7280]">Severity</Label>
+                <motion.div
+                  animate={{ scale: [1, 1.05, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  <Badge className={cn('capitalize', getSeverityColor(error.severity))}>
+                    {error.severity}
+                  </Badge>
+                </motion.div>
+              </motion.div>
               
-              <div className="md:col-span-2">
-                <Label className="text-xs text-gray-500">Error Message</Label>
-                <p className="font-medium text-gray-900">{error.error_message}</p>
-              </div>
+              <motion.div 
+                className="md:col-span-2"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <Label className="text-xs text-[#6B7280]">Error Message</Label>
+                <p className="font-medium text-[#B8BCC8]">{error.error_message}</p>
+              </motion.div>
               
-              <div>
-                <Label className="text-xs text-gray-500">Endpoint</Label>
-                <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                <Label className="text-xs text-[#6B7280]">Endpoint</Label>
+                <code className={`text-xs px-2 py-1 rounded font-mono ${glassmorphismClasses.base} border-[#00D4FF]/30 text-[#00D4FF]`}>
                   {error.method} {error.endpoint}
                 </code>
-              </div>
+              </motion.div>
               
-              <div>
-                <Label className="text-xs text-gray-500">Occurrences</Label>
-                <p className="font-medium">{error.occurrence_count}</p>
-              </div>
+              <motion.div
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.6 }}
+              >
+                <Label className="text-xs text-[#6B7280]">Occurrences</Label>
+                <p className={`font-medium ${neonClasses.text.numbers}`}>{error.occurrence_count}</p>
+              </motion.div>
               
-              <div>
-                <Label className="text-xs text-gray-500">Last Occurrence</Label>
-                <p className="font-medium">
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.7 }}
+              >
+                <Label className="text-xs text-[#6B7280]">Last Occurrence</Label>
+                <p className="font-medium text-white font-mono">
                   {new Date(error.last_occurrence).toLocaleString()}
                 </p>
-              </div>
+              </motion.div>
               
-              <div>
-                <Label className="text-xs text-gray-500">First Occurrence</Label>
-                <p className="font-medium">
+              <motion.div
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.8 }}
+              >
+                <Label className="text-xs text-[#6B7280]">First Occurrence</Label>
+                <p className="font-medium text-white font-mono">
                   {new Date(error.first_occurrence).toLocaleString()}
                 </p>
-              </div>
+              </motion.div>
             </div>
 
-            {error.stack_trace && (
-              <div>
-                <Label className="text-xs text-gray-500">Stack Trace (Preview)</Label>
-                <pre className="text-xs bg-gray-100 p-2 rounded max-h-20 overflow-y-auto">
-                  {error.stack_trace.split('\n').slice(0, 3).join('\n')}
-                  {error.stack_trace.split('\n').length > 3 && '\n...'}
-                </pre>
-              </div>
-            )}
-          </div>
+            <AnimatePresence>
+              {error.stack_trace && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ delay: 0.9 }}
+                >
+                  <Label className="text-xs text-[#6B7280]">Stack Trace (Preview)</Label>
+                  <pre className={`text-xs p-2 rounded max-h-20 overflow-y-auto font-mono ${glassmorphismClasses.base} border-[#FF6B35]/30 text-[#FF6B35] bg-[#FF6B35]/5`}>
+                    {error.stack_trace.split('\n').slice(0, 3).join('\n')}
+                    {error.stack_trace.split('\n').length > 3 && '\n...'}
+                  </pre>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
         )}
 
         {/* Resolution Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <motion.form 
+          onSubmit={handleSubmit} 
+          className="space-y-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+        >
           {/* Resolution Notes */}
-          <div>
-            <Label htmlFor="notes" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Label htmlFor="notes" className="flex items-center gap-2 text-[#B8BCC8]">
+              <FileText className={`h-4 w-4 ${neonClasses.text.primary}`} />
               Resolution Notes *
             </Label>
             <Textarea
@@ -249,42 +326,50 @@ Stack Trace: ${error.stack_trace || 'N/A'}`;
               value={resolutionData.notes}
               onChange={(e) => handleInputChange('notes', e.target.value)}
               rows={4}
-              className="mt-1"
+              className={`mt-1 ${glassmorphismClasses.base} border-white/10 text-white placeholder:text-[#6B7280] focus:border-[#00D4FF]/50 focus:ring-[#00D4FF]/20`}
               required
             />
-          </div>
+          </motion.div>
 
           {/* Resolution Category */}
-          <div>
-            <Label htmlFor="category" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <Label htmlFor="category" className="flex items-center gap-2 text-[#B8BCC8]">
+              <Settings className={`h-4 w-4 ${neonClasses.text.warning}`} />
               Resolution Category
             </Label>
             <Select
               value={resolutionData.resolution_category}
               onValueChange={(value) => handleInputChange('resolution_category', value)}
             >
-              <SelectTrigger className="mt-1">
+              <SelectTrigger className={`mt-1 ${glassmorphismClasses.base} border-white/10 text-white hover:border-[#FFB800]/30`}>
                 <SelectValue placeholder="Select resolution category" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="code-fix">Code Fix</SelectItem>
-                <SelectItem value="configuration">Configuration Change</SelectItem>
-                <SelectItem value="infrastructure">Infrastructure Issue</SelectItem>
-                <SelectItem value="external-service">External Service Issue</SelectItem>
-                <SelectItem value="user-error">User Error</SelectItem>
-                <SelectItem value="data-issue">Data Issue</SelectItem>
-                <SelectItem value="monitoring-alert">False Alert</SelectItem>
-                <SelectItem value="duplicate">Duplicate Error</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
+              <SelectContent className={`${glassmorphismClasses.elevated} border-white/10 bg-[#1A1D29]`}>
+                <SelectItem value="code-fix" className="text-[#00FF88] hover:bg-[#00FF88]/10">Code Fix</SelectItem>
+                <SelectItem value="configuration" className="text-[#00D4FF] hover:bg-[#00D4FF]/10">Configuration Change</SelectItem>
+                <SelectItem value="infrastructure" className="text-[#A55EEA] hover:bg-[#A55EEA]/10">Infrastructure Issue</SelectItem>
+                <SelectItem value="external-service" className="text-[#FF6B35] hover:bg-[#FF6B35]/10">External Service Issue</SelectItem>
+                <SelectItem value="user-error" className="text-[#FFB800] hover:bg-[#FFB800]/10">User Error</SelectItem>
+                <SelectItem value="data-issue" className="text-[#5352ED] hover:bg-[#5352ED]/10">Data Issue</SelectItem>
+                <SelectItem value="monitoring-alert" className="text-[#00D4FF] hover:bg-[#00D4FF]/10">False Alert</SelectItem>
+                <SelectItem value="duplicate" className="text-[#6B7280] hover:bg-white/10">Duplicate Error</SelectItem>
+                <SelectItem value="other" className="text-white hover:bg-white/10">Other</SelectItem>
               </SelectContent>
             </Select>
-          </div>
+          </motion.div>
 
           {/* Estimated Fix Time */}
-          <div>
-            <Label htmlFor="fix-time" className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+          >
+            <Label htmlFor="fix-time" className="flex items-center gap-2 text-[#B8BCC8]">
+              <Clock className={`h-4 w-4 ${neonClasses.text.tertiary}`} />
               Estimated Fix Time (minutes)
             </Label>
             <Input
@@ -296,14 +381,18 @@ Stack Trace: ${error.stack_trace || 'N/A'}`;
                 e.target.value ? parseInt(e.target.value) : undefined
               )}
               min="1"
-              className="mt-1"
+              className={`mt-1 ${glassmorphismClasses.base} border-white/10 text-white placeholder:text-[#6B7280] focus:border-[#FF6B35]/50 focus:ring-[#FF6B35]/20`}
             />
-          </div>
+          </motion.div>
 
           {/* Related Ticket ID */}
-          <div>
-            <Label htmlFor="ticket-id" className="flex items-center gap-2">
-              <ExternalLink className="h-4 w-4" />
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+          >
+            <Label htmlFor="ticket-id" className="flex items-center gap-2 text-[#B8BCC8]">
+              <ExternalLink className={`h-4 w-4 ${neonClasses.text.info}`} />
               Related Ticket/Issue ID
             </Label>
             <Input
@@ -311,79 +400,140 @@ Stack Trace: ${error.stack_trace || 'N/A'}`;
               placeholder="Link to support ticket, GitHub issue, etc."
               value={resolutionData.related_ticket_id}
               onChange={(e) => handleInputChange('related_ticket_id', e.target.value)}
-              className="mt-1"
+              className={`mt-1 ${glassmorphismClasses.base} border-white/10 text-white placeholder:text-[#6B7280] focus:border-[#5352ED]/50 focus:ring-[#5352ED]/20 font-mono`}
             />
-          </div>
+          </motion.div>
 
           {/* Additional Options */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
+          <motion.div 
+            className="space-y-3"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.7 }}
+          >
+            <motion.div 
+              className="flex items-center justify-between"
+              whileHover={{ scale: 1.01 }}
+            >
               <div>
-                <Label className="font-medium">Requires Deployment</Label>
-                <p className="text-sm text-gray-500">
+                <Label className="font-medium text-white">Requires Deployment</Label>
+                <p className="text-sm text-[#B8BCC8]">
                   Does this fix require a code deployment?
                 </p>
               </div>
-              <Switch
-                checked={resolutionData.requires_deployment}
-                onCheckedChange={(checked) => handleInputChange('requires_deployment', checked)}
-              />
-            </div>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Switch
+                  checked={resolutionData.requires_deployment}
+                  onCheckedChange={(checked) => handleInputChange('requires_deployment', checked)}
+                  className="data-[state=checked]:bg-[#FFB800] data-[state=unchecked]:bg-white/20"
+                />
+              </motion.div>
+            </motion.div>
 
-            <div className="flex items-center justify-between">
+            <motion.div 
+              className="flex items-center justify-between"
+              whileHover={{ scale: 1.01 }}
+            >
               <div>
-                <Label className="font-medium">Follow-up Required</Label>
-                <p className="text-sm text-gray-500">
+                <Label className="font-medium text-white">Follow-up Required</Label>
+                <p className="text-sm text-[#B8BCC8]">
                   Should this error be monitored for recurrence?
                 </p>
               </div>
-              <Switch
-                checked={resolutionData.follow_up_required}
-                onCheckedChange={(checked) => handleInputChange('follow_up_required', checked)}
-              />
-            </div>
-          </div>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Switch
+                  checked={resolutionData.follow_up_required}
+                  onCheckedChange={(checked) => handleInputChange('follow_up_required', checked)}
+                  className="data-[state=checked]:bg-[#A55EEA] data-[state=unchecked]:bg-white/20"
+                />
+              </motion.div>
+            </motion.div>
+          </motion.div>
 
           {/* Submit Error */}
-          {submitError && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>{submitError}</AlertDescription>
-            </Alert>
-          )}
-        </form>
+          <AnimatePresence>
+            {submitError && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Alert className={`${glassmorphismClasses.base} border-[#FF4757]/30 bg-[#FF4757]/10 ${neonClasses.glow.danger}`}>
+                  <motion.div
+                    animate={{ rotate: [0, 10, -10, 0] }}
+                    transition={{ duration: 1, repeat: Infinity }}
+                  >
+                    <AlertTriangle className={`h-4 w-4 ${neonClasses.text.danger}`} />
+                  </motion.div>
+                  <AlertDescription className="text-[#FF4757]">{submitError}</AlertDescription>
+                </Alert>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.form>
 
         <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onClose}
-            disabled={isSubmitting}
+          <motion.div 
+            className="flex gap-2"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8 }}
           >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            onClick={handleSubmit}
-            disabled={isSubmitting || !resolutionData.notes?.trim()}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            {isSubmitting ? (
-              <>
-                <Clock className="h-4 w-4 mr-2 animate-spin" />
-                Resolving...
-              </>
-            ) : (
-              <>
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Resolve Error
-              </>
-            )}
-          </Button>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                disabled={isSubmitting}
+                className={`${glassmorphismClasses.base} border-white/20 text-[#B8BCC8] hover:border-[#6B7280]/50 hover:text-white`}
+              >
+                Cancel
+              </Button>
+            </motion.div>
+            <motion.div whileHover={{ scale: isSubmitting || !resolutionData.notes?.trim() ? 1 : 1.05 }} whileTap={{ scale: isSubmitting || !resolutionData.notes?.trim() ? 1 : 0.95 }}>
+              <Button
+                type="submit"
+                onClick={handleSubmit}
+                disabled={isSubmitting || !resolutionData.notes?.trim()}
+                className={`${
+                  isSubmitting || !resolutionData.notes?.trim()
+                    ? 'bg-[#6B7280]/20 border border-[#6B7280]/30 text-[#6B7280] cursor-not-allowed'
+                    : `bg-[#00FF88]/20 border border-[#00FF88]/30 text-[#00FF88] hover:bg-[#00FF88]/30 ${neonClasses.glow.secondary}`
+                }`}
+              >
+                {isSubmitting ? (
+                  <>
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    >
+                      <Clock className="h-4 w-4 mr-2" />
+                    </motion.div>
+                    Resolving...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Resolve Error
+                  </>
+                )}
+              </Button>
+            </motion.div>
+          </motion.div>
         </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
+      </motion.div>
+    </DialogContent>
+  </Dialog>
+)}
+</AnimatePresence>
+);
 };
 
 export default ErrorResolutionDialog;

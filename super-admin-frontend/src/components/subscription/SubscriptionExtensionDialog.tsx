@@ -23,7 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { TenantSubscription, SubscriptionExtensionRequest, SubscriptionType } from '@/types/subscription';
 import { NeonText, CyberSpinner } from '@/components/animations/CyberAnimations';
 import { createModalAnimation } from '@/lib/theme/animations';
-import { glassmorphismClasses, neonClasses } from '@/lib/theme/cybersecurity';
+import { glassmorphismClasses } from '@/lib/theme/cybersecurity';
 
 interface SubscriptionExtensionDialogProps {
   open: boolean;

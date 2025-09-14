@@ -22,8 +22,8 @@ import SubscriptionPlanSwitchDialog from '@/components/subscription/Subscription
 import SubscriptionFullControlDialog from '@/components/subscription/SubscriptionFullControlDialog';
 import SubscriptionHistoryDialog from '@/components/subscription/SubscriptionHistoryDialog';
 import { AnimatedWrapper, CyberCard, NeonText, CyberSpinner } from '@/components/animations/CyberAnimations';
-import { animationPresets, createStaggerAnimation } from '@/lib/theme/animations';
-import { glassmorphismClasses, neonClasses } from '@/lib/theme/cybersecurity';
+import { createStaggerAnimation } from '@/lib/theme/animations';
+import { glassmorphismClasses } from '@/lib/theme/cybersecurity';
 
 const SubscriptionManagement: React.FC = () => {
   const { setPageInfo } = useNavigation();

@@ -6,12 +6,12 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SubscriptionOverview } from '@/types/subscription';
 import { cn } from '@/lib/utils';
-import { AnimatedWrapper, CyberCard, NeonText, CyberSpinner } from '@/components/animations/CyberAnimations';
+import { CyberCard, NeonText } from '@/components/animations/CyberAnimations';
 import { AnimatedCounter } from '@/components/animations/AnimatedCounter';
 import { createStaggerAnimation } from '@/lib/theme/animations';
 import { glassmorphismClasses, neonClasses } from '@/lib/theme/cybersecurity';
@@ -113,11 +113,7 @@ const SubscriptionOverviewDashboard: React.FC<SubscriptionOverviewDashboardProps
     return new Date(dateString).toLocaleString('fa-IR');
   };
 
-  const getConversionRateColor = (rate: number) => {
-    if (rate >= 20) return 'text-green-600';
-    if (rate >= 10) return 'text-yellow-600';
-    return 'text-red-600';
-  };
+
 
   return (
     <motion.div 

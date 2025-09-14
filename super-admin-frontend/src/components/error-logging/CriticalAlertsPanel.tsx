@@ -1,9 +1,10 @@
 /**
- * Critical Alerts Panel Component
- * Displays critical error alerts with immediate attention indicators
+ * Critical Alerts Panel Component - Cybersecurity Theme
+ * Displays critical error alerts with cybersecurity aesthetics and neon effects
  */
 
 import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -20,6 +21,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { CriticalErrorAlert } from '../../types/errorLogging';
+import { glassmorphismClasses, neonClasses } from '../../lib/theme/cybersecurity';
 
 interface CriticalAlertsPanelProps {
   alerts: CriticalErrorAlert[];
@@ -56,29 +58,29 @@ const CriticalAlertsPanel: React.FC<CriticalAlertsPanelProps> = ({
   };
 
   /**
-   * Get alert priority color
+   * Get alert priority styling with cybersecurity theme
    */
   const getAlertPriorityColor = (alert: CriticalErrorAlert): string => {
     if (alert.requires_immediate_attention) {
-      return 'border-l-red-500 bg-red-50';
+      return `${glassmorphismClasses.card} border-l-4 border-l-[#FF4757] ${neonClasses.glow.danger}`;
     }
     if (alert.is_escalated) {
-      return 'border-l-orange-500 bg-orange-50';
+      return `${glassmorphismClasses.card} border-l-4 border-l-[#FFB800] ${neonClasses.glow.warning}`;
     }
-    return 'border-l-yellow-500 bg-yellow-50';
+    return `${glassmorphismClasses.card} border-l-4 border-l-[#00D4FF] ${neonClasses.glow.primary}`;
   };
 
   /**
-   * Get severity badge color
+   * Get severity badge styling with neon effects
    */
   const getSeverityBadgeColor = (severity: string): string => {
     switch (severity.toLowerCase()) {
       case 'critical':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return `bg-[#FF4757]/20 text-[#FF4757] border border-[#FF4757]/30 ${neonClasses.glow.danger}`;
       case 'high':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
+        return `bg-[#FFB800]/20 text-[#FFB800] border border-[#FFB800]/30 ${neonClasses.glow.warning}`;
       default:
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return `bg-[#00D4FF]/20 text-[#00D4FF] border border-[#00D4FF]/30 ${neonClasses.glow.primary}`;
     }
   };
 
@@ -104,15 +106,22 @@ const CriticalAlertsPanel: React.FC<CriticalAlertsPanelProps> = ({
     return (
       <div className={cn('space-y-4', className)}>
         {[...Array(3)].map((_, index) => (
-          <Card key={index} className="animate-pulse">
-            <CardContent className="p-4">
-              <div className="flex space-x-4">
-                <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-              </div>
-            </CardContent>
-          </Card>
+          <motion.div
+            key={index}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+          >
+            <Card className={`${glassmorphismClasses.card} animate-pulse`}>
+              <CardContent className="p-4">
+                <div className="flex space-x-4">
+                  <div className="h-4 bg-white/10 rounded w-1/4"></div>
+                  <div className="h-4 bg-white/10 rounded w-1/2"></div>
+                  <div className="h-4 bg-white/10 rounded w-1/4"></div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         ))}
       </div>
     );
@@ -120,13 +129,29 @@ const CriticalAlertsPanel: React.FC<CriticalAlertsPanelProps> = ({
 
   if (alerts.length === 0) {
     return (
-      <div className={cn('text-center py-8', className)}>
-        <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">No Critical Alerts</h3>
-        <p className="text-gray-500">
+      <motion.div 
+        className={cn('text-center py-8', className)}
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3 }}
+      >
+        <motion.div
+          animate={{ 
+            boxShadow: [
+              '0 0 20px rgba(0, 255, 136, 0.3)',
+              '0 0 30px rgba(0, 255, 136, 0.5)',
+              '0 0 20px rgba(0, 255, 136, 0.3)'
+            ]
+          }}
+          transition={{ duration: 2, repeat: Infinity }}
+        >
+          <CheckCircle className={`h-12 w-12 mx-auto mb-4 ${neonClasses.text.secondary}`} />
+        </motion.div>
+        <h3 className="text-lg font-medium text-white mb-2">No Critical Alerts</h3>
+        <p className="text-[#B8BCC8]">
           All systems are running smoothly. No critical errors detected.
         </p>
-      </div>
+      </motion.div>
     );
   }
 
@@ -134,49 +159,88 @@ const CriticalAlertsPanel: React.FC<CriticalAlertsPanelProps> = ({
     <div className={cn('space-y-4', className)}>
       {/* Summary Alert */}
       {alerts.length > 0 && !compact && (
-        <Alert className="border-red-200 bg-red-50">
-          <AlertTriangle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-800">
-            <strong>{alerts.length} critical alert{alerts.length > 1 ? 's' : ''}</strong> requiring attention.
-            {alerts.filter(a => a.requires_immediate_attention).length > 0 && (
-              <span className="ml-2">
-                {alerts.filter(a => a.requires_immediate_attention).length} require immediate action.
-              </span>
-            )}
-          </AlertDescription>
-        </Alert>
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Alert className={`${glassmorphismClasses.base} border-[#FF4757]/30 bg-[#FF4757]/10 ${neonClasses.glow.danger}`}>
+            <motion.div
+              animate={{ rotate: [0, 5, -5, 0] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <AlertTriangle className={`h-4 w-4 ${neonClasses.text.danger}`} />
+            </motion.div>
+            <AlertDescription className="text-white">
+              <strong className={neonClasses.text.danger}>
+                {alerts.length} critical alert{alerts.length > 1 ? 's' : ''}
+              </strong> requiring attention.
+              {alerts.filter(a => a.requires_immediate_attention).length > 0 && (
+                <span className="ml-2">
+                  <span className={neonClasses.text.warning}>
+                    {alerts.filter(a => a.requires_immediate_attention).length} require immediate action.
+                  </span>
+                </span>
+              )}
+            </AlertDescription>
+          </Alert>
+        </motion.div>
       )}
 
       {/* Alerts List */}
-      <div className="space-y-3">
-        {alerts.map((alert) => (
-          <Card 
-            key={alert.id} 
-            className={cn(
-              'border-l-4 transition-all duration-200 hover:shadow-md',
-              getAlertPriorityColor(alert)
-            )}
-          >
+      <AnimatePresence>
+        <div className="space-y-3">
+          {alerts.map((alert, index) => (
+            <motion.div
+              key={alert.id}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ delay: index * 0.1 }}
+              whileHover={{ scale: 1.02, y: -2 }}
+            >
+              <Card 
+                className={cn(
+                  'transition-all duration-300 hover:shadow-2xl cursor-pointer',
+                  getAlertPriorityColor(alert)
+                )}
+              >
             <CardContent className="p-4">
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
                   {/* Alert Header */}
                   <div className="flex items-center gap-2 mb-2">
-                    {getCategoryIcon(alert.category)}
+                    <motion.div
+                      animate={{ rotate: [0, 360] }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                    >
+                      {getCategoryIcon(alert.category)}
+                    </motion.div>
                     <Badge 
-                      variant="outline" 
                       className={cn('capitalize', getSeverityBadgeColor(alert.severity))}
                     >
                       {alert.severity}
                     </Badge>
                     {alert.requires_immediate_attention && (
-                      <Badge variant="destructive" className="animate-pulse">
-                        <Bell className="h-3 w-3 mr-1" />
-                        Urgent
-                      </Badge>
+                      <motion.div
+                        animate={{ 
+                          scale: [1, 1.1, 1],
+                          boxShadow: [
+                            '0 0 10px rgba(255, 71, 87, 0.5)',
+                            '0 0 20px rgba(255, 71, 87, 0.8)',
+                            '0 0 10px rgba(255, 71, 87, 0.5)'
+                          ]
+                        }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                      >
+                        <Badge className={`bg-[#FF4757]/20 text-[#FF4757] border border-[#FF4757]/30 ${neonClasses.glow.danger}`}>
+                          <Bell className="h-3 w-3 mr-1" />
+                          Urgent
+                        </Badge>
+                      </motion.div>
                     )}
                     {alert.is_escalated && (
-                      <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                      <Badge className={`bg-[#FFB800]/20 text-[#FFB800] border border-[#FFB800]/30 ${neonClasses.glow.warning}`}>
                         Escalated
                       </Badge>
                     )}
@@ -184,46 +248,49 @@ const CriticalAlertsPanel: React.FC<CriticalAlertsPanelProps> = ({
 
                   {/* Error Type and Message */}
                   <div className="mb-2">
-                    <h4 className="font-semibold text-gray-900 mb-1">
+                    <h4 className="font-semibold text-white mb-1 font-mono">
                       {alert.error_type}
                     </h4>
-                    <p className="text-sm text-gray-700 line-clamp-2">
+                    <p className="text-sm text-[#B8BCC8] line-clamp-2">
                       {alert.error_message}
                     </p>
                   </div>
 
                   {/* Alert Details */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-[#B8BCC8]">
                     <div className="flex items-center gap-1">
-                      <Server className="h-3 w-3" />
-                      <span className="font-mono text-xs">
+                      <Server className={`h-3 w-3 ${neonClasses.text.info}`} />
+                      <span className="font-mono text-xs text-[#00D4FF]">
                         {alert.endpoint}
                       </span>
                     </div>
                     
                     {alert.tenant_name && (
                       <div className="flex items-center gap-1">
-                        <Users className="h-3 w-3" />
+                        <Users className={`h-3 w-3 ${neonClasses.text.purple}`} />
                         <span>{alert.tenant_name}</span>
                       </div>
                     )}
                     
                     <div className="flex items-center gap-1">
-                      <Zap className="h-3 w-3" />
-                      <span>{alert.occurrence_count} occurrence{alert.occurrence_count > 1 ? 's' : ''}</span>
+                      <Zap className={`h-3 w-3 ${neonClasses.text.warning}`} />
+                      <span className={neonClasses.text.numbers}>
+                        {alert.occurrence_count}
+                      </span>
+                      <span> occurrence{alert.occurrence_count > 1 ? 's' : ''}</span>
                     </div>
                     
                     <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
+                      <Clock className={`h-3 w-3 ${neonClasses.text.tertiary}`} />
                       <span>{formatTimeSince(alert.last_occurrence)}</span>
                     </div>
                   </div>
 
                   {/* Time Range */}
                   {!compact && (
-                    <div className="mt-3 text-xs text-gray-500">
-                      First seen: {new Date(alert.first_occurrence).toLocaleString()} • 
-                      Last seen: {new Date(alert.last_occurrence).toLocaleString()}
+                    <div className="mt-3 text-xs text-[#6B7280] font-mono">
+                      <span className="text-[#00D4FF]">First seen:</span> {new Date(alert.first_occurrence).toLocaleString()} • 
+                      <span className="text-[#00FF88]">Last seen:</span> {new Date(alert.last_occurrence).toLocaleString()}
                     </div>
                   )}
                 </div>
@@ -231,80 +298,135 @@ const CriticalAlertsPanel: React.FC<CriticalAlertsPanelProps> = ({
                 {/* Actions */}
                 <div className="flex flex-col gap-2 ml-4">
                   {onViewDetails && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onViewDetails(alert)}
-                    >
-                      <ExternalLink className="h-3 w-3 mr-1" />
-                      Details
-                    </Button>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onViewDetails(alert)}
+                        className={`${glassmorphismClasses.base} border-[#00D4FF]/30 text-[#00D4FF] hover:bg-[#00D4FF]/10 ${neonClasses.glow.primary}`}
+                      >
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        Details
+                      </Button>
+                    </motion.div>
                   )}
                   
                   {onResolveAlert && (
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => onResolveAlert(alert.id)}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      <CheckCircle className="h-3 w-3 mr-1" />
-                      Resolve
-                    </Button>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button
+                        size="sm"
+                        onClick={() => onResolveAlert(alert.id)}
+                        className={`bg-[#00FF88]/20 border border-[#00FF88]/30 text-[#00FF88] hover:bg-[#00FF88]/30 ${neonClasses.glow.secondary}`}
+                      >
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Resolve
+                      </Button>
+                    </motion.div>
                   )}
                 </div>
               </div>
 
               {/* Priority Indicator */}
               {alert.requires_immediate_attention && (
-                <div className="mt-3 p-2 bg-red-100 border border-red-200 rounded-md">
-                  <div className="flex items-center gap-2 text-red-800 text-sm">
-                    <Bell className="h-4 w-4" />
+                <motion.div 
+                  className={`mt-3 p-2 ${glassmorphismClasses.base} border-[#FF4757]/30 bg-[#FF4757]/10 rounded-md ${neonClasses.glow.danger}`}
+                  animate={{ 
+                    boxShadow: [
+                      '0 0 10px rgba(255, 71, 87, 0.3)',
+                      '0 0 20px rgba(255, 71, 87, 0.6)',
+                      '0 0 10px rgba(255, 71, 87, 0.3)'
+                    ]
+                  }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  <div className="flex items-center gap-2 text-[#FF4757] text-sm">
+                    <motion.div
+                      animate={{ rotate: [0, 15, -15, 0] }}
+                      transition={{ duration: 1, repeat: Infinity }}
+                    >
+                      <Bell className="h-4 w-4" />
+                    </motion.div>
                     <span className="font-medium">Immediate attention required</span>
                   </div>
-                </div>
+                </motion.div>
               )}
             </CardContent>
           </Card>
-        ))}
-      </div>
+        </motion.div>
+      ))}
+    </div>
+  </AnimatePresence>
 
       {/* Compact View: Show More Button */}
       {compact && alerts.length > 3 && (
-        <div className="text-center pt-4">
-          <Button variant="outline" size="sm">
-            View All {alerts.length} Critical Alerts
-          </Button>
-        </div>
+        <motion.div 
+          className="text-center pt-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+        >
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button 
+              variant="outline" 
+              size="sm"
+              className={`${glassmorphismClasses.base} border-[#00D4FF]/30 text-[#00D4FF] hover:bg-[#00D4FF]/10 ${neonClasses.glow.primary}`}
+            >
+              View All {alerts.length} Critical Alerts
+            </Button>
+          </motion.div>
+        </motion.div>
       )}
 
       {/* Action Summary */}
       {!compact && alerts.length > 0 && (
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="font-medium text-blue-900 mb-1">
-                  Alert Summary
-                </h4>
-                <p className="text-sm text-blue-700">
-                  {alerts.filter(a => a.requires_immediate_attention).length} urgent alerts • 
-                  {alerts.filter(a => a.is_escalated).length} escalated • 
-                  {alerts.filter(a => a.occurrence_count > 10).length} high frequency
-                </p>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <Card className={`${glassmorphismClasses.card} border-[#5352ED]/30 ${neonClasses.glow.info}`}>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium text-[#5352ED] mb-1">
+                    Alert Summary
+                  </h4>
+                  <p className="text-sm text-[#B8BCC8]">
+                    <span className={neonClasses.text.danger}>
+                      {alerts.filter(a => a.requires_immediate_attention).length} urgent alerts
+                    </span> • 
+                    <span className={neonClasses.text.warning}>
+                      {alerts.filter(a => a.is_escalated).length} escalated
+                    </span> • 
+                    <span className={neonClasses.text.secondary}>
+                      {alerts.filter(a => a.occurrence_count > 10).length} high frequency
+                    </span>
+                  </p>
+                </div>
+                
+                <div className="flex gap-2">
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className={`${glassmorphismClasses.base} border-[#A55EEA]/30 text-[#A55EEA] hover:bg-[#A55EEA]/10`}
+                    >
+                      Export Report
+                    </Button>
+                  </motion.div>
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button 
+                      size="sm"
+                      className={`bg-[#FFB800]/20 border border-[#FFB800]/30 text-[#FFB800] hover:bg-[#FFB800]/30 ${neonClasses.glow.warning}`}
+                    >
+                      Escalate All
+                    </Button>
+                  </motion.div>
+                </div>
               </div>
-              
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm">
-                  Export Report
-                </Button>
-                <Button variant="default" size="sm">
-                  Escalate All
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
       )}
     </div>
   );

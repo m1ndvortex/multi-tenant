@@ -1,9 +1,10 @@
 /**
- * Error Filters Panel Component
- * Provides filtering controls for error logging dashboard
+ * Error Filters Panel Component - Cybersecurity Theme
+ * Provides filtering controls with cybersecurity aesthetics and glassmorphism effects
  */
 
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -27,6 +28,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { ErrorFilters, ErrorSeverity, ErrorCategory, ErrorStatistics } from '../../types/errorLogging';
+import { glassmorphismClasses, neonClasses } from '../../lib/theme/cybersecurity';
 
 interface ErrorFiltersPanelProps {
   filters: ErrorFilters;
@@ -114,286 +116,454 @@ const ErrorFiltersPanel: React.FC<ErrorFiltersPanelProps> = ({
   const activeFiltersCount = getActiveFiltersCount();
 
   return (
-    <Card className={cn('h-fit', className)}>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center justify-between text-base">
-          <span className="flex items-center gap-2">
-            <Filter className="h-4 w-4" />
-            Filters
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <Card className={cn(`${glassmorphismClasses.card} h-fit`, className)}>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center justify-between text-base">
+            <span className="flex items-center gap-2">
+              <motion.div
+                animate={{ rotate: [0, 360] }}
+                transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+              >
+                <Filter className={`h-4 w-4 ${neonClasses.text.primary}`} />
+              </motion.div>
+              <span className="text-white">Filters</span>
+              {activeFiltersCount > 0 && (
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                >
+                  <Badge className={`text-xs bg-[#00D4FF]/20 text-[#00D4FF] border border-[#00D4FF]/30 ${neonClasses.glow.primary}`}>
+                    {activeFiltersCount}
+                  </Badge>
+                </motion.div>
+              )}
+            </span>
             {activeFiltersCount > 0 && (
-              <Badge variant="secondary" className="text-xs">
-                {activeFiltersCount}
-              </Badge>
+              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearAllFilters}
+                  className={`h-auto p-1 ${glassmorphismClasses.base} border-[#FF4757]/30 text-[#FF4757] hover:bg-[#FF4757]/10`}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </motion.div>
             )}
-          </span>
-          {activeFiltersCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearAllFilters}
-              className="h-auto p-1"
-            >
-              <X className="h-3 w-3" />
-            </Button>
-          )}
-        </CardTitle>
-      </CardHeader>
+          </CardTitle>
+        </CardHeader>
       
       <CardContent className="space-y-4">
         {/* Quick Filter Presets */}
-        <div>
-          <Label className="text-sm font-medium mb-2 block">Quick Filters</Label>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <Label className="text-sm font-medium mb-2 block text-[#B8BCC8]">Quick Filters</Label>
           <div className="grid grid-cols-1 gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => applyQuickFilter('critical-only')}
-              className="justify-start text-xs"
-            >
-              <AlertTriangle className="h-3 w-3 mr-2 text-red-500" />
-              Critical Only
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => applyQuickFilter('last-hour')}
-              className="justify-start text-xs"
-            >
-              <Clock className="h-3 w-3 mr-2 text-orange-500" />
-              Last Hour
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => applyQuickFilter('api-errors')}
-              className="justify-start text-xs"
-            >
-              <Server className="h-3 w-3 mr-2 text-blue-500" />
-              API Errors
-            </Button>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => applyQuickFilter('critical-only')}
+                className={`justify-start text-xs ${glassmorphismClasses.base} border-[#FF4757]/30 text-[#FF4757] hover:bg-[#FF4757]/10 hover:border-[#FF4757]/50`}
+              >
+                <AlertTriangle className="h-3 w-3 mr-2" />
+                Critical Only
+              </Button>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => applyQuickFilter('last-hour')}
+                className={`justify-start text-xs ${glassmorphismClasses.base} border-[#FFB800]/30 text-[#FFB800] hover:bg-[#FFB800]/10 hover:border-[#FFB800]/50`}
+              >
+                <Clock className="h-3 w-3 mr-2" />
+                Last Hour
+              </Button>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => applyQuickFilter('api-errors')}
+                className={`justify-start text-xs ${glassmorphismClasses.base} border-[#5352ED]/30 text-[#5352ED] hover:bg-[#5352ED]/10 hover:border-[#5352ED]/50`}
+              >
+                <Server className="h-3 w-3 mr-2" />
+                API Errors
+              </Button>
+            </motion.div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Time Range */}
-        <div>
-          <Label className="text-sm font-medium mb-2 block">
-            Time Range: {localFilters.hours_back} hours
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <Label className="text-sm font-medium mb-2 block text-[#B8BCC8]">
+            Time Range: <span className={neonClasses.text.numbers}>{localFilters.hours_back}</span> hours
           </Label>
-          <Slider
-            value={[localFilters.hours_back]}
-            onValueChange={([value]) => handleFilterChange('hours_back', value)}
-            max={168} // 7 days
-            min={1}
-            step={1}
-            className="w-full"
-          />
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>1h</span>
-            <span>7d</span>
+          <div className="relative">
+            <Slider
+              value={[localFilters.hours_back]}
+              onValueChange={([value]) => handleFilterChange('hours_back', value)}
+              max={168} // 7 days
+              min={1}
+              step={1}
+              className="w-full [&_[role=slider]]:bg-[#00D4FF] [&_[role=slider]]:border-[#00D4FF] [&_[role=slider]]:shadow-[0_0_10px_rgba(0,212,255,0.5)] [&_.bg-primary]:bg-gradient-to-r [&_.bg-primary]:from-[#00D4FF] [&_.bg-primary]:to-[#00FF88]"
+            />
+            <motion.div
+              className="absolute inset-0 pointer-events-none"
+              animate={{ 
+                boxShadow: [
+                  '0 0 5px rgba(0, 212, 255, 0.3)',
+                  '0 0 15px rgba(0, 212, 255, 0.6)',
+                  '0 0 5px rgba(0, 212, 255, 0.3)'
+                ]
+              }}
+              transition={{ duration: 2, repeat: Infinity }}
+            />
           </div>
-        </div>
+          <div className="flex justify-between text-xs text-[#6B7280] mt-1 font-mono">
+            <span className="text-[#00D4FF]">1h</span>
+            <span className="text-[#00FF88]">7d</span>
+          </div>
+        </motion.div>
 
         {/* Severity Filter */}
-        <div>
-          <Label className="text-sm font-medium mb-2 block">Severity</Label>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <Label className="text-sm font-medium mb-2 block text-[#B8BCC8]">Severity</Label>
           <Select
             value={localFilters.severity || 'all'}
             onValueChange={(value) => 
               handleFilterChange('severity', value === 'all' ? undefined : value as ErrorSeverity)
             }
           >
-            <SelectTrigger>
+            <SelectTrigger className={`${glassmorphismClasses.base} border-white/10 text-white hover:border-[#00D4FF]/30`}>
               <SelectValue placeholder="All severities" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Severities</SelectItem>
-              <SelectItem value={ErrorSeverity.CRITICAL}>
+            <SelectContent className={`${glassmorphismClasses.elevated} border-white/10 bg-[#1A1D29]`}>
+              <SelectItem value="all" className="text-white hover:bg-white/10">All Severities</SelectItem>
+              <SelectItem value={ErrorSeverity.CRITICAL} className="text-white hover:bg-[#FF4757]/10">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  Critical
+                  <motion.div 
+                    className="w-2 h-2 bg-[#FF4757] rounded-full"
+                    animate={{ 
+                      boxShadow: [
+                        '0 0 5px rgba(255, 71, 87, 0.5)',
+                        '0 0 15px rgba(255, 71, 87, 0.8)',
+                        '0 0 5px rgba(255, 71, 87, 0.5)'
+                      ]
+                    }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  />
+                  <span className="text-[#FF4757]">Critical</span>
                 </div>
               </SelectItem>
-              <SelectItem value={ErrorSeverity.HIGH}>
+              <SelectItem value={ErrorSeverity.HIGH} className="text-white hover:bg-[#FFB800]/10">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                  High
+                  <div className="w-2 h-2 bg-[#FFB800] rounded-full shadow-[0_0_8px_rgba(255,184,0,0.6)]"></div>
+                  <span className="text-[#FFB800]">High</span>
                 </div>
               </SelectItem>
-              <SelectItem value={ErrorSeverity.MEDIUM}>
+              <SelectItem value={ErrorSeverity.MEDIUM} className="text-white hover:bg-[#00D4FF]/10">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                  Medium
+                  <div className="w-2 h-2 bg-[#00D4FF] rounded-full shadow-[0_0_8px_rgba(0,212,255,0.6)]"></div>
+                  <span className="text-[#00D4FF]">Medium</span>
                 </div>
               </SelectItem>
-              <SelectItem value={ErrorSeverity.LOW}>
+              <SelectItem value={ErrorSeverity.LOW} className="text-white hover:bg-[#5352ED]/10">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  Low
+                  <div className="w-2 h-2 bg-[#5352ED] rounded-full shadow-[0_0_8px_rgba(83,82,237,0.6)]"></div>
+                  <span className="text-[#5352ED]">Low</span>
                 </div>
               </SelectItem>
             </SelectContent>
           </Select>
-        </div>
+        </motion.div>
 
         {/* Category Filter */}
-        <div>
-          <Label className="text-sm font-medium mb-2 block">Category</Label>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <Label className="text-sm font-medium mb-2 block text-[#B8BCC8]">Category</Label>
           <Select
             value={localFilters.category || 'all'}
             onValueChange={(value) => 
               handleFilterChange('category', value === 'all' ? undefined : value as ErrorCategory)
             }
           >
-            <SelectTrigger>
+            <SelectTrigger className={`${glassmorphismClasses.base} border-white/10 text-white hover:border-[#00FF88]/30`}>
               <SelectValue placeholder="All categories" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              <SelectItem value={ErrorCategory.SYSTEM}>System</SelectItem>
-              <SelectItem value={ErrorCategory.DATABASE}>Database</SelectItem>
-              <SelectItem value={ErrorCategory.API}>API</SelectItem>
-              <SelectItem value={ErrorCategory.AUTHENTICATION}>Authentication</SelectItem>
-              <SelectItem value={ErrorCategory.AUTHORIZATION}>Authorization</SelectItem>
-              <SelectItem value={ErrorCategory.VALIDATION}>Validation</SelectItem>
-              <SelectItem value={ErrorCategory.BUSINESS_LOGIC}>Business Logic</SelectItem>
-              <SelectItem value={ErrorCategory.EXTERNAL_SERVICE}>External Service</SelectItem>
-              <SelectItem value={ErrorCategory.PERFORMANCE}>Performance</SelectItem>
-              <SelectItem value={ErrorCategory.SECURITY}>Security</SelectItem>
+            <SelectContent className={`${glassmorphismClasses.elevated} border-white/10 bg-[#1A1D29]`}>
+              <SelectItem value="all" className="text-white hover:bg-white/10">All Categories</SelectItem>
+              <SelectItem value={ErrorCategory.SYSTEM} className="text-[#A55EEA] hover:bg-[#A55EEA]/10">System</SelectItem>
+              <SelectItem value={ErrorCategory.DATABASE} className="text-[#00FF88] hover:bg-[#00FF88]/10">Database</SelectItem>
+              <SelectItem value={ErrorCategory.API} className="text-[#00D4FF] hover:bg-[#00D4FF]/10">API</SelectItem>
+              <SelectItem value={ErrorCategory.AUTHENTICATION} className="text-[#FFB800] hover:bg-[#FFB800]/10">Authentication</SelectItem>
+              <SelectItem value={ErrorCategory.AUTHORIZATION} className="text-[#FF6B35] hover:bg-[#FF6B35]/10">Authorization</SelectItem>
+              <SelectItem value={ErrorCategory.VALIDATION} className="text-[#5352ED] hover:bg-[#5352ED]/10">Validation</SelectItem>
+              <SelectItem value={ErrorCategory.BUSINESS_LOGIC} className="text-[#00D4FF] hover:bg-[#00D4FF]/10">Business Logic</SelectItem>
+              <SelectItem value={ErrorCategory.EXTERNAL_SERVICE} className="text-[#FF4757] hover:bg-[#FF4757]/10">External Service</SelectItem>
+              <SelectItem value={ErrorCategory.PERFORMANCE} className="text-[#FFB800] hover:bg-[#FFB800]/10">Performance</SelectItem>
+              <SelectItem value={ErrorCategory.SECURITY} className="text-[#FF4757] hover:bg-[#FF4757]/10">Security</SelectItem>
             </SelectContent>
           </Select>
-        </div>
+        </motion.div>
 
         {/* Advanced Filters Toggle */}
-        <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium">Advanced Filters</Label>
-          <Switch
-            checked={showAdvanced}
-            onCheckedChange={setShowAdvanced}
-          />
-        </div>
+        <motion.div 
+          className="flex items-center justify-between"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <Label className="text-sm font-medium text-[#B8BCC8]">Advanced Filters</Label>
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Switch
+              checked={showAdvanced}
+              onCheckedChange={setShowAdvanced}
+              className="data-[state=checked]:bg-[#00D4FF] data-[state=unchecked]:bg-white/20"
+            />
+          </motion.div>
+        </motion.div>
 
         {/* Advanced Filters */}
-        {showAdvanced && (
-          <div className="space-y-4 pt-2 border-t">
-            {/* Tenant ID Filter */}
-            <div>
-              <Label className="text-sm font-medium mb-2 block">Tenant ID</Label>
-              <Input
-                placeholder="Filter by tenant ID..."
-                value={localFilters.tenant_id || ''}
-                onChange={(e) => handleFilterChange('tenant_id', e.target.value || undefined)}
-              />
-            </div>
+        <AnimatePresence>
+          {showAdvanced && (
+            <motion.div 
+              className="space-y-4 pt-2 border-t border-white/10"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              {/* Tenant ID Filter */}
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <Label className="text-sm font-medium mb-2 block text-[#B8BCC8]">Tenant ID</Label>
+                <Input
+                  placeholder="Filter by tenant ID..."
+                  value={localFilters.tenant_id || ''}
+                  onChange={(e) => handleFilterChange('tenant_id', e.target.value || undefined)}
+                  className={`${glassmorphismClasses.base} border-white/10 text-white placeholder:text-[#6B7280] focus:border-[#A55EEA]/50 focus:ring-[#A55EEA]/20`}
+                />
+              </motion.div>
 
-            {/* Endpoint Filter */}
-            <div>
-              <Label className="text-sm font-medium mb-2 block">Endpoint</Label>
-              <Input
-                placeholder="Filter by endpoint..."
-                value={localFilters.endpoint || ''}
-                onChange={(e) => handleFilterChange('endpoint', e.target.value || undefined)}
-              />
-            </div>
+              {/* Endpoint Filter */}
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <Label className="text-sm font-medium mb-2 block text-[#B8BCC8]">Endpoint</Label>
+                <Input
+                  placeholder="Filter by endpoint..."
+                  value={localFilters.endpoint || ''}
+                  onChange={(e) => handleFilterChange('endpoint', e.target.value || undefined)}
+                  className={`${glassmorphismClasses.base} border-white/10 text-white placeholder:text-[#6B7280] focus:border-[#00D4FF]/50 focus:ring-[#00D4FF]/20 font-mono`}
+                />
+              </motion.div>
 
-            {/* Error Type Filter */}
-            <div>
-              <Label className="text-sm font-medium mb-2 block">Error Type</Label>
-              <Input
-                placeholder="Filter by error type..."
-                value={localFilters.error_type || ''}
-                onChange={(e) => handleFilterChange('error_type', e.target.value || undefined)}
-              />
-            </div>
+              {/* Error Type Filter */}
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <Label className="text-sm font-medium mb-2 block text-[#B8BCC8]">Error Type</Label>
+                <Input
+                  placeholder="Filter by error type..."
+                  value={localFilters.error_type || ''}
+                  onChange={(e) => handleFilterChange('error_type', e.target.value || undefined)}
+                  className={`${glassmorphismClasses.base} border-white/10 text-white placeholder:text-[#6B7280] focus:border-[#FF6B35]/50 focus:ring-[#FF6B35]/20`}
+                />
+              </motion.div>
 
-            {/* Results Limit */}
-            <div>
-              <Label className="text-sm font-medium mb-2 block">
-                Results Limit: {localFilters.limit}
-              </Label>
-              <Slider
-                value={[localFilters.limit]}
-                onValueChange={([value]) => handleFilterChange('limit', value)}
-                max={100}
-                min={10}
-                step={10}
-                className="w-full"
-              />
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
-                <span>10</span>
-                <span>100</span>
-              </div>
-            </div>
-          </div>
-        )}
+              {/* Results Limit */}
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <Label className="text-sm font-medium mb-2 block text-[#B8BCC8]">
+                  Results Limit: <span className={neonClasses.text.numbers}>{localFilters.limit}</span>
+                </Label>
+                <div className="relative">
+                  <Slider
+                    value={[localFilters.limit]}
+                    onValueChange={([value]) => handleFilterChange('limit', value)}
+                    max={100}
+                    min={10}
+                    step={10}
+                    className="w-full [&_[role=slider]]:bg-[#00FF88] [&_[role=slider]]:border-[#00FF88] [&_[role=slider]]:shadow-[0_0_10px_rgba(0,255,136,0.5)] [&_.bg-primary]:bg-gradient-to-r [&_.bg-primary]:from-[#00FF88] [&_.bg-primary]:to-[#00D4FF]"
+                  />
+                  <motion.div
+                    className="absolute inset-0 pointer-events-none"
+                    animate={{ 
+                      boxShadow: [
+                        '0 0 5px rgba(0, 255, 136, 0.3)',
+                        '0 0 15px rgba(0, 255, 136, 0.6)',
+                        '0 0 5px rgba(0, 255, 136, 0.3)'
+                      ]
+                    }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  />
+                </div>
+                <div className="flex justify-between text-xs text-[#6B7280] mt-1 font-mono">
+                  <span className="text-[#00FF88]">10</span>
+                  <span className="text-[#00D4FF]">100</span>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Statistics Summary */}
         {statistics && (
-          <div className="pt-4 border-t">
-            <Label className="text-sm font-medium mb-2 block">Current Statistics</Label>
+          <motion.div 
+            className="pt-4 border-t border-white/10"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+          >
+            <Label className="text-sm font-medium mb-2 block text-[#B8BCC8]">Current Statistics</Label>
             <div className="space-y-2 text-xs">
               <div className="flex justify-between">
-                <span className="text-gray-600">Active Errors:</span>
-                <Badge variant="destructive" className="text-xs">
-                  {statistics.active_errors_count}
-                </Badge>
+                <span className="text-[#6B7280]">Active Errors:</span>
+                <motion.div
+                  animate={{ scale: [1, 1.1, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  <Badge className={`text-xs bg-[#FF4757]/20 text-[#FF4757] border border-[#FF4757]/30 ${neonClasses.glow.danger}`}>
+                    {statistics.active_errors_count}
+                  </Badge>
+                </motion.div>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Total Errors:</span>
-                <Badge variant="outline" className="text-xs">
+                <span className="text-[#6B7280]">Total Errors:</span>
+                <Badge className="text-xs bg-white/10 text-[#B8BCC8] border border-white/20">
                   {statistics.total_errors}
                 </Badge>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Error Rate:</span>
-                <Badge variant="secondary" className="text-xs">
+                <span className="text-[#6B7280]">Error Rate:</span>
+                <Badge className={`text-xs bg-[#FFB800]/20 text-[#FFB800] border border-[#FFB800]/30 ${neonClasses.glow.warning}`}>
                   {statistics.error_rate_per_minute.toFixed(1)}/min
                 </Badge>
               </div>
               {statistics.system_health_score && (
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Health Score:</span>
-                  <Badge 
-                    variant={statistics.system_health_score > 80 ? "default" : "destructive"} 
-                    className="text-xs"
+                  <span className="text-[#6B7280]">Health Score:</span>
+                  <motion.div
+                    animate={{ 
+                      boxShadow: statistics.system_health_score > 80 
+                        ? ['0 0 5px rgba(0, 255, 136, 0.3)', '0 0 15px rgba(0, 255, 136, 0.6)', '0 0 5px rgba(0, 255, 136, 0.3)']
+                        : ['0 0 5px rgba(255, 71, 87, 0.3)', '0 0 15px rgba(255, 71, 87, 0.6)', '0 0 5px rgba(255, 71, 87, 0.3)']
+                    }}
+                    transition={{ duration: 2, repeat: Infinity }}
                   >
-                    {statistics.system_health_score}%
-                  </Badge>
+                    <Badge 
+                      className={`text-xs ${
+                        statistics.system_health_score > 80 
+                          ? `bg-[#00FF88]/20 text-[#00FF88] border border-[#00FF88]/30`
+                          : `bg-[#FF4757]/20 text-[#FF4757] border border-[#FF4757]/30`
+                      }`}
+                    >
+                      {statistics.system_health_score}%
+                    </Badge>
+                  </motion.div>
                 </div>
               )}
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Applied Filters Summary */}
-        {activeFiltersCount > 0 && (
-          <div className="pt-4 border-t">
-            <Label className="text-sm font-medium mb-2 block">Applied Filters</Label>
-            <div className="flex flex-wrap gap-1">
-              {localFilters.severity && (
-                <Badge variant="outline" className="text-xs">
-                  Severity: {localFilters.severity}
-                </Badge>
-              )}
-              {localFilters.category && (
-                <Badge variant="outline" className="text-xs">
-                  Category: {localFilters.category}
-                </Badge>
-              )}
-              {localFilters.tenant_id && (
-                <Badge variant="outline" className="text-xs">
-                  Tenant: {localFilters.tenant_id.slice(0, 8)}...
-                </Badge>
-              )}
-              {localFilters.hours_back !== 24 && (
-                <Badge variant="outline" className="text-xs">
-                  {localFilters.hours_back}h
-                </Badge>
-              )}
-            </div>
-          </div>
-        )}
+        <AnimatePresence>
+          {activeFiltersCount > 0 && (
+            <motion.div 
+              className="pt-4 border-t border-white/10"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Label className="text-sm font-medium mb-2 block text-[#B8BCC8]">Applied Filters</Label>
+              <div className="flex flex-wrap gap-1">
+                {localFilters.severity && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                  >
+                    <Badge className="text-xs bg-[#FF4757]/20 text-[#FF4757] border border-[#FF4757]/30">
+                      Severity: {localFilters.severity}
+                    </Badge>
+                  </motion.div>
+                )}
+                {localFilters.category && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                  >
+                    <Badge className="text-xs bg-[#00D4FF]/20 text-[#00D4FF] border border-[#00D4FF]/30">
+                      Category: {localFilters.category}
+                    </Badge>
+                  </motion.div>
+                )}
+                {localFilters.tenant_id && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                  >
+                    <Badge className="text-xs bg-[#A55EEA]/20 text-[#A55EEA] border border-[#A55EEA]/30 font-mono">
+                      Tenant: {localFilters.tenant_id.slice(0, 8)}...
+                    </Badge>
+                  </motion.div>
+                )}
+                {localFilters.hours_back !== 24 && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                  >
+                    <Badge className={`text-xs bg-[#00FF88]/20 text-[#00FF88] border border-[#00FF88]/30 ${neonClasses.text.numbers}`}>
+                      {localFilters.hours_back}h
+                    </Badge>
+                  </motion.div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </CardContent>
     </Card>
+  </motion.div>
   );
 };
 
