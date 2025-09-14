@@ -5,7 +5,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { usePerformanceMonitor } from '@/lib/theme/hooks';
+import { usePerformanceMonitor, useAdaptiveAnimations, useMemoryAwareAnimations } from '@/lib/theme/hooks';
+import { useReducedMotion } from '@/lib/theme/reduced-motion';
+import { lazyAnimationManager } from '@/lib/theme/lazy-animations';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
@@ -20,8 +22,12 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
   position = 'bottom-right',
   className = ''
 }) => {
-  const { metrics, config, shouldAnimate } = usePerformanceMonitor();
+  const { metrics, config, deviceInfo, performanceHistory, shouldAnimate } = usePerformanceMonitor();
+  const { qualityLevel } = useAdaptiveAnimations();
+  const { memoryPressure, activeAnimationCount } = useMemoryAwareAnimations();
+  const { isEnabled: reducedMotionEnabled } = useReducedMotion();
   const [isExpanded, setIsExpanded] = useState(showDetails);
+  const [lazyLoadingStatus, setLazyLoadingStatus] = useState(lazyAnimationManager.getLoadingStatus());
 
   const positionClasses = {
     'top-left': 'top-4 left-4',
@@ -44,6 +50,23 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
     };
     return colors[level as keyof typeof colors] || colors.medium;
   };
+
+  const getMemoryPressureBadge = (pressure: string) => {
+    const colors = {
+      low: 'bg-green-500/20 text-green-400 border-green-500/30',
+      medium: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+      high: 'bg-red-500/20 text-red-400 border-red-500/30'
+    };
+    return colors[pressure as keyof typeof colors] || colors.low;
+  };
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLazyLoadingStatus(lazyAnimationManager.getLoadingStatus());
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   if (!shouldAnimate && !showDetails) {
     return null;
@@ -79,8 +102,16 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
           {/* Performance Level */}
           <div className="flex items-center justify-between">
             <span className="text-xs text-gray-300">Level:</span>
-            <Badge className={`text-xs ${getPerformanceBadge(config.performanceLevel)}`}>
-              {config.performanceLevel}
+            <Badge className={`text-xs ${getPerformanceBadge(qualityLevel)}`}>
+              {qualityLevel}
+            </Badge>
+          </div>
+
+          {/* Memory Pressure */}
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-300">Memory:</span>
+            <Badge className={`text-xs ${getMemoryPressureBadge(memoryPressure)}`}>
+              {memoryPressure}
             </Badge>
           </div>
 
@@ -103,11 +134,19 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
                   </div>
                 )}
 
-                {/* Animation Count */}
+                {/* Active Animation Count */}
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-300">Animations:</span>
+                  <span className="text-xs text-gray-300">Active:</span>
                   <span className="text-xs font-mono text-purple-400">
-                    {metrics.animationCount}
+                    {activeAnimationCount}
+                  </span>
+                </div>
+
+                {/* Lazy Loaded Components */}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-300">Loaded:</span>
+                  <span className="text-xs font-mono text-blue-400">
+                    {lazyLoadingStatus.loadedComponents}/{lazyLoadingStatus.totalComponents}
                   </span>
                 </div>
 
@@ -133,6 +172,54 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
                   }`}>
                     {config.enableAnimations ? 'ON' : 'OFF'}
                   </Badge>
+                </div>
+
+                {/* Device Info */}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-300">Device:</span>
+                  <Badge className={`text-xs ${
+                    deviceInfo.isLowEndDevice 
+                      ? 'bg-orange-500/20 text-orange-400 border-orange-500/30'
+                      : 'bg-green-500/20 text-green-400 border-green-500/30'
+                  }`}>
+                    {deviceInfo.isLowEndDevice ? 'LOW-END' : 'CAPABLE'}
+                  </Badge>
+                </div>
+
+                {/* Connection Speed */}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-300">Connection:</span>
+                  <Badge className={`text-xs ${
+                    deviceInfo.connectionSpeed === 'slow' 
+                      ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                      : deviceInfo.connectionSpeed === 'fast'
+                      ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                      : 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+                  }`}>
+                    {deviceInfo.connectionSpeed.toUpperCase()}
+                  </Badge>
+                </div>
+
+                {/* Performance History */}
+                <div className="pt-2 border-t border-gray-700">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-gray-300">Avg FPS:</span>
+                    <span className="text-xs font-mono text-cyan-400">
+                      {performanceHistory.averageFrameRate.toFixed(1)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-300">Memory Trend:</span>
+                    <Badge className={`text-xs ${
+                      performanceHistory.memoryTrend === 'increasing' 
+                        ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                        : performanceHistory.memoryTrend === 'decreasing'
+                        ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                        : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                    }`}>
+                      {performanceHistory.memoryTrend.toUpperCase()}
+                    </Badge>
+                  </div>
                 </div>
 
                 {/* Last Update */}
