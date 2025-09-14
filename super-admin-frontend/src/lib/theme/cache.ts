@@ -469,7 +469,7 @@ class MultiLevelThemeCache {
     const compressionPromise = Promise.resolve(CompressionUtils.compress(css));
     const sizeCalculationPromise = Promise.resolve(new Blob([css]).size);
     
-    const [compressedCSS, originalSize] = await Promise.all([
+    const [compressedCSS] = await Promise.all([
       compressionPromise,
       sizeCalculationPromise
     ]);

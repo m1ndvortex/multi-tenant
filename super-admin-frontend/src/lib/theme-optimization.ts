@@ -8,7 +8,7 @@ import { CyberTheme, cyberTheme, generateCyberThemeCSS, RTLConfiguration, ltrCon
 import { CacheManager } from './theme/cache';
 import { lazyAnimationManager } from './theme/lazy-animations';
 import { assetPreloader } from './theme/asset-preloader';
-import { serviceWorkerManager } from './theme/service-worker';
+
 import { ultraPerformanceMonitor } from './theme/ultra-performance-monitor';
 import { ultraSmoothAnimations } from './theme/ultra-smooth-animations';
 
@@ -116,7 +116,7 @@ class UltraThemeOptimizationSystem {
   private async initializeUltraCache(): Promise<void> {
     // Preload critical themes immediately
     await CacheManager.preloadThemes();
-    
+
     // Warm up cache with common theme variations
     const commonThemes = [
       { theme: cyberTheme, rtlConfig: ltrConfig },
@@ -124,8 +124,8 @@ class UltraThemeOptimizationSystem {
     ];
 
     await Promise.all(
-      commonThemes.map(({ theme, rtlConfig }) => 
-        CacheManager.getOptimizedTheme(theme, rtlConfig)
+      commonThemes.map(({ theme, rtlConfig }) =>
+        CacheManager.getOptimizedTheme(theme, rtlConfig as any)
       )
     );
   }
@@ -160,7 +160,7 @@ class UltraThemeOptimizationSystem {
    */
   private async initializeUltraPredictivePreloading(): Promise<void> {
     // Preload critical assets immediately
-    await assetPreloader.preloadAssets({ 
+    await assetPreloader.preloadAssets({
       priority: 'critical',
       maxConcurrent: 8, // Increased concurrency for ultra-fast loading
     });
@@ -187,7 +187,7 @@ class UltraThemeOptimizationSystem {
 
     try {
       // Ultra-fast cache lookup with parallel operations
-      const [cachedTheme, preloadPromise] = await Promise.all([
+      const [cachedTheme] = await Promise.all([
         CacheManager.getOptimizedTheme(theme, rtlConfig),
         options.preload ? this.ultraPreloadRelatedAssets(theme) : Promise.resolve(),
       ]);
@@ -206,11 +206,11 @@ class UltraThemeOptimizationSystem {
       return cachedTheme;
     } catch (error) {
       console.error('Ultra theme optimization failed:', error);
-      
+
       // Ultra-fast fallback
       const css = generateCyberThemeCSS(theme);
       const loadTime = performance.now() - startTime;
-      
+
       this.updateUltraMetrics(loadTime, false);
 
       return {
@@ -231,10 +231,10 @@ class UltraThemeOptimizationSystem {
   /**
    * Ultra-fast preloading of related assets
    */
-  private async ultraPreloadRelatedAssets(theme: CyberTheme): Promise<void> {
+  private async ultraPreloadRelatedAssets(_theme: CyberTheme): Promise<void> {
     // Parallel preloading with high concurrency
     const preloadPromises = [
-      assetPreloader.preloadAssets({ 
+      assetPreloader.preloadAssets({
         priority: 'high',
         maxConcurrent: 6,
         respectDataSaver: false, // Ultra mode ignores data saver
@@ -253,7 +253,7 @@ class UltraThemeOptimizationSystem {
     // High-frequency performance monitoring
     setInterval(() => {
       const ultraMetrics = ultraPerformanceMonitor.getMetrics();
-      
+
       this.metrics = {
         ...this.metrics,
         frameRate: ultraMetrics.frameRate,
@@ -343,7 +343,7 @@ class UltraThemeOptimizationSystem {
       console.warn('Optimization failed:', error);
     } finally {
       this.isOptimizing = false;
-      
+
       // Process next optimization in next frame
       if (this.optimizationQueue.length > 0) {
         requestAnimationFrame(() => this.processOptimizationQueue());
@@ -374,7 +374,7 @@ class UltraThemeOptimizationSystem {
    */
   private async optimizeCache(): Promise<void> {
     const cacheMetrics = CacheManager.getPerformanceMetrics();
-    
+
     if (cacheMetrics.cache.hitRate < 95) {
       // Preload more common themes
       await CacheManager.preloadThemes();
@@ -416,7 +416,7 @@ class UltraThemeOptimizationSystem {
     if (this.metrics.memoryUsage > this.config.memoryLimit * 0.8) {
       // Clear non-essential caches
       lazyAnimationManager.clear();
-      
+
       // Trigger garbage collection if available
       if ('gc' in window) {
         (window as any).gc();
@@ -429,7 +429,7 @@ class UltraThemeOptimizationSystem {
    */
   private async optimizePreloading(): Promise<void> {
     const preloadMetrics = assetPreloader.getMetrics();
-    
+
     if (preloadMetrics.cacheHitRate < 90) {
       // Improve preloading patterns
       await assetPreloader.preloadAssets({
@@ -444,7 +444,7 @@ class UltraThemeOptimizationSystem {
    */
   private async optimizeThemeLoading(theme: CyberTheme, rtlConfig: RTLConfiguration): Promise<void> {
     // Pre-generate and cache optimized CSS
-    const optimizedCSS = CacheManager.optimizeForProduction(theme, {
+    CacheManager.optimizeForProduction(theme, {
       minify: true,
       extractCritical: true,
     });
@@ -464,27 +464,27 @@ class UltraThemeOptimizationSystem {
       if (newRoute !== currentRoute) {
         // Record navigation pattern
         assetPreloader.recordNavigation(currentRoute, newRoute);
-        
+
         // Trigger ultra-fast predictive preloading
         this.ultraPredictivePreload(newRoute);
-        
+
         currentRoute = newRoute;
       }
     };
 
     // Listen for all navigation events
     window.addEventListener('popstate', handleRouteChange);
-    
+
     // Override history methods for SPA navigation
     const originalPushState = history.pushState;
     const originalReplaceState = history.replaceState;
-    
-    history.pushState = function(...args) {
+
+    history.pushState = function (...args) {
       originalPushState.apply(history, args);
       handleRouteChange();
     };
-    
-    history.replaceState = function(...args) {
+
+    history.replaceState = function (...args) {
       originalReplaceState.apply(history, args);
       handleRouteChange();
     };
@@ -518,7 +518,7 @@ class UltraThemeOptimizationSystem {
    */
   private adaptToCurrentPerformance(): void {
     const score = this.metrics.performanceScore;
-    
+
     if (score < 60) {
       // Poor performance - aggressive optimization
       this.config.performanceMode = 'battery';
@@ -538,7 +538,7 @@ class UltraThemeOptimizationSystem {
   private updateUltraMetrics(loadTime: number, cacheHit: boolean): void {
     // Exponential moving average for smooth metrics
     const alpha = 0.1;
-    this.metrics.averageLoadTime = 
+    this.metrics.averageLoadTime =
       this.metrics.averageLoadTime * (1 - alpha) + loadTime * alpha;
 
     // Update cache hit rate
@@ -568,7 +568,7 @@ class UltraThemeOptimizationSystem {
    */
   updateUltraConfig(newConfig: Partial<UltraOptimizationConfig>): void {
     this.config = { ...this.config, ...newConfig };
-    
+
     // Apply configuration changes immediately
     if (newConfig.targetFrameRate) {
       ultraSmoothAnimations.updateConfig({
@@ -582,7 +582,7 @@ class UltraThemeOptimizationSystem {
    */
   async clearUltraOptimizations(): Promise<void> {
     console.log('🧹 Clearing ultra-optimizations...');
-    
+
     await Promise.all([
       CacheManager.clearAllCaches(),
       new Promise<void>((resolve) => {
@@ -594,7 +594,7 @@ class UltraThemeOptimizationSystem {
         resolve();
       }),
     ]);
-    
+
     console.log('✅ Ultra-optimizations cleared');
   }
 
@@ -644,7 +644,7 @@ class UltraThemeOptimizationSystem {
     isOptimal: boolean;
   } {
     const score = this.metrics.performanceScore;
-    
+
     let status: 'ultra' | 'excellent' | 'good' | 'fair' | 'poor';
     if (score >= 95) status = 'ultra';
     else if (score >= 85) status = 'excellent';
@@ -652,7 +652,7 @@ class UltraThemeOptimizationSystem {
     else if (score >= 50) status = 'fair';
     else status = 'poor';
 
-    const isOptimal = 
+    const isOptimal =
       this.metrics.frameRate >= this.config.targetFrameRate * 0.9 &&
       this.metrics.jankPercentage <= this.config.jankThreshold &&
       this.metrics.averageLoadTime <= 5 &&
@@ -736,7 +736,7 @@ export const clearThemeCache = () => {
 
 export const optimizeThemePerformance = () => {
   // Trigger optimization through the queue system
-  ultraThemeOptimization['queueOptimization'](() => 
+  ultraThemeOptimization['queueOptimization'](() =>
     ultraThemeOptimization['performUltraOptimization']()
   );
 };

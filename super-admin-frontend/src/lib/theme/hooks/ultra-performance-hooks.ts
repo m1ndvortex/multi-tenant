@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { motion, useAnimation, AnimationControls } from 'framer-motion';
+import { motion, useAnimation } from 'framer-motion';
 import { ultraPerformanceMonitor } from '../ultra-performance-monitor';
 import { ultraSmoothAnimations, useUltraSmoothAnimation } from '../ultra-smooth-animations';
 import { CacheManager } from '../cache';

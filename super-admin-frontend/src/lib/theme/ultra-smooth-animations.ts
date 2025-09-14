@@ -3,12 +3,8 @@
  * Provides zero-lag, buttery-smooth animations with adaptive quality
  */
 
-import { motion, AnimationControls, Variants, Transition } from 'framer-motion';
+import { motion, Variants, Transition } from 'framer-motion';
 import { ultraPerformanceMonitor } from './ultra-performance-monitor';
-import React from 'react';
-import React from 'react';
-import React from 'react';
-import React from 'react';
 import React from 'react';
 
 interface UltraSmoothConfig {
@@ -43,7 +39,8 @@ class UltraSmoothAnimationSystem {
   };
 
   private presets = new Map<string, AnimationPreset>();
-  private activeAnimations = new Set<string>();
+// @ts-ignore
+  private _activeAnimations = new Set<string>();
   private animationQueue: Array<() => void> = [];
   private isProcessingQueue = false;
 
@@ -304,7 +301,7 @@ class UltraSmoothAnimationSystem {
       : this.config.quality;
     
     const presetName = `${baseName}-${qualitySuffix}`;
-    return this.presets.get(presetName) || this.presets.get(`${baseName}-medium`);
+    return this.presets.get(presetName) || this.presets.get(`${baseName}-medium`) || null;
   }
 
   /**
@@ -368,7 +365,7 @@ class UltraSmoothAnimationSystem {
   /**
    * Get optimization props for GPU acceleration
    */
-  private getOptimizationProps(preset: AnimationPreset): any {
+  public getOptimizationProps(preset: AnimationPreset): any {
     const props: any = {};
 
     if (this.config.enableGPU && preset.gpuOptimized) {
@@ -481,16 +478,16 @@ class UltraSmoothAnimationSystem {
         return {
           ...baseTransition,
           type: 'spring',
-          stiffness: baseTransition.stiffness || 400,
-          damping: baseTransition.damping || 30,
+          stiffness: (baseTransition as any).stiffness || 400,
+          damping: (baseTransition as any).damping || 30,
         };
       
       case 'high':
         return {
           ...baseTransition,
           type: 'spring',
-          stiffness: (baseTransition.stiffness || 400) * 0.8,
-          damping: (baseTransition.damping || 30) * 1.2,
+          stiffness: ((baseTransition as any).stiffness || 400) * 0.8,
+          damping: ((baseTransition as any).damping || 30) * 1.2,
         };
       
       case 'medium':
@@ -518,7 +515,7 @@ class UltraSmoothAnimationSystem {
   /**
    * Create staggered animation for lists
    */
-  createStaggeredAnimation(itemCount: number, baseDelay: number = 0.05): any {
+  createStaggeredAnimation(_itemCount: number, baseDelay: number = 0.05): any {
     const quality = this.getAdaptiveQuality();
     
     // Reduce stagger delay for lower quality
