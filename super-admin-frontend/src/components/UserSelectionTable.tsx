@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Eye, Clock, ExternalLink, User, Shield, Activity } from 'lucide-react';
+import { Eye, Clock, ExternalLink, User as UserIcon, Shield, Activity } from 'lucide-react';
 import { User } from '@/types/impersonation';
 import { formatDistanceToNow } from 'date-fns';
 import { faIR } from 'date-fns/locale';
@@ -41,14 +41,14 @@ const UserSelectionTable: React.FC<UserSelectionTableProps> = ({
       case 'manager':
         return (
           <Badge className="bg-cyan-500/20 text-cyan-400 border-cyan-400/30 shadow-[0_0_10px_rgba(0,212,255,0.3)] flex items-center gap-1">
-            <User className="h-3 w-3" />
+            <UserIcon className="h-3 w-3" />
             مدیر کل
           </Badge>
         );
       case 'user':
         return (
           <Badge className="bg-gray-500/20 text-gray-400 border-gray-400/30 shadow-[0_0_10px_rgba(156,163,175,0.3)] flex items-center gap-1">
-            <User className="h-3 w-3" />
+            <UserIcon className="h-3 w-3" />
             کاربر
           </Badge>
         );
@@ -130,7 +130,7 @@ const UserSelectionTable: React.FC<UserSelectionTableProps> = ({
         <CardContent className="p-8">
           <div className="flex items-center justify-center h-32">
             <div className="text-center">
-              <User className="h-12 w-12 text-gray-500 mx-auto mb-4 opacity-50" />
+              <UserIcon className="h-12 w-12 text-gray-500 mx-auto mb-4 opacity-50" />
               <div className="text-gray-400 drop-shadow-[0_0_4px_rgba(156,163,175,0.3)]">
                 هیچ کاربری یافت نشد
               </div>

@@ -467,7 +467,7 @@ const SystemHealth: React.FC = () => {
           </CardContent>
         </Card>
       </motion.div>
-    </div>
+    </motion.div>
   );
 };
 

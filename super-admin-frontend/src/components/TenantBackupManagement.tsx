@@ -11,7 +11,7 @@ import { useBackups } from '@/hooks/useBackups';
 import { BackupFilters, TenantBackup } from '@/types/backup';
 import { formatBytes, formatDate } from '@/lib/utils';
 import { CyberAnimations } from '@/components/animations/CyberAnimations';
-import { AnimatedCounter } from '@/components/animations/AnimatedCounter';
+
 import { 
   HardDriveIcon, 
   CloudIcon, 

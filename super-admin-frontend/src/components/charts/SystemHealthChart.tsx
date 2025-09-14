@@ -131,7 +131,7 @@ const SystemHealthChart: React.FC<SystemHealthChartProps> = ({ data, isLoading }
         displayColors: true,
         titleFont: {
           size: 14,
-          weight: 'bold',
+          weight: 700,
         },
         bodyFont: {
           size: 12,

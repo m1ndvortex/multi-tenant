@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, Filter, RotateCcw, Zap } from 'lucide-react';
+import { Search, Filter, RotateCcw } from 'lucide-react';
 import { UserFilters as UserFiltersType } from '@/types/impersonation';
 
 interface UserFiltersProps {

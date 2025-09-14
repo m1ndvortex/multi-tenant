@@ -18,7 +18,10 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-50 bg-[#0B0E1A]/90 backdrop-blur-[8px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      "fixed inset-0 z-50 bg-gradient-to-br from-[#0B0E1A]/95 via-[#1A1D29]/90 to-[#0B0E1A]/95 backdrop-blur-[20px] saturate-[150%]",
+      "data-[state=open]:animate-in data-[state=closed]:animate-out",
+      "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      "data-[state=closed]:backdrop-blur-none data-[state=open]:backdrop-blur-[20px]",
       className
     )}
     {...props}
@@ -35,21 +38,22 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 p-6 duration-300",
-        "backdrop-blur-[25px] saturate-[200%] bg-gradient-to-br from-white/[0.08] to-white/[0.04]",
-        "border border-white/[0.08] shadow-[0_16px_48px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.05),inset_0_1px_0_rgba(255,255,255,0.1)]",
+        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 p-6 duration-500",
+        "backdrop-blur-[30px] saturate-[200%] bg-gradient-to-br from-white/[0.12] to-white/[0.06]",
+        "border border-white/[0.12] shadow-[0_20px_60px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.08),inset_0_1px_0_rgba(255,255,255,0.15)]",
         "rounded-2xl",
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
         "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-        "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+        "data-[state=closed]:zoom-out-90 data-[state=open]:zoom-in-95",
         "data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%]",
         "data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]",
+        "data-[state=open]:duration-500 data-[state=closed]:duration-300",
         className
       )}
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-lg p-2 backdrop-blur-[16px] bg-white/[0.05] border border-white/[0.08] text-[#B8BCC8] transition-all duration-300 hover:bg-white/[0.08] hover:border-[#FF4757]/30 hover:text-[#FF4757] hover:shadow-[0_0_15px_rgba(255,71,87,0.3)] focus:outline-none focus:ring-2 focus:ring-[#FF4757]/50 disabled:pointer-events-none">
+      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-lg p-2 backdrop-blur-[16px] bg-white/[0.05] border border-white/[0.08] text-[#B8BCC8] transition-all duration-300 hover:bg-white/[0.08] hover:border-[#FF4757]/30 hover:text-[#FF4757] hover:shadow-[0_0_15px_rgba(255,71,87,0.3)] hover:scale-110 focus:outline-none focus:ring-2 focus:ring-[#FF4757]/50 disabled:pointer-events-none">
         <X className="h-4 w-4" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>

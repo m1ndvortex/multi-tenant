@@ -8,12 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   UserCheck, 
   Users, 
-  Clock, 
-  FileText, 
   RefreshCw,
   AlertTriangle,
   Shield,
-  Eye,
   Activity
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -487,7 +484,7 @@ const UserImpersonation: React.FC = () => {
         user={selectedUser}
         isLoading={impersonationLoading}
       />
-    </div>
+    </motion.div>
   );
 };
 

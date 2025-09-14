@@ -491,4 +491,32 @@ export const FloatingElement: React.FC<FloatingElementProps> = ({
   );
 };
 
+// Animation variants for use with motion components
+export const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.3, ease: "easeOut" }
+  }
+};
+
+export const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.1
+    }
+  }
+};
+
+// Export all components and variants as a single object for backward compatibility
+export const CyberAnimations = {
+  StaggerContainer,
+  cardVariants,
+  staggerContainer
+};
+
 // All components are already exported individually above

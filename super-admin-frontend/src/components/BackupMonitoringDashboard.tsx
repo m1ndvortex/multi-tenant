@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,8 +21,7 @@ import { BackupMonitoringStatus, BackupHealthMetrics, BackupTrend } from '@/type
 import { backupMonitoringService } from '@/services/backupMonitoringService';
 import { useToast } from '@/hooks/use-toast';
 import { Line } from 'react-chartjs-2';
-import { CyberAnimations } from '@/components/animations/CyberAnimations';
-import { AnimatedCounter } from '@/components/animations/AnimatedCounter';
+
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -164,7 +163,7 @@ const BackupMonitoringDashboard: React.FC<BackupMonitoringDashboardProps> = ({
         color: 'rgb(0, 212, 255)',
         font: {
           size: 16,
-          weight: 'bold',
+          weight: 700,
         },
       },
       tooltip: {
@@ -530,7 +529,7 @@ const BackupMonitoringDashboard: React.FC<BackupMonitoringDashboardProps> = ({
           </Card>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 };
 

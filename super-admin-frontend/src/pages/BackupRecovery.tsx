@@ -9,7 +9,7 @@ import RestoreConfirmationDialog from '@/components/RestoreConfirmationDialog';
 import RestoreOperationsMonitor from '@/components/RestoreOperationsMonitor';
 import AdvancedBackupMonitoring from '@/pages/AdvancedBackupMonitoring';
 import { TenantBackup, DisasterRecoveryBackup } from '@/types/backup';
-import { CyberAnimations } from '@/components/animations/CyberAnimations';
+
 import { 
   HardDriveIcon, 
   ServerIcon, 

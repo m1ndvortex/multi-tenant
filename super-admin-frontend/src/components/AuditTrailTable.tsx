@@ -19,7 +19,6 @@ import {
   User,
   Shield,
   Globe,
-  Activity,
   Zap
 } from 'lucide-react';
 import { AuditLogEntry } from '@/types/impersonation';
