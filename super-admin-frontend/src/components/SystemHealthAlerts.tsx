@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useCurrentSystemHealth } from '@/hooks/useAnalytics';
 import { cn } from '@/lib/utils';
+import { CyberAnimations } from '@/components/animations/CyberAnimations';
 import { 
   AlertTriangle, 
   AlertCircle, 
@@ -312,26 +314,45 @@ const SystemHealthAlerts: React.FC<SystemHealthAlertsProps> = ({ className }) =>
   const warningAlerts = activeAlerts.filter(alert => alert.type === 'warning');
 
   return (
-    <Card variant="professional" className={className}>
+    <Card className={cn("glass-card-crypto border-orange-500/30", className)}>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center">
+            <motion.div 
+              className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center border border-orange-400/30"
+              animate={{ 
+                boxShadow: [
+                  '0 0 10px rgba(249, 115, 22, 0.3)',
+                  '0 0 20px rgba(249, 115, 22, 0.5)',
+                  '0 0 10px rgba(249, 115, 22, 0.3)'
+                ]
+              }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
               <Bell className="w-4 h-4 text-white" />
-            </div>
-            هشدارهای سیستم
-            {activeAlerts.length > 0 && (
-              <Badge className="bg-red-100 text-red-800 border-red-200">
-                {activeAlerts.length}
-              </Badge>
-            )}
+            </motion.div>
+            <span className="text-white">هشدارهای سیستم</span>
+            <AnimatePresence>
+              {activeAlerts.length > 0 && (
+                <motion.div
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Badge className="bg-red-500/20 text-red-400 border border-red-500/30">
+                    {activeAlerts.length}
+                  </Badge>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setAlertsEnabled(!alertsEnabled)}
-              className="text-slate-600 hover:text-slate-800"
+              className="text-slate-300 hover:text-white hover:bg-slate-700/50"
               aria-label={alertsEnabled ? "غیرفعال کردن هشدارها" : "فعال کردن هشدارها"}
             >
               {alertsEnabled ? (
@@ -345,7 +366,7 @@ const SystemHealthAlerts: React.FC<SystemHealthAlertsProps> = ({ className }) =>
                 variant="ghost"
                 size="sm"
                 onClick={clearAllAlerts}
-                className="text-slate-600 hover:text-slate-800"
+                className="text-slate-300 hover:text-white hover:bg-slate-700/50"
               >
                 پاک کردن همه
               </Button>
@@ -355,112 +376,178 @@ const SystemHealthAlerts: React.FC<SystemHealthAlertsProps> = ({ className }) =>
       </CardHeader>
       <CardContent>
         {!alertsEnabled ? (
-          <div className="text-center py-8">
-            <BellOff className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-            <p className="text-slate-600">هشدارها غیرفعال شده‌اند</p>
+          <motion.div 
+            className="text-center py-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <motion.div
+              animate={{ 
+                scale: [1, 1.1, 1],
+                opacity: [0.5, 1, 0.5]
+              }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <BellOff className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+            </motion.div>
+            <p className="text-slate-300">هشدارها غیرفعال شده‌اند</p>
             <Button
-              variant="gradient-green"
+              className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white border-0 shadow-lg shadow-green-500/25 hover:shadow-green-500/40 transition-all duration-300 mt-2"
               size="sm"
               onClick={() => setAlertsEnabled(true)}
-              className="mt-2"
             >
               فعال کردن هشدارها
             </Button>
-          </div>
+          </motion.div>
         ) : activeAlerts.length === 0 ? (
-          <div className="text-center py-8">
-            <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-            <p className="text-slate-600">همه سیستم‌ها سالم هستند</p>
-            <p className="text-sm text-slate-500 mt-1">هیچ هشدار فعالی وجود ندارد</p>
-          </div>
+          <motion.div 
+            className="text-center py-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <motion.div
+              animate={{ 
+                scale: [1, 1.1, 1],
+                boxShadow: [
+                  '0 0 10px rgba(34, 197, 94, 0.3)',
+                  '0 0 20px rgba(34, 197, 94, 0.5)',
+                  '0 0 10px rgba(34, 197, 94, 0.3)'
+                ]
+              }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-4" />
+            </motion.div>
+            <p className="text-slate-300">همه سیستم‌ها سالم هستند</p>
+            <p className="text-sm text-slate-400 mt-1">هیچ هشدار فعالی وجود ندارد</p>
+          </motion.div>
         ) : (
-          <div className="space-y-4">
+          <motion.div 
+            className="space-y-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
             {/* Summary */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-3 rounded-lg bg-red-50 border border-red-200">
+            <motion.div 
+              className="grid grid-cols-2 gap-4"
+              variants={CyberAnimations.staggerContainer}
+              initial="hidden"
+              animate="visible"
+            >
+              <motion.div 
+                className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 hover:border-red-400/50 transition-all duration-300"
+                variants={CyberAnimations.cardVariants}
+                whileHover={{ scale: 1.02 }}
+              >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-red-800">هشدارهای بحرانی</span>
-                  <Badge className="bg-red-100 text-red-800">
+                  <span className="text-sm font-medium text-red-300">هشدارهای بحرانی</span>
+                  <Badge className="bg-red-500/20 text-red-400 border border-red-500/30">
                     {criticalAlerts.length}
                   </Badge>
                 </div>
-              </div>
-              <div className="p-3 rounded-lg bg-yellow-50 border border-yellow-200">
+              </motion.div>
+              <motion.div 
+                className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30 hover:border-yellow-400/50 transition-all duration-300"
+                variants={CyberAnimations.cardVariants}
+                whileHover={{ scale: 1.02 }}
+              >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-yellow-800">هشدارهای عادی</span>
-                  <Badge className="bg-yellow-100 text-yellow-800">
+                  <span className="text-sm font-medium text-yellow-300">هشدارهای عادی</span>
+                  <Badge className="bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
                     {warningAlerts.length}
                   </Badge>
                 </div>
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
 
             {/* Alert List */}
             <div className="space-y-3 max-h-96 overflow-y-auto">
-              {activeAlerts
-                .sort((a, b) => {
-                  // Sort by type (critical first) then by timestamp (newest first)
-                  if (a.type !== b.type) {
-                    return a.type === 'critical' ? -1 : 1;
-                  }
-                  return b.timestamp.getTime() - a.timestamp.getTime();
-                })
-                .map((alert) => (
-                  <div
-                    key={alert.id}
-                    className={cn(
-                      "p-4 rounded-lg border transition-all duration-200",
-                      alert.type === 'critical' 
-                        ? "bg-red-50 border-red-200 hover:bg-red-100" 
-                        : "bg-yellow-50 border-yellow-200 hover:bg-yellow-100"
-                    )}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-3 flex-1">
-                        {getAlertIcon(alert.type)}
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-semibold text-slate-800">{alert.title}</h4>
-                            <Badge className={cn('text-xs', getAlertBadgeColor(alert.type))}>
-                              {alert.type === 'critical' ? 'بحرانی' : 'هشدار'}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-slate-600 mb-2">{alert.message}</p>
-                          <div className="flex items-center gap-4 text-xs text-slate-500">
-                            <span>
-                              زمان: {alert.timestamp.toLocaleTimeString('fa-IR')}
-                            </span>
-                            <span>
-                              آستانه: {alert.threshold}{alert.metric.includes('time') ? 'ms' : '%'}
-                            </span>
+              <AnimatePresence>
+                {activeAlerts
+                  .sort((a, b) => {
+                    // Sort by type (critical first) then by timestamp (newest first)
+                    if (a.type !== b.type) {
+                      return a.type === 'critical' ? -1 : 1;
+                    }
+                    return b.timestamp.getTime() - a.timestamp.getTime();
+                  })
+                  .map((alert, index) => (
+                    <motion.div
+                      key={alert.id}
+                      initial={{ opacity: 0, x: -20, scale: 0.95 }}
+                      animate={{ opacity: 1, x: 0, scale: 1 }}
+                      exit={{ opacity: 0, x: 20, scale: 0.95 }}
+                      transition={{ duration: 0.3, delay: index * 0.05 }}
+                      className={cn(
+                        "p-4 rounded-lg border transition-all duration-300 group",
+                        alert.type === 'critical' 
+                          ? "bg-red-500/10 border-red-500/30 hover:border-red-400/50 hover:bg-red-500/15" 
+                          : "bg-yellow-500/10 border-yellow-500/30 hover:border-yellow-400/50 hover:bg-yellow-500/15"
+                      )}
+                      whileHover={{ scale: 1.01 }}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-3 flex-1">
+                          <motion.div
+                            animate={{ 
+                              scale: [1, 1.2, 1],
+                              opacity: [0.7, 1, 0.7]
+                            }}
+                            transition={{ duration: 2, repeat: Infinity }}
+                          >
+                            {getAlertIcon(alert.type)}
+                          </motion.div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-semibold text-white">{alert.title}</h4>
+                              <Badge className={cn('text-xs border-0', getAlertBadgeColor(alert.type))}>
+                                {alert.type === 'critical' ? 'بحرانی' : 'هشدار'}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-slate-300 mb-2">{alert.message}</p>
+                            <div className="flex items-center gap-4 text-xs text-slate-400">
+                              <span>
+                                زمان: <span className="text-cyan-400">{alert.timestamp.toLocaleTimeString('fa-IR')}</span>
+                              </span>
+                              <span>
+                                آستانه: <span className="text-orange-400">{alert.threshold}{alert.metric.includes('time') ? 'ms' : '%'}</span>
+                              </span>
+                            </div>
                           </div>
                         </div>
+                        <div className="flex items-center gap-1 ml-2">
+                          <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => acknowledgeAlert(alert.id)}
+                              className="text-slate-400 hover:text-green-400 hover:bg-green-500/10 p-1 transition-colors duration-200"
+                              title="تأیید هشدار"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                            </Button>
+                          </motion.div>
+                          <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => dismissAlert(alert.id)}
+                              className="text-slate-400 hover:text-red-400 hover:bg-red-500/10 p-1 transition-colors duration-200"
+                              title="حذف هشدار"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </motion.div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1 ml-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => acknowledgeAlert(alert.id)}
-                          className="text-slate-500 hover:text-slate-700 p-1"
-                          title="تأیید هشدار"
-                        >
-                          <CheckCircle className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => dismissAlert(alert.id)}
-                          className="text-slate-500 hover:text-slate-700 p-1"
-                          title="حذف هشدار"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                    </motion.div>
+                  ))}
+              </AnimatePresence>
             </div>
-          </div>
+          </motion.div>
         )}
       </CardContent>
     </Card>

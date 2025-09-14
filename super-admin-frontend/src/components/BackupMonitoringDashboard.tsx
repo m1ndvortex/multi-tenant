@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,8 @@ import { BackupMonitoringStatus, BackupHealthMetrics, BackupTrend } from '@/type
 import { backupMonitoringService } from '@/services/backupMonitoringService';
 import { useToast } from '@/hooks/use-toast';
 import { Line } from 'react-chartjs-2';
+import { CyberAnimations } from '@/components/animations/CyberAnimations';
+import { AnimatedCounter } from '@/components/animations/AnimatedCounter';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -111,10 +114,18 @@ const BackupMonitoringDashboard: React.FC<BackupMonitoringDashboardProps> = ({
       {
         label: 'پشتیبان‌های موفق',
         data: trends.map(t => t.successful_backups),
-        borderColor: 'rgb(34, 197, 94)',
-        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+        borderColor: 'rgb(0, 255, 136)',
+        backgroundColor: 'rgba(0, 255, 136, 0.1)',
         fill: true,
         tension: 0.4,
+        borderWidth: 3,
+        pointBackgroundColor: 'rgb(0, 255, 136)',
+        pointBorderColor: 'rgba(11, 14, 26, 0.8)',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        shadowColor: 'rgba(0, 255, 136, 0.5)',
+        shadowBlur: 10,
       },
       {
         label: 'پشتیبان‌های ناموفق',
@@ -123,6 +134,14 @@ const BackupMonitoringDashboard: React.FC<BackupMonitoringDashboardProps> = ({
         backgroundColor: 'rgba(239, 68, 68, 0.1)',
         fill: true,
         tension: 0.4,
+        borderWidth: 3,
+        pointBackgroundColor: 'rgb(239, 68, 68)',
+        pointBorderColor: 'rgba(11, 14, 26, 0.8)',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        shadowColor: 'rgba(239, 68, 68, 0.5)',
+        shadowBlur: 10,
       },
     ],
   };
@@ -132,68 +151,160 @@ const BackupMonitoringDashboard: React.FC<BackupMonitoringDashboardProps> = ({
     plugins: {
       legend: {
         position: 'top' as const,
+        labels: {
+          color: 'rgb(203, 213, 225)',
+          usePointStyle: true,
+          pointStyle: 'circle',
+          padding: 20,
+        },
       },
       title: {
         display: true,
         text: 'روند پشتیبان‌گیری (۷ روز گذشته)',
+        color: 'rgb(0, 212, 255)',
+        font: {
+          size: 16,
+          weight: 'bold',
+        },
+      },
+      tooltip: {
+        backgroundColor: 'rgba(11, 14, 26, 0.95)',
+        titleColor: 'rgb(0, 212, 255)',
+        bodyColor: 'white',
+        borderColor: 'rgb(0, 212, 255)',
+        borderWidth: 1,
+        cornerRadius: 12,
+        padding: 12,
       },
     },
     scales: {
+      x: {
+        grid: {
+          color: 'rgba(148, 163, 184, 0.1)',
+          drawBorder: false,
+        },
+        ticks: {
+          color: 'rgb(148, 163, 184)',
+        },
+      },
       y: {
         beginAtZero: true,
+        grid: {
+          color: 'rgba(148, 163, 184, 0.1)',
+          drawBorder: false,
+        },
+        ticks: {
+          color: 'rgb(148, 163, 184)',
+        },
+      },
+    },
+    elements: {
+      point: {
+        hoverRadius: 8,
+      },
+      line: {
+        borderJoinStyle: 'round' as const,
+        borderCapStyle: 'round' as const,
       },
     },
   };
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <motion.div 
+        className="space-y-6"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[...Array(4)].map((_, i) => (
-            <Card key={i} variant="professional">
-              <CardContent className="p-6">
-                <div className="animate-pulse">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                  <div className="h-8 bg-gray-200 rounded w-1/2"></div>
-                </div>
-              </CardContent>
-            </Card>
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: i * 0.1 }}
+            >
+              <Card className="glass-card-crypto border-slate-500/30">
+                <CardContent className="p-6">
+                  <motion.div
+                    animate={{ opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  >
+                    <div className="h-4 bg-slate-600 rounded w-3/4 mb-2"></div>
+                    <div className="h-8 bg-slate-600 rounded w-1/2"></div>
+                  </motion.div>
+                </CardContent>
+              </Card>
+            </motion.div>
           ))}
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <motion.div 
+      className="space-y-6"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
       {/* Header with Refresh */}
-      <Card variant="filter">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-                <ActivityIcon className="w-5 h-5 text-white" />
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.1 }}
+      >
+        <Card className="glass-card-crypto border-blue-500/30">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <motion.div 
+                  className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center border border-blue-400/30"
+                  animate={{ 
+                    boxShadow: [
+                      '0 0 20px rgba(59, 130, 246, 0.3)',
+                      '0 0 30px rgba(59, 130, 246, 0.5)',
+                      '0 0 20px rgba(59, 130, 246, 0.3)'
+                    ]
+                  }}
+                  transition={{ duration: 3, repeat: Infinity }}
+                  whileHover={{ scale: 1.05 }}
+                >
+                  <ActivityIcon className="w-5 h-5 text-white" />
+                </motion.div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">داشبورد نظارت پشتیبان‌گیری</h2>
+                  <p className="text-sm text-slate-300">
+                    {lastUpdated && `آخرین بروزرسانی: `}
+                    <span className="text-cyan-400">
+                      {lastUpdated && lastUpdated.toLocaleTimeString('fa-IR')}
+                    </span>
+                  </p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-xl font-bold">داشبورد نظارت پشتیبان‌گیری</h2>
-                <p className="text-sm text-slate-600">
-                  {lastUpdated && `آخرین بروزرسانی: ${lastUpdated.toLocaleTimeString('fa-IR')}`}
-                </p>
-              </div>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchData}
+                  disabled={loading}
+                  className="flex items-center gap-2 bg-slate-700/50 border-slate-600/50 text-slate-300 hover:bg-slate-600/50 hover:text-white"
+                >
+                  <motion.div
+                    animate={loading ? { rotate: 360 } : {}}
+                    transition={{ duration: 1, repeat: loading ? Infinity : 0, ease: "linear" }}
+                  >
+                    <RefreshCwIcon className="w-4 h-4" />
+                  </motion.div>
+                  بروزرسانی
+                </Button>
+              </motion.div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={fetchData}
-              disabled={loading}
-              className="flex items-center gap-2"
-            >
-              <RefreshCwIcon className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              بروزرسانی
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Overall Status Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

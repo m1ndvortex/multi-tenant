@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +11,10 @@ import {
   Clock, 
   FileText, 
   RefreshCw,
-  AlertTriangle
+  AlertTriangle,
+  Shield,
+  Eye,
+  Activity
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { impersonationService } from '@/services/impersonationService';
@@ -273,107 +277,204 @@ const UserImpersonation: React.FC = () => {
   const safeTenants = tenants || [];
 
   return (
-    <div className="space-y-6">
+    <motion.div 
+      className="space-y-6"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
       {/* Header */}
-      <Card variant="gradient-blue">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
-                <UserCheck className="h-5 w-5 text-white" />
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
+      >
+        <Card className="backdrop-blur-[20px] saturate-[180%] bg-gradient-to-br from-white/[0.03] to-white/[0.01] border border-white/[0.06] shadow-[0_8px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.05)] rounded-2xl">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <motion.div 
+                  className="h-12 w-12 rounded-xl bg-gradient-to-br from-cyan-500/20 to-emerald-500/20 border border-cyan-400/30 flex items-center justify-center shadow-[0_0_20px_rgba(0,212,255,0.3)]"
+                  whileHover={{ 
+                    scale: 1.05,
+                    boxShadow: "0 0 30px rgba(0,212,255,0.5)",
+                    borderColor: "rgba(0,212,255,0.6)"
+                  }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <UserCheck className="h-6 w-6 text-cyan-400 drop-shadow-[0_0_8px_rgba(0,212,255,0.5)]" />
+                </motion.div>
+                <div>
+                  <CardTitle className="text-white text-xl font-bold drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">
+                    جانشینی کاربر
+                  </CardTitle>
+                  <p className="text-gray-300 mt-1 drop-shadow-[0_0_4px_rgba(156,163,175,0.3)]">
+                    مدیریت جلسات جانشینی و پشتیبانی از کاربران
+                  </p>
+                </div>
               </div>
-              <div>
-                <CardTitle className="text-slate-900">جانشینی کاربر</CardTitle>
-                <p className="text-slate-600 mt-1">
-                  مدیریت جلسات جانشینی و پشتیبانی از کاربران
-                </p>
-              </div>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Button
+                  onClick={handleRefresh}
+                  className="backdrop-blur-[16px] bg-gradient-to-r from-cyan-500/20 to-emerald-500/20 border border-cyan-400/30 text-cyan-400 hover:bg-gradient-to-r hover:from-cyan-500/30 hover:to-emerald-500/30 hover:border-cyan-400/50 hover:shadow-[0_0_20px_rgba(0,212,255,0.4)] transition-all duration-300 flex items-center gap-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  بروزرسانی
+                </Button>
+              </motion.div>
             </div>
-            <Button
-              variant="outline"
-              onClick={handleRefresh}
-              className="flex items-center gap-2"
-            >
-              <RefreshCw className="h-4 w-4" />
-              بروزرسانی
-            </Button>
-          </div>
-        </CardHeader>
-      </Card>
+          </CardHeader>
+        </Card>
+      </motion.div>
 
-      {/* Warning */}
-      <Card className="border-orange-200 bg-orange-50">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-orange-500 mt-0.5" />
-            <div className="text-sm text-orange-800">
-              <p className="font-medium mb-1">نکات امنیتی مهم</p>
-              <ul className="list-disc list-inside space-y-1">
-                <li>تمام اقدامات جانشینی ثبت و نظارت می‌شود</li>
-                <li>از این قابلیت فقط برای پشتیبانی مشتریان استفاده کنید</li>
-                <li>جلسات جانشینی دارای محدودیت زمانی هستند</li>
-                <li>در صورت سوء استفاده، دسترسی شما محدود خواهد شد</li>
-              </ul>
+      {/* Security Warning */}
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.4, delay: 0.2 }}
+      >
+        <Card className="backdrop-blur-[16px] bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-400/30 shadow-[0_8px_32px_rgba(255,107,53,0.15)] rounded-2xl">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4">
+              <motion.div
+                animate={{ 
+                  boxShadow: [
+                    "0 0 10px rgba(255,107,53,0.4)",
+                    "0 0 20px rgba(255,107,53,0.6)",
+                    "0 0 10px rgba(255,107,53,0.4)"
+                  ]
+                }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                className="p-2 rounded-lg bg-orange-500/20 border border-orange-400/30"
+              >
+                <AlertTriangle className="h-5 w-5 text-orange-400 drop-shadow-[0_0_8px_rgba(255,107,53,0.5)]" />
+              </motion.div>
+              <div className="text-sm">
+                <p className="font-bold mb-3 text-orange-300 drop-shadow-[0_0_8px_rgba(255,107,53,0.3)]">
+                  نکات امنیتی مهم
+                </p>
+                <ul className="list-disc list-inside space-y-2 text-orange-200">
+                  <li>تمام اقدامات جانشینی ثبت و نظارت می‌شود</li>
+                  <li>از این قابلیت فقط برای پشتیبانی مشتریان استفاده کنید</li>
+                  <li>جلسات جانشینی دارای محدودیت زمانی هستند</li>
+                  <li>در صورت سوء استفاده، دسترسی شما محدود خواهد شد</li>
+                </ul>
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Tabs */}
-      <Tabs defaultValue="users" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50">
-          <TabsTrigger value="users" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            انتخاب کاربر
-            <Badge variant="secondary">{safeUsers.length}</Badge>
-          </TabsTrigger>
-          <TabsTrigger value="sessions" className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            جلسات فعال
-            <Badge variant="secondary">{safeActiveSessions.length}</Badge>
-          </TabsTrigger>
-          <TabsTrigger value="audit" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            سابقه عملیات
-            <Badge variant="secondary">{safeAuditLogs.length}</Badge>
-          </TabsTrigger>
-        </TabsList>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.3 }}
+      >
+        <Tabs defaultValue="users" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3 backdrop-blur-[16px] bg-gradient-to-r from-white/[0.05] to-white/[0.02] border border-white/[0.08] rounded-2xl p-2">
+            <TabsTrigger 
+              value="users" 
+              className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500/20 data-[state=active]:to-emerald-500/20 data-[state=active]:border data-[state=active]:border-cyan-400/30 data-[state=active]:shadow-[0_0_15px_rgba(0,212,255,0.3)] data-[state=active]:text-cyan-400 text-gray-400 hover:text-gray-200 transition-all duration-300 rounded-xl"
+            >
+              <Users className="h-4 w-4" />
+              انتخاب کاربر
+              <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-400/30 shadow-[0_0_10px_rgba(0,255,136,0.3)]">
+                {safeUsers.length}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="sessions" 
+              className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500/20 data-[state=active]:to-emerald-500/20 data-[state=active]:border data-[state=active]:border-cyan-400/30 data-[state=active]:shadow-[0_0_15px_rgba(0,212,255,0.3)] data-[state=active]:text-cyan-400 text-gray-400 hover:text-gray-200 transition-all duration-300 rounded-xl"
+            >
+              <Activity className="h-4 w-4" />
+              جلسات فعال
+              <Badge className="bg-orange-500/20 text-orange-400 border-orange-400/30 shadow-[0_0_10px_rgba(255,107,53,0.3)]">
+                {safeActiveSessions.length}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="audit" 
+              className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500/20 data-[state=active]:to-emerald-500/20 data-[state=active]:border data-[state=active]:border-cyan-400/30 data-[state=active]:shadow-[0_0_15px_rgba(0,212,255,0.3)] data-[state=active]:text-cyan-400 text-gray-400 hover:text-gray-200 transition-all duration-300 rounded-xl"
+            >
+              <Shield className="h-4 w-4" />
+              سابقه عملیات
+              <Badge className="bg-purple-500/20 text-purple-400 border-purple-400/30 shadow-[0_0_10px_rgba(165,94,234,0.3)]">
+                {safeAuditLogs.length}
+              </Badge>
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Users Tab */}
-        <TabsContent value="users" className="space-y-6">
-          <UserFilters
-            filters={userFilters}
-            onFiltersChange={handleFiltersChange}
-            onReset={handleFiltersReset}
-            tenants={safeTenants.map(t => ({ id: t.id, name: t.name }))}
-          />
-          
-          <UserSelectionTable
-            users={safeUsers}
-            onImpersonate={handleImpersonate}
-            isLoading={usersLoading}
-            impersonatingUserId={impersonatingUserId || undefined}
-          />
-        </TabsContent>
+          {/* Users Tab */}
+          <TabsContent value="users" className="space-y-6">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key="users-tab"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-6"
+              >
+                <UserFilters
+                  filters={userFilters}
+                  onFiltersChange={handleFiltersChange}
+                  onReset={handleFiltersReset}
+                  tenants={safeTenants.map(t => ({ id: t.id, name: t.name }))}
+                />
+                
+                <UserSelectionTable
+                  users={safeUsers}
+                  onImpersonate={handleImpersonate}
+                  isLoading={usersLoading}
+                  impersonatingUserId={impersonatingUserId || undefined}
+                />
+              </motion.div>
+            </AnimatePresence>
+          </TabsContent>
 
-        {/* Active Sessions Tab */}
-        <TabsContent value="sessions">
-          <ActiveSessionsTable
-            sessions={safeActiveSessions}
-            onTerminateSession={handleTerminateSession}
-            isLoading={sessionsLoading}
-            terminatingSessionId={terminatingSessionId || undefined}
-          />
-        </TabsContent>
+          {/* Active Sessions Tab */}
+          <TabsContent value="sessions">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key="sessions-tab"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <ActiveSessionsTable
+                  sessions={safeActiveSessions}
+                  onTerminateSession={handleTerminateSession}
+                  isLoading={sessionsLoading}
+                  terminatingSessionId={terminatingSessionId || undefined}
+                />
+              </motion.div>
+            </AnimatePresence>
+          </TabsContent>
 
-        {/* Audit Trail Tab */}
-        <TabsContent value="audit">
-          <AuditTrailTable
-            auditLogs={safeAuditLogs}
-            isLoading={auditLoading}
-          />
-        </TabsContent>
-      </Tabs>
+          {/* Audit Trail Tab */}
+          <TabsContent value="audit">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key="audit-tab"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <AuditTrailTable
+                  auditLogs={safeAuditLogs}
+                  isLoading={auditLoading}
+                />
+              </motion.div>
+            </AnimatePresence>
+          </TabsContent>
+        </Tabs>
+      </motion.div>
 
       {/* Impersonation Start Dialog */}
       <ImpersonationStartDialog
