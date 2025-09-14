@@ -1,9 +1,10 @@
 /**
- * Real-Time Connection Status Component
- * Shows WebSocket connection status and controls
+ * Real-Time Connection Status Component - Cybersecurity Theme
+ * Shows WebSocket connection status and controls with cybersecurity styling
  */
 
 import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -14,7 +15,9 @@ import {
   Pause, 
   Play,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Shield,
+  Activity
 } from 'lucide-react';
 
 interface RealTimeConnectionStatusProps {
@@ -41,9 +44,10 @@ export const RealTimeConnectionStatus: React.FC<RealTimeConnectionStatusProps> =
       return {
         icon: Pause,
         text: 'متوقف (تب غیرفعال)',
-        color: 'text-yellow-600',
-        bgColor: 'bg-yellow-100',
-        borderColor: 'border-yellow-200'
+        color: 'text-yellow-400',
+        bgColor: 'bg-gradient-to-r from-yellow-500/10 to-yellow-600/10',
+        borderColor: 'border-yellow-400/30',
+        glowColor: 'rgba(255,184,0,0.3)'
       };
     }
     
@@ -51,9 +55,10 @@ export const RealTimeConnectionStatus: React.FC<RealTimeConnectionStatusProps> =
       return {
         icon: Pause,
         text: 'متوقف شده',
-        color: 'text-orange-600',
-        bgColor: 'bg-orange-100',
-        borderColor: 'border-orange-200'
+        color: 'text-orange-400',
+        bgColor: 'bg-gradient-to-r from-orange-500/10 to-orange-600/10',
+        borderColor: 'border-orange-400/30',
+        glowColor: 'rgba(255,107,53,0.3)'
       };
     }
     
@@ -61,18 +66,20 @@ export const RealTimeConnectionStatus: React.FC<RealTimeConnectionStatusProps> =
       return {
         icon: CheckCircle,
         text: 'متصل',
-        color: 'text-green-600',
-        bgColor: 'bg-green-100',
-        borderColor: 'border-green-200'
+        color: 'text-emerald-400',
+        bgColor: 'bg-gradient-to-r from-emerald-500/10 to-emerald-600/10',
+        borderColor: 'border-emerald-400/30',
+        glowColor: 'rgba(0,255,136,0.3)'
       };
     }
     
     return {
       icon: AlertCircle,
       text: 'قطع شده',
-      color: 'text-red-600',
-      bgColor: 'bg-red-100',
-      borderColor: 'border-red-200'
+      color: 'text-red-400',
+      bgColor: 'bg-gradient-to-r from-red-500/10 to-red-600/10',
+      borderColor: 'border-red-400/30',
+      glowColor: 'rgba(255,71,87,0.3)'
     };
   };
 
@@ -105,124 +112,224 @@ export const RealTimeConnectionStatus: React.FC<RealTimeConnectionStatusProps> =
   };
 
   return (
-    <Card className={`${statusInfo.bgColor} ${statusInfo.borderColor} border ${className}`}>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <StatusIcon className={`h-5 w-5 ${statusInfo.color}`} />
-            
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-900">
-                  اتصال بلادرنگ
-                </span>
-                <Badge className={`${statusInfo.bgColor} ${statusInfo.color} border-0`}>
-                  {statusInfo.text}
-                </Badge>
-              </div>
-              
-              <p className="text-xs text-gray-600 mt-1">
-                آخرین بروزرسانی: {formatLastUpdate(lastUpdate)}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {/* Pause/Resume Button */}
-            {isTabActive && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onTogglePause}
-                className="h-8"
-                disabled={!isConnected && !isPaused}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <Card className={`${statusInfo.bgColor} ${statusInfo.borderColor} border backdrop-blur-sm shadow-[0_8px_32px_rgba(0,0,0,0.4)] ${className}`}>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <motion.div
+                animate={isConnected ? { 
+                  boxShadow: [
+                    `0 0 0px ${statusInfo.glowColor}`,
+                    `0 0 20px ${statusInfo.glowColor}`,
+                    `0 0 0px ${statusInfo.glowColor}`
+                  ]
+                } : {}}
+                transition={{ duration: 2, repeat: Infinity }}
               >
-                {isPaused ? (
-                  <>
-                    <Play className="h-3 w-3 mr-1" />
-                    ادامه
-                  </>
-                ) : (
-                  <>
-                    <Pause className="h-3 w-3 mr-1" />
-                    توقف
-                  </>
-                )}
-              </Button>
-            )}
+                <StatusIcon className={`h-5 w-5 ${statusInfo.color}`} />
+              </motion.div>
+              
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-white flex items-center gap-2">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                    >
+                      <Shield className="h-4 w-4 text-cyan-400" />
+                    </motion.div>
+                    <span className="text-cyan-400">اتصال بلادرنگ</span>
+                  </span>
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  >
+                    <Badge className={`${statusInfo.bgColor} ${statusInfo.color} ${statusInfo.borderColor} border backdrop-blur-sm`}>
+                      {statusInfo.text}
+                    </Badge>
+                  </motion.div>
+                </div>
+                
+                <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                  <Activity className="h-3 w-3" />
+                  آخرین بروزرسانی: {formatLastUpdate(lastUpdate)}
+                </p>
+              </div>
+            </div>
 
-            {/* Reconnect Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onReconnect}
-              className="h-8"
-              disabled={isConnected && !isPaused}
-            >
-              <RefreshCw className="h-3 w-3 mr-1" />
-              اتصال مجدد
-            </Button>
-          </div>
-        </div>
-
-        {/* Connection Details */}
-        <div className="mt-3 pt-3 border-t border-gray-200/50">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-            <div>
-              <span className="text-gray-600">وضعیت:</span>
-              <div className="flex items-center gap-1 mt-1">
-                {isConnected ? (
-                  <Wifi className="h-3 w-3 text-green-600" />
-                ) : (
-                  <WifiOff className="h-3 w-3 text-red-600" />
-                )}
-                <span className={isConnected ? 'text-green-700' : 'text-red-700'}>
-                  {isConnected ? 'متصل' : 'قطع'}
-                </span>
-              </div>
-            </div>
-            
-            <div>
-              <span className="text-gray-600">تب:</span>
-              <div className="flex items-center gap-1 mt-1">
-                <span className={isTabActive ? 'text-green-700' : 'text-yellow-700'}>
-                  {isTabActive ? 'فعال' : 'غیرفعال'}
-                </span>
-              </div>
-            </div>
-            
-            <div>
-              <span className="text-gray-600">بروزرسانی:</span>
-              <div className="flex items-center gap-1 mt-1">
-                <span className={isPaused ? 'text-orange-700' : 'text-green-700'}>
-                  {isPaused ? 'متوقف' : 'خودکار'}
-                </span>
-              </div>
-            </div>
-            
-            <div>
-              <span className="text-gray-600">پروتکل:</span>
-              <div className="flex items-center gap-1 mt-1">
-                <span className="text-blue-700">WebSocket</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Tab Inactive Warning */}
-        {!isTabActive && (
-          <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
             <div className="flex items-center gap-2">
-              <AlertCircle className="h-3 w-3" />
-              <span>
-                بروزرسانی‌های بلادرنگ به دلیل غیرفعال بودن تب متوقف شده‌اند. 
-                برای ادامه بروزرسانی‌ها، تب را فعال کنید.
-              </span>
+              {/* Pause/Resume Button */}
+              <AnimatePresence>
+                {isTabActive && (
+                  <motion.div 
+                    whileHover={{ scale: 1.05 }} 
+                    whileTap={{ scale: 0.95 }}
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0, opacity: 0 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  >
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={onTogglePause}
+                      className="h-8 bg-white/5 border-orange-400/30 text-orange-400 hover:bg-orange-400/10 hover:border-orange-400/50 hover:text-orange-300 backdrop-blur-sm transition-all duration-300 hover:shadow-[0_0_15px_rgba(255,107,53,0.3)]"
+                      disabled={!isConnected && !isPaused}
+                    >
+                      {isPaused ? (
+                        <>
+                          <Play className="h-3 w-3 mr-1" />
+                          ادامه
+                        </>
+                      ) : (
+                        <>
+                          <Pause className="h-3 w-3 mr-1" />
+                          توقف
+                        </>
+                      )}
+                    </Button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Reconnect Button */}
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onReconnect}
+                  className="h-8 bg-white/5 border-cyan-400/30 text-cyan-400 hover:bg-cyan-400/10 hover:border-cyan-400/50 hover:text-cyan-300 backdrop-blur-sm transition-all duration-300 hover:shadow-[0_0_15px_rgba(0,212,255,0.3)]"
+                  disabled={isConnected && !isPaused}
+                >
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                  اتصال مجدد
+                </Button>
+              </motion.div>
             </div>
           </div>
-        )}
-      </CardContent>
-    </Card>
+
+          {/* Connection Details */}
+          <motion.div 
+            className="mt-3 pt-3 border-t border-white/10"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
+          >
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: 0.3 }}
+              >
+                <span className="text-gray-400">وضعیت:</span>
+                <div className="flex items-center gap-1 mt-1">
+                  <motion.div
+                    animate={isConnected ? { rotate: 360 } : {}}
+                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  >
+                    {isConnected ? (
+                      <Wifi className="h-3 w-3 text-emerald-400" />
+                    ) : (
+                      <WifiOff className="h-3 w-3 text-red-400" />
+                    )}
+                  </motion.div>
+                  <span className={isConnected ? 'text-emerald-400' : 'text-red-400'}>
+                    {isConnected ? 'متصل' : 'قطع'}
+                  </span>
+                </div>
+              </motion.div>
+              
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: 0.4 }}
+              >
+                <span className="text-gray-400">تب:</span>
+                <div className="flex items-center gap-1 mt-1">
+                  <span className={isTabActive ? 'text-emerald-400' : 'text-yellow-400'}>
+                    {isTabActive ? 'فعال' : 'غیرفعال'}
+                  </span>
+                </div>
+              </motion.div>
+              
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: 0.5 }}
+              >
+                <span className="text-gray-400">بروزرسانی:</span>
+                <div className="flex items-center gap-1 mt-1">
+                  <span className={isPaused ? 'text-orange-400' : 'text-emerald-400'}>
+                    {isPaused ? 'متوقف' : 'خودکار'}
+                  </span>
+                </div>
+              </motion.div>
+              
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: 0.6 }}
+              >
+                <span className="text-gray-400">پروتکل:</span>
+                <div className="flex items-center gap-1 mt-1">
+                  <motion.span 
+                    className="text-cyan-400 font-mono"
+                    animate={{ 
+                      textShadow: [
+                        "0 0 0px rgba(0,212,255,0.4)",
+                        "0 0 8px rgba(0,212,255,0.6)",
+                        "0 0 0px rgba(0,212,255,0.4)"
+                      ]
+                    }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    WebSocket
+                  </motion.span>
+                </div>
+              </motion.div>
+            </div>
+          </motion.div>
+
+          {/* Tab Inactive Warning */}
+          <AnimatePresence>
+            {!isTabActive && (
+              <motion.div 
+                className="mt-3 p-2 bg-gradient-to-r from-yellow-500/10 to-yellow-600/10 border border-yellow-400/30 rounded-xl text-xs text-yellow-400 backdrop-blur-sm"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="flex items-center gap-2">
+                  <motion.div
+                    animate={{ 
+                      boxShadow: [
+                        "0 0 0px rgba(255,184,0,0.4)",
+                        "0 0 15px rgba(255,184,0,0.6)",
+                        "0 0 0px rgba(255,184,0,0.4)"
+                      ]
+                    }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    <AlertCircle className="h-3 w-3" />
+                  </motion.div>
+                  <span>
+                    بروزرسانی‌های بلادرنگ به دلیل غیرفعال بودن تب متوقف شده‌اند. 
+                    برای ادامه بروزرسانی‌ها، تب را فعال کنید.
+                  </span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 };
 
