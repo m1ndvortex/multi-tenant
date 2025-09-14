@@ -4,6 +4,8 @@ import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { TenantProvider } from '@/contexts/TenantContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import { useReactQueryInvalidation } from '@/services/webSocketManager';
+import { useServiceWorker } from '@/services/serviceWorkerManager';
 import Layout from '@/components/Layout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ImpersonationBanner from '@/components/ImpersonationBanner';
@@ -17,6 +19,7 @@ import Reports from '@/pages/Reports';
 import Notifications from '@/pages/Notifications';
 import Settings from '@/pages/Settings';
 import Backup from '@/pages/Backup';
+import React from 'react';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,12 +32,30 @@ const queryClient = new QueryClient({
   },
 });
 
+// Component to initialize real-time features
+function RealTimeIntegration() {
+  // Initialize WebSocket cache invalidation
+  useReactQueryInvalidation(queryClient);
+  
+  // Initialize service worker
+  const serviceWorker = useServiceWorker();
+  
+  React.useEffect(() => {
+    if (serviceWorker.isRegistered) {
+      console.log('Tenant app: Service worker registered successfully');
+    }
+  }, [serviceWorker.isRegistered]);
+
+  return null;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
           <TenantProvider>
+            <RealTimeIntegration />
             <Router>
               <div className="min-h-screen bg-gradient-to-br from-green-50/30 to-white" dir="rtl">
                 <Routes>

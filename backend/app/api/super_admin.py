@@ -14,6 +14,7 @@ import logging
 
 from ..core.database import get_db
 from ..core.auth import get_super_admin_user
+from ..services.websocket_manager import publish_cache_invalidation, publish_data_update
 from ..models.user import User
 from ..models.tenant import Tenant, SubscriptionType, TenantStatus
 from ..schemas.super_admin import (
@@ -387,6 +388,23 @@ async def create_tenant(
         db.commit()
         db.refresh(tenant)
         
+        # Notify frontend of new tenant creation
+        await publish_data_update(
+            update_type="create",
+            entity="tenant",
+            data={
+                "tenant_id": str(tenant.id),
+                "name": tenant.name,
+                "email": tenant.email,
+                "subscription_type": tenant.subscription_type.value,
+                "status": tenant.status.value
+            }
+        )
+        
+        # Invalidate tenant-related caches
+        await publish_cache_invalidation("tenants", target_type="admin")
+        await publish_cache_invalidation("dashboard-stats", target_type="admin")
+        
         logger.info(f"Super admin {current_user.id} created tenant {tenant.id}")
         
         # Get usage stats for response
@@ -543,6 +561,23 @@ async def update_tenant(
         
         db.commit()
         db.refresh(tenant)
+        
+        # Notify frontend of tenant update
+        await publish_data_update(
+            update_type="update",
+            entity="tenant",
+            data={
+                "tenant_id": str(tenant.id),
+                "name": tenant.name,
+                "email": tenant.email,
+                "subscription_type": tenant.subscription_type.value,
+                "status": tenant.status.value
+            }
+        )
+        
+        # Invalidate tenant-related caches
+        await publish_cache_invalidation("tenants", target_type="admin")
+        await publish_cache_invalidation(f"tenant-{tenant.id}", target_type="tenant", tenant_id=str(tenant.id))
         
         logger.info(f"Super admin {current_user.id} updated tenant {tenant.id}")
         

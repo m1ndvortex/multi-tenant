@@ -2,47 +2,68 @@
 
 HesaabPlus is an elite, multi-tenant, cloud-native business management SaaS platform designed primarily for the Iranian market with Persian (RTL) interface support. The system consists of two separate applications: a Super Admin Platform for service management and a Tenant Application for customer business operations.
 
-## 🏗️ Architecture
+## ✨ NEW: Zero-Restart Production Ready!
 
-- **Backend**: FastAPI with PostgreSQL and Redis
-- **Super Admin Frontend**: React with TypeScript (Port 3000)
-- **Tenant Frontend**: React with TypeScript (Port 3001)
+� **Major Update**: Frontend restart requirement **ELIMINATED**! 
+- ⚡ Real-time cache invalidation via WebSocket
+- 🔄 Automatic UI updates without manual restarts
+- 🚀 Production-ready deployment with monitoring
+- 📱 Enhanced service worker with offline support
+
+## �🏗️ Architecture
+
+- **Backend**: FastAPI with PostgreSQL, Redis, and WebSocket support
+- **Super Admin Frontend**: React with TypeScript + Real-time updates (Port 3000)
+- **Tenant Frontend**: React with TypeScript + Real-time updates (Port 3001)  
 - **Task Queue**: Celery with Redis broker
 - **Database**: PostgreSQL 15 with multi-tenant architecture
-- **Caching**: Redis for sessions and caching
-- **Containerization**: Docker and Docker Compose
+- **Caching**: Multi-layer caching with intelligent invalidation
+- **Real-time**: WebSocket connections for live updates
+- **Containerization**: Docker with multi-stage builds
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Development Mode (with hot reload)
 
-- Docker and Docker Compose
-- Git
-
-### Installation
-
-1. **Clone the repository**
+1. **Clone and setup**
    ```bash
    git clone <repository-url>
    cd hesaabplus
-   ```
-
-2. **Set up environment variables**
-   ```bash
    cp .env.example .env
    # Edit .env with your configuration
    ```
 
-3. **Start the development environment**
+2. **Start development environment**
    ```bash
    docker-compose up -d
    ```
 
-4. **Access the applications**
-   - Super Admin Dashboard: http://localhost:3000
-   - Tenant Application: http://localhost:3001
+3. **Access applications** 
+   - Super Admin: http://localhost:3000
+   - Tenant App: http://localhost:3001
    - Backend API: http://localhost:8000
-   - API Documentation: http://localhost:8000/docs
+   - API Docs: http://localhost:8000/docs
+
+### Production Deployment
+
+1. **Quick deploy script (Windows)**
+   ```bash
+   deploy-production.bat
+   ```
+
+2. **Manual production setup**
+   ```bash
+   cp .env.production.template .env.production
+   # Edit .env.production with your values
+   docker-compose -f docker-compose.prod.yml --env-file .env.production up -d
+   ```
+
+3. **Production URLs**
+   - Admin: http://admin.hesaabplus.local
+   - Tenant: http://app.hesaabplus.local  
+   - API: http://api.hesaabplus.local
+
+📖 **Complete Guide**: See [PRODUCTION_DEPLOYMENT_GUIDE.md](PRODUCTION_DEPLOYMENT_GUIDE.md)
 
 ## 🧪 Testing
 

@@ -3,11 +3,11 @@ version: '3.8'
 services:
   postgres:
     image: postgres:15
-    container_name: hesaabplus_postgres
+    container_name: hesaabplus_postgres_prod
     environment:
       POSTGRES_DB: hesaabplus
       POSTGRES_USER: hesaab
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secure_password_2024}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_HOST_AUTH_METHOD: trust
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -21,11 +21,12 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
-    container_name: hesaabplus_redis
-    command: redis-server --appendonly yes
+    container_name: hesaabplus_redis_prod
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
       - redis_data:/data
     ports:
@@ -37,16 +38,17 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: hesaabplus_backend
+    container_name: hesaabplus_backend_prod
     environment:
-      - DATABASE_URL=postgresql://hesaab:${POSTGRES_PASSWORD:-secure_password_2024}@postgres:5432/hesaabplus
+      - DATABASE_URL=postgresql://hesaab:${POSTGRES_PASSWORD}@postgres:5432/hesaabplus
       - REDIS_URL=redis://redis:6379/0
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your_jwt_secret_key_change_in_production}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - CLOUDFLARE_R2_ACCESS_KEY=${CLOUDFLARE_R2_ACCESS_KEY}
       - CLOUDFLARE_R2_SECRET_KEY=${CLOUDFLARE_R2_SECRET_KEY}
       - CLOUDFLARE_R2_BUCKET=${CLOUDFLARE_R2_BUCKET}
@@ -61,10 +63,8 @@ services:
       - SMS_API_KEY=${SMS_API_KEY}
       - SMS_API_URL=${SMS_API_URL}
     volumes:
-      - ./backend:/app
       - backend_uploads:/app/uploads
       - backend_logs:/app/logs
-      - backend_cache:/app/.cache
     ports:
       - "8000:8000"
     depends_on:
@@ -74,23 +74,24 @@ services:
         condition: service_healthy
     networks:
       - hesaabplus_network
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/health/"]
       interval: 30s
       timeout: 10s
       start_period: 20s
       retries: 5
+    restart: unless-stopped
 
   celery:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: hesaabplus_celery
+    container_name: hesaabplus_celery_prod
     environment:
-      - DATABASE_URL=postgresql://hesaab:${POSTGRES_PASSWORD:-secure_password_2024}@postgres:5432/hesaabplus
+      - DATABASE_URL=postgresql://hesaab:${POSTGRES_PASSWORD}@postgres:5432/hesaabplus
       - REDIS_URL=redis://redis:6379/0
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your_jwt_secret_key_change_in_production}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - CLOUDFLARE_R2_ACCESS_KEY=${CLOUDFLARE_R2_ACCESS_KEY}
       - CLOUDFLARE_R2_SECRET_KEY=${CLOUDFLARE_R2_SECRET_KEY}
       - CLOUDFLARE_R2_BUCKET=${CLOUDFLARE_R2_BUCKET}
@@ -105,7 +106,6 @@ services:
       - SMS_API_KEY=${SMS_API_KEY}
       - SMS_API_URL=${SMS_API_URL}
     volumes:
-      - ./backend:/app
       - backend_uploads:/app/uploads
       - backend_logs:/app/logs
       - celery_data:/app/celery
@@ -123,18 +123,18 @@ services:
       timeout: 10s
       start_period: 30s
       retries: 5
+    restart: unless-stopped
 
   celery-beat:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: hesaabplus_celery_beat
+    container_name: hesaabplus_celery_beat_prod
     environment:
-      - DATABASE_URL=postgresql://hesaab:${POSTGRES_PASSWORD:-secure_password_2024}@postgres:5432/hesaabplus
+      - DATABASE_URL=postgresql://hesaab:${POSTGRES_PASSWORD}@postgres:5432/hesaabplus
       - REDIS_URL=redis://redis:6379/0
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your_jwt_secret_key_change_in_production}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
     volumes:
-      - ./backend:/app
       - backend_logs:/app/logs
       - celery_beat_data:/app/celery-beat
     depends_on:
@@ -151,24 +151,19 @@ services:
       timeout: 10s
       start_period: 30s
       retries: 5
+    restart: unless-stopped
 
   super-admin-frontend:
     build:
       context: ./super-admin-frontend
       dockerfile: Dockerfile
-      target: development
-    container_name: hesaabplus_super_admin
+      target: production
+    container_name: hesaabplus_super_admin_prod
     environment:
       - VITE_APP_TYPE=super-admin
-      - VITE_API_URL=http://localhost:8000
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
       - VITE_VERSION=2.0.0
-      - NODE_ENV=development
-    volumes:
-      - ./super-admin-frontend:/app
-      - super_admin_node_modules:/app/node_modules
-      - super_admin_dist:/app/dist
-      - super_admin_cache:/app/.cache
-      - super_admin_logs:/app/logs
+      - NODE_ENV=production
     ports:
       - "3000:3000"
     depends_on:
@@ -176,9 +171,8 @@ services:
         condition: service_healthy
     networks:
       - hesaabplus_network
-    command: npm run dev -- --host 0.0.0.0
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:3000/health || curl -fsS http://localhost:3000 || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3000 || exit 1"]
       interval: 30s
       timeout: 10s
       start_period: 60s
@@ -189,19 +183,13 @@ services:
     build:
       context: ./tenant-frontend
       dockerfile: Dockerfile
-      target: development
-    container_name: hesaabplus_tenant
+      target: production
+    container_name: hesaabplus_tenant_prod
     environment:
       - VITE_APP_TYPE=tenant
-      - VITE_API_URL=http://localhost:8000
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
       - VITE_VERSION=2.0.0
-      - NODE_ENV=development
-    volumes:
-      - ./tenant-frontend:/app
-      - tenant_node_modules:/app/node_modules
-      - tenant_dist:/app/dist
-      - tenant_cache:/app/.cache
-      - tenant_logs:/app/logs
+      - NODE_ENV=production
     ports:
       - "3001:3001"
     depends_on:
@@ -209,13 +197,31 @@ services:
         condition: service_healthy
     networks:
       - hesaabplus_network
-    command: npm run dev -- --host 0.0.0.0 --port 3001
+    command: serve -s dist -l 3001
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:3001 || exit 1"]
       interval: 30s
       timeout: 10s
       start_period: 60s
       retries: 5
+    restart: unless-stopped
+
+  # Nginx reverse proxy for production
+  nginx:
+    image: nginx:alpine
+    container_name: hesaabplus_nginx_prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - backend
+      - super-admin-frontend
+      - tenant-frontend
+    networks:
+      - hesaabplus_network
     restart: unless-stopped
 
 volumes:
@@ -227,27 +233,9 @@ volumes:
     driver: local
   backend_logs:
     driver: local
-  backend_cache:
-    driver: local
   celery_data:
     driver: local
   celery_beat_data:
-    driver: local
-  super_admin_node_modules:
-    driver: local
-  super_admin_dist:
-    driver: local
-  super_admin_cache:
-    driver: local
-  super_admin_logs:
-    driver: local
-  tenant_node_modules:
-    driver: local
-  tenant_dist:
-    driver: local
-  tenant_cache:
-    driver: local
-  tenant_logs:
     driver: local
 
 networks:

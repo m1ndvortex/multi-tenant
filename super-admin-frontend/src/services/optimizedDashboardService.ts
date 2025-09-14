@@ -1,4 +1,5 @@
 import { apiClient, RetryConfig } from './apiClient';
+import { webSocketManager } from './webSocketManager';
 import { DashboardStats, OnlineUser, SystemAlert, QuickStats } from './dashboardService';
 
 interface CacheEntry<T> {
@@ -9,11 +10,71 @@ interface CacheEntry<T> {
 
 class OptimizedDashboardService {
   private cache = new Map<string, CacheEntry<any>>();
-  private readonly defaultTTL = 30000; // 30 seconds
   private readonly retryConfig: RetryConfig = {
     retries: 2,
     retryDelay: 1000,
   };
+
+  constructor() {
+    // Set up WebSocket cache invalidation
+    this.setupCacheInvalidation();
+  }
+
+  private setupCacheInvalidation(): void {
+    // Listen for cache invalidation events from WebSocket
+    webSocketManager.onCacheInvalidation((cacheKey, data) => {
+      this.handleCacheInvalidation(cacheKey, data);
+    });
+
+    // Listen for data updates that should invalidate related caches
+    webSocketManager.onDataUpdate((updateType, entity, data) => {
+      this.handleDataUpdate(updateType, entity, data);
+    });
+  }
+
+  private handleCacheInvalidation(cacheKey: string, _data?: any): void {
+    console.log('Handling cache invalidation for:', cacheKey);
+    
+    // Clear specific cache entries
+    if (cacheKey === 'all') {
+      this.cache.clear();
+    } else {
+      // Clear entries that match the cache key pattern
+      const keysToDelete: string[] = [];
+      for (const key of this.cache.keys()) {
+        if (key.includes(cacheKey)) {
+          keysToDelete.push(key);
+        }
+      }
+      keysToDelete.forEach(key => this.cache.delete(key));
+    }
+  }
+
+  private handleDataUpdate(updateType: string, entity: string, data: any): void {
+    console.log('Handling data update:', updateType, entity, data);
+    
+    // Map entity updates to cache invalidations
+    const cacheInvalidationMap: Record<string, string[]> = {
+      'tenant': ['tenants', 'dashboard-stats', 'quick-stats'],
+      'user': ['online-users', 'users'],
+      'subscription': ['tenants', 'dashboard-stats'],
+      'system': ['system-health', 'system-alerts']
+    };
+
+    const cachesToInvalidate = cacheInvalidationMap[entity] || [];
+    cachesToInvalidate.forEach(cacheKey => {
+      this.handleCacheInvalidation(cacheKey);
+    });
+  }
+
+  // Environment-aware cache configuration
+  private getCacheConfig(): { ttl: number; useCache: boolean } {
+    const isDev = import.meta.env.DEV;
+    return {
+      ttl: isDev ? 5000 : 30000, // 5s in dev, 30s in prod
+      useCache: true
+    };
+  }
 
   // Cache management
   private getCacheKey(endpoint: string, params?: Record<string, any>): string {
@@ -25,11 +86,14 @@ class OptimizedDashboardService {
     return Date.now() - entry.timestamp < entry.ttl;
   }
 
-  private setCache<T>(key: string, data: T, ttl: number = this.defaultTTL): void {
+  private setCache<T>(key: string, data: T, ttl?: number): void {
+    const config = this.getCacheConfig();
+    const actualTtl = ttl || config.ttl;
+    
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
-      ttl,
+      ttl: actualTtl,
     });
   }
 
