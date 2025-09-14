@@ -6,8 +6,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePerformanceMonitor, useAdaptiveAnimations, useMemoryAwareAnimations } from '@/lib/theme/hooks';
-import { useReducedMotion } from '@/lib/theme/reduced-motion';
+// Removed unused import: useReducedMotion
 import { lazyAnimationManager } from '@/lib/theme/lazy-animations';
+import { CacheManager } from '@/lib/theme/cache';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
@@ -25,9 +26,10 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
   const { metrics, config, deviceInfo, performanceHistory, shouldAnimate } = usePerformanceMonitor();
   const { qualityLevel } = useAdaptiveAnimations();
   const { memoryPressure, activeAnimationCount } = useMemoryAwareAnimations();
-  const { isEnabled: reducedMotionEnabled } = useReducedMotion();
   const [isExpanded, setIsExpanded] = useState(showDetails);
   const [lazyLoadingStatus, setLazyLoadingStatus] = useState(lazyAnimationManager.getLoadingStatus());
+  const [cacheMetrics, setCacheMetrics] = useState(CacheManager.getPerformanceMetrics());
+  const [cacheHealth, setCacheHealth] = useState(CacheManager.getCacheHealth());
 
   const positionClasses = {
     'top-left': 'top-4 left-4',
@@ -63,6 +65,8 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
   useEffect(() => {
     const interval = setInterval(() => {
       setLazyLoadingStatus(lazyAnimationManager.getLoadingStatus());
+      setCacheMetrics(CacheManager.getPerformanceMetrics());
+      setCacheHealth(CacheManager.getCacheHealth());
     }, 2000);
 
     return () => clearInterval(interval);
@@ -221,6 +225,103 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
                     </Badge>
                   </div>
                 </div>
+
+                {/* Cache Performance Section */}
+                <div className="pt-2 border-t border-gray-700">
+                  <h4 className="text-xs font-semibold text-cyan-400 mb-2">Cache Performance</h4>
+                  
+                  {/* Cache Hit Rate */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-300">Hit Rate:</span>
+                    <Badge className={`text-xs ${
+                      cacheHealth.hitRate >= 95 
+                        ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                        : cacheHealth.hitRate >= 80
+                        ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+                        : 'bg-red-500/20 text-red-400 border-red-500/30'
+                    }`}>
+                      {cacheHealth.hitRate.toFixed(1)}%
+                    </Badge>
+                  </div>
+
+                  {/* Cache Load Time */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-300">Load Time:</span>
+                    <Badge className={`text-xs ${
+                      cacheHealth.averageLoadTime <= 50 
+                        ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                        : cacheHealth.averageLoadTime <= 100
+                        ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+                        : 'bg-red-500/20 text-red-400 border-red-500/30'
+                    }`}>
+                      {cacheHealth.averageLoadTime.toFixed(1)}ms
+                    </Badge>
+                  </div>
+
+                  {/* Cache Memory Usage */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-300">Cache Memory:</span>
+                    <span className="text-xs font-mono text-blue-400">
+                      {(cacheHealth.memoryUsage / 1024 / 1024).toFixed(1)}MB
+                    </span>
+                  </div>
+
+                  {/* Storage Quota */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-300">Storage:</span>
+                    <Badge className={`text-xs ${
+                      cacheHealth.storageQuota.percentage <= 60 
+                        ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                        : cacheHealth.storageQuota.percentage <= 80
+                        ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+                        : 'bg-red-500/20 text-red-400 border-red-500/30'
+                    }`}>
+                      {cacheHealth.storageQuota.percentage.toFixed(1)}%
+                    </Badge>
+                  </div>
+
+                  {/* Cache Health Status */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-300">Health:</span>
+                    <Badge className={`text-xs ${
+                      cacheHealth.healthy 
+                        ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                        : 'bg-red-500/20 text-red-400 border-red-500/30'
+                    }`}>
+                      {cacheHealth.healthy ? 'HEALTHY' : 'NEEDS ATTENTION'}
+                    </Badge>
+                  </div>
+
+                  {/* Cache Statistics */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-300">Hits/Misses:</span>
+                    <span className="text-xs font-mono text-purple-400">
+                      {cacheMetrics.stats.totals.cacheHits}/{cacheMetrics.stats.totals.cacheMisses}
+                    </span>
+                  </div>
+
+                  {/* Compression Ratio */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-300">Compression:</span>
+                    <span className="text-xs font-mono text-green-400">
+                      {(cacheMetrics.cache.compressionRatio * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+
+                {/* Cache Recommendations */}
+                {cacheHealth.recommendations.length > 0 && (
+                  <div className="pt-2 border-t border-gray-700">
+                    <h4 className="text-xs font-semibold text-orange-400 mb-1">Recommendations</h4>
+                    <div className="space-y-1">
+                      {cacheHealth.recommendations.slice(0, 2).map((rec, index) => (
+                        <div key={index} className="text-xs text-orange-300 bg-orange-500/10 rounded px-2 py-1">
+                          {rec}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Last Update */}
                 <div className="flex items-center justify-between">
