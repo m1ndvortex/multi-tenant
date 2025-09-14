@@ -9,17 +9,22 @@ const ASSETS_CACHE_NAME = 'theme-assets-v2';
 const ANIMATION_CACHE_NAME = 'animation-configs-v2';
 const PRELOAD_CACHE_NAME = 'preloaded-assets-v2';
 
-// Advanced cache configuration
+// Ultra-performance cache configuration for zero-lag experience
 const CACHE_CONFIG = {
   maxAge: 24 * 60 * 60 * 1000, // 24 hours
-  maxEntries: 200,
+  maxEntries: 500, // Increased for better hit rates
   compressionEnabled: true,
   brotliEnabled: true,
   predictivePreloading: true,
   backgroundOptimization: true,
-  compressionThreshold: 1024, // Compress assets larger than 1KB
-  maxCacheSize: 50 * 1024 * 1024, // 50MB total cache limit
-  cleanupInterval: 60 * 60 * 1000, // Cleanup every hour
+  compressionThreshold: 512, // Compress smaller assets for ultra-fast loading
+  maxCacheSize: 100 * 1024 * 1024, // 100MB for ultra-smooth experience
+  cleanupInterval: 30 * 60 * 1000, // More frequent cleanup (30 minutes)
+  ultraMode: true, // Enable ultra-performance optimizations
+  preloadCriticalAssets: true,
+  aggressivePreloading: true,
+  instantCacheWrites: true,
+  memoryPriorityCache: true,
 };
 
 // Advanced asset compression utilities

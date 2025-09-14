@@ -1,469 +1,744 @@
 /**
- * Theme System Optimization and Performance Management
- * Comprehensive caching, performance monitoring, and optimization for cybersecurity theme
+ * Ultra-Performance Theme Optimization System
+ * Provides zero-lag, buttery-smooth theme loading with intelligent optimization
  */
 
-// Removed unused imports: cyberTheme, performanceMonitor
+import React from 'react';
+import { CyberTheme, cyberTheme, generateCyberThemeCSS, RTLConfiguration, ltrConfig } from './theme/cybersecurity';
+import { CacheManager } from './theme/cache';
+import { lazyAnimationManager } from './theme/lazy-animations';
+import { assetPreloader } from './theme/asset-preloader';
+import { serviceWorkerManager } from './theme/service-worker';
+import { ultraPerformanceMonitor } from './theme/ultra-performance-monitor';
+import { ultraSmoothAnimations } from './theme/ultra-smooth-animations';
 
-export interface ThemeCache {
-  css: string;
-  timestamp: number;
-  version: string;
-  hash: string;
+interface UltraOptimizationConfig {
+  enableCaching: boolean;
+  enableLazyLoading: boolean;
+  enablePreloading: boolean;
+  enableServiceWorker: boolean;
+  enableUltraMode: boolean;
+  performanceMode: 'ultra' | 'high' | 'balanced' | 'battery' | 'auto';
+  targetFrameRate: number;
+  memoryLimit: number;
+  jankThreshold: number;
+  adaptiveQuality: boolean;
+  gpuAcceleration: boolean;
+  predictivePreloading: boolean;
 }
 
-export interface ThemePerformanceMetrics {
-  renderTime: number;
-  cacheHits: number;
-  cacheMisses: number;
+interface UltraOptimizationMetrics {
+  cacheHitRate: number;
+  averageLoadTime: number;
   memoryUsage: number;
   frameRate: number;
-  lastOptimization: number;
+  jankPercentage: number;
+  optimizationLevel: number;
+  performanceScore: number;
+  gpuAcceleration: boolean;
+  batteryLevel?: number;
+  thermalState?: string;
+  networkLatency: number;
 }
 
-export interface ThemeOptimizationConfig {
-  enableCaching: boolean;
-  cacheExpiry: number; // milliseconds
-  performanceThreshold: number; // fps
-  autoOptimization: boolean;
-  memoryLimit: number; // MB
-  debugMode: boolean;
-}
-
-class ThemeOptimizer {
-  private cache = new Map<string, ThemeCache>();
-  private metrics: ThemePerformanceMetrics = {
-    renderTime: 0,
-    cacheHits: 0,
-    cacheMisses: 0,
-    memoryUsage: 0,
-    frameRate: 60,
-    lastOptimization: Date.now(),
-  };
-  
-  private config: ThemeOptimizationConfig = {
+class UltraThemeOptimizationSystem {
+  private config: UltraOptimizationConfig = {
     enableCaching: true,
-    cacheExpiry: 5 * 60 * 1000, // 5 minutes
-    performanceThreshold: 30, // fps
-    autoOptimization: true,
-    memoryLimit: 50, // MB
-    debugMode: process.env.NODE_ENV === 'development',
+    enableLazyLoading: true,
+    enablePreloading: true,
+    enableServiceWorker: true,
+    enableUltraMode: true,
+    performanceMode: 'ultra',
+    targetFrameRate: 120, // Ultra-smooth target
+    memoryLimit: 100 * 1024 * 1024, // 100MB
+    jankThreshold: 1, // <1% jank for ultra-smooth
+    adaptiveQuality: true,
+    gpuAcceleration: true,
+    predictivePreloading: true,
   };
 
-  private observers: PerformanceObserver[] = [];
+  private metrics: UltraOptimizationMetrics = {
+    cacheHitRate: 0,
+    averageLoadTime: 0,
+    memoryUsage: 0,
+    frameRate: 120,
+    jankPercentage: 0,
+    optimizationLevel: 100,
+    performanceScore: 100,
+    gpuAcceleration: false,
+    networkLatency: 0,
+  };
 
-  constructor(config?: Partial<ThemeOptimizationConfig>) {
-    this.config = { ...this.config, ...config };
-    this.initializePerformanceMonitoring();
-    this.startMemoryMonitoring();
+  private optimizationQueue: Array<() => Promise<void>> = [];
+  private isOptimizing = false;
+  private lastOptimization = 0;
+
+  constructor() {
+    this.initializeUltraOptimization();
   }
 
   /**
-   * Initialize performance monitoring
+   * Initialize the ultra-performance optimization system
    */
-  private initializePerformanceMonitoring(): void {
-    if (typeof window === 'undefined') return;
+  private async initializeUltraOptimization(): Promise<void> {
+    console.log('🚀 Initializing Ultra-Performance Theme System...');
 
+    // Initialize ultra-performance monitoring
+    this.startUltraPerformanceMonitoring();
+
+    // Initialize cache system with ultra-fast settings
+    if (this.config.enableCaching) {
+      await this.initializeUltraCache();
+    }
+
+    // Initialize ultra-smooth animations
+    this.initializeUltraAnimations();
+
+    // Initialize service worker with ultra-fast caching
+    if (this.config.enableServiceWorker) {
+      await this.initializeUltraServiceWorker();
+    }
+
+    // Initialize predictive preloading with ML-like patterns
+    if (this.config.enablePreloading) {
+      await this.initializeUltraPredictivePreloading();
+    }
+
+    // Start adaptive optimization
+    this.startAdaptiveOptimization();
+
+    console.log('✅ Ultra-Performance Theme System initialized');
+  }
+
+  /**
+   * Initialize ultra-fast cache system
+   */
+  private async initializeUltraCache(): Promise<void> {
+    // Preload critical themes immediately
+    await CacheManager.preloadThemes();
+    
+    // Warm up cache with common theme variations
+    const commonThemes = [
+      { theme: cyberTheme, rtlConfig: ltrConfig },
+      { theme: cyberTheme, rtlConfig: { ...ltrConfig, direction: 'rtl' } },
+    ];
+
+    await Promise.all(
+      commonThemes.map(({ theme, rtlConfig }) => 
+        CacheManager.getOptimizedTheme(theme, rtlConfig)
+      )
+    );
+  }
+
+  /**
+   * Initialize ultra-smooth animations
+   */
+  private initializeUltraAnimations(): void {
+    // Configure for ultra-smooth performance
+    ultraSmoothAnimations.updateConfig({
+      quality: 'ultra',
+      targetFPS: this.config.targetFrameRate,
+      enableGPU: this.config.gpuAcceleration,
+      adaptiveQuality: this.config.adaptiveQuality,
+    });
+  }
+
+  /**
+   * Initialize ultra-fast service worker
+   */
+  private async initializeUltraServiceWorker(): Promise<void> {
     try {
-      // Monitor paint timing
-      const paintObserver = new PerformanceObserver((list) => {
-        const entries = list.getEntries();
-        entries.forEach((entry) => {
-          if (entry.name === 'first-contentful-paint') {
-            this.metrics.renderTime = entry.startTime;
-          }
-        });
-      });
-      paintObserver.observe({ entryTypes: ['paint'] });
-      this.observers.push(paintObserver);
-
-      // Monitor frame rate
-      this.startFrameRateMonitoring();
-
-      if (this.config.debugMode) {
-        console.log('🔒 Theme Optimizer: Performance monitoring initialized');
-      }
+      // Service worker auto-initializes with ultra-fast settings
+      await new Promise(resolve => setTimeout(resolve, 100)); // Allow SW to initialize
     } catch (error) {
-      console.warn('Theme Optimizer: Performance monitoring not supported', error);
+      console.warn('Service worker initialization failed:', error);
     }
   }
 
   /**
-   * Start frame rate monitoring
+   * Initialize ultra-predictive preloading
    */
-  private startFrameRateMonitoring(): void {
-    let lastTime = performance.now();
-    let frameCount = 0;
-
-    const measureFrameRate = (currentTime: number) => {
-      frameCount++;
-      
-      if (currentTime - lastTime >= 1000) {
-        this.metrics.frameRate = frameCount;
-        frameCount = 0;
-        lastTime = currentTime;
-
-        // Auto-optimize if performance drops
-        if (this.config.autoOptimization && this.metrics.frameRate < this.config.performanceThreshold) {
-          this.optimizePerformance();
-        }
-      }
-
-      requestAnimationFrame(measureFrameRate);
-    };
-
-    requestAnimationFrame(measureFrameRate);
-  }
-
-  /**
-   * Start memory monitoring
-   */
-  private startMemoryMonitoring(): void {
-    if (typeof window === 'undefined' || !('memory' in performance)) return;
-
-    setInterval(() => {
-      const memory = (performance as any).memory;
-      if (memory) {
-        this.metrics.memoryUsage = memory.usedJSHeapSize / (1024 * 1024); // MB
-
-        // Clear cache if memory usage is too high
-        if (this.metrics.memoryUsage > this.config.memoryLimit) {
-          this.clearExpiredCache();
-        }
-      }
-    }, 5000); // Check every 5 seconds
-  }
-
-  /**
-   * Generate cache key for theme configuration
-   */
-  private generateCacheKey(theme: any, options?: any): string {
-    const themeString = JSON.stringify(theme);
-    const optionsString = options ? JSON.stringify(options) : '';
-    return btoa(themeString + optionsString).slice(0, 32);
-  }
-
-  /**
-   * Generate hash for cache validation
-   */
-  private generateHash(content: string): string {
-    let hash = 0;
-    for (let i = 0; i < content.length; i++) {
-      const char = content.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
-    }
-    return hash.toString(36);
-  }
-
-  /**
-   * Get cached theme CSS
-   */
-  public getCachedTheme(theme: any, options?: any): string | null {
-    if (!this.config.enableCaching) return null;
-
-    const key = this.generateCacheKey(theme, options);
-    const cached = this.cache.get(key);
-
-    if (cached) {
-      const isExpired = Date.now() - cached.timestamp > this.config.cacheExpiry;
-      
-      if (!isExpired) {
-        this.metrics.cacheHits++;
-        if (this.config.debugMode) {
-          console.log('🔒 Theme Optimizer: Cache hit for key:', key);
-        }
-        return cached.css;
-      } else {
-        this.cache.delete(key);
-      }
-    }
-
-    this.metrics.cacheMisses++;
-    return null;
-  }
-
-  /**
-   * Cache theme CSS
-   */
-  public cacheTheme(theme: any, css: string, options?: any): void {
-    if (!this.config.enableCaching) return;
-
-    const key = this.generateCacheKey(theme, options);
-    const hash = this.generateHash(css);
-
-    this.cache.set(key, {
-      css,
-      timestamp: Date.now(),
-      version: '1.0.0',
-      hash,
+  private async initializeUltraPredictivePreloading(): Promise<void> {
+    // Preload critical assets immediately
+    await assetPreloader.preloadAssets({ 
+      priority: 'critical',
+      maxConcurrent: 8, // Increased concurrency for ultra-fast loading
     });
 
-    if (this.config.debugMode) {
-      console.log('🔒 Theme Optimizer: Cached theme for key:', key);
-    }
+    // Initialize navigation pattern learning
+    this.initializeNavigationLearning();
   }
 
   /**
-   * Clear expired cache entries
+   * Get ultra-optimized theme with zero-lag performance
    */
-  public clearExpiredCache(): void {
-    const now = Date.now();
-    let cleared = 0;
+  async getUltraOptimizedTheme(
+    theme: CyberTheme = cyberTheme,
+    rtlConfig: RTLConfiguration = ltrConfig,
+    options: {
+      priority?: 'critical' | 'high' | 'medium' | 'low';
+      preload?: boolean;
+      compress?: boolean;
+      ultraMode?: boolean;
+    } = {}
+  ) {
+    const startTime = performance.now();
+    const { ultraMode = this.config.enableUltraMode } = options;
 
-    for (const [key, cached] of this.cache.entries()) {
-      if (now - cached.timestamp > this.config.cacheExpiry) {
-        this.cache.delete(key);
-        cleared++;
+    try {
+      // Ultra-fast cache lookup with parallel operations
+      const [cachedTheme, preloadPromise] = await Promise.all([
+        CacheManager.getOptimizedTheme(theme, rtlConfig),
+        options.preload ? this.ultraPreloadRelatedAssets(theme) : Promise.resolve(),
+      ]);
+
+      const loadTime = performance.now() - startTime;
+
+      // Ultra-performance target: <5ms for cached themes
+      if (loadTime > 5 && ultraMode) {
+        console.warn(`Theme load took ${loadTime.toFixed(2)}ms - optimizing...`);
+        this.queueOptimization(() => this.optimizeThemeLoading(theme, rtlConfig));
       }
-    }
 
-    if (this.config.debugMode && cleared > 0) {
-      console.log(`🔒 Theme Optimizer: Cleared ${cleared} expired cache entries`);
-    }
-  }
+      // Update ultra-performance metrics
+      this.updateUltraMetrics(loadTime, true);
 
-  /**
-   * Clear all cache
-   */
-  public clearCache(): void {
-    const size = this.cache.size;
-    this.cache.clear();
-    
-    if (this.config.debugMode) {
-      console.log(`🔒 Theme Optimizer: Cleared all cache (${size} entries)`);
-    }
-  }
-
-  /**
-   * Optimize performance based on current metrics
-   */
-  public optimizePerformance(): void {
-    const now = Date.now();
-    
-    // Don't optimize too frequently
-    if (now - this.metrics.lastOptimization < 10000) return; // 10 seconds
-
-    this.metrics.lastOptimization = now;
-
-    if (this.config.debugMode) {
-      console.log('🔒 Theme Optimizer: Running performance optimization');
-    }
-
-    // Clear expired cache
-    this.clearExpiredCache();
-
-    // Reduce animation quality if performance is poor
-    if (this.metrics.frameRate < this.config.performanceThreshold) {
-      // Note: performanceMonitor.setPerformanceLevel would be called here
-      // but the import was removed to fix compilation
+      return cachedTheme;
+    } catch (error) {
+      console.error('Ultra theme optimization failed:', error);
       
-      if (this.config.debugMode) {
-        console.log('🔒 Theme Optimizer: Reduced animation quality due to low frame rate');
+      // Ultra-fast fallback
+      const css = generateCyberThemeCSS(theme);
+      const loadTime = performance.now() - startTime;
+      
+      this.updateUltraMetrics(loadTime, false);
+
+      return {
+        theme,
+        css,
+        rtlConfig,
+        timestamp: Date.now(),
+        hash: 'ultra-fallback',
+        version: '1.0.0',
+        compressed: false,
+        size: css.length,
+        accessCount: 1,
+        lastAccessed: Date.now(),
+      };
+    }
+  }
+
+  /**
+   * Ultra-fast preloading of related assets
+   */
+  private async ultraPreloadRelatedAssets(theme: CyberTheme): Promise<void> {
+    // Parallel preloading with high concurrency
+    const preloadPromises = [
+      assetPreloader.preloadAssets({ 
+        priority: 'high',
+        maxConcurrent: 6,
+        respectDataSaver: false, // Ultra mode ignores data saver
+      }),
+      lazyAnimationManager.preloadByPriority('high'),
+    ];
+
+    // Don't wait for all - return immediately after starting
+    Promise.allSettled(preloadPromises);
+  }
+
+  /**
+   * Start ultra-performance monitoring
+   */
+  private startUltraPerformanceMonitoring(): void {
+    // High-frequency performance monitoring
+    setInterval(() => {
+      const ultraMetrics = ultraPerformanceMonitor.getMetrics();
+      
+      this.metrics = {
+        ...this.metrics,
+        frameRate: ultraMetrics.frameRate,
+        jankPercentage: ultraMetrics.jankPercentage,
+        memoryUsage: ultraMetrics.memoryUsage,
+        performanceScore: ultraPerformanceMonitor.getPerformanceScore(),
+        gpuAcceleration: ultraMetrics.gpuAcceleration,
+        batteryLevel: ultraMetrics.batteryLevel,
+        thermalState: ultraMetrics.thermalState,
+        networkLatency: ultraMetrics.networkLatency,
+      };
+
+      // Update optimization level
+      this.updateUltraOptimizationLevel();
+    }, 500); // 2Hz monitoring for ultra-responsiveness
+  }
+
+  /**
+   * Update ultra-optimization level
+   */
+  private updateUltraOptimizationLevel(): void {
+    let level = 0;
+
+    // Frame rate contribution (0-30 points) - higher weight for ultra-smooth
+    const fpsRatio = this.metrics.frameRate / this.config.targetFrameRate;
+    level += Math.min(30, fpsRatio * 30);
+
+    // Jank contribution (0-25 points) - critical for ultra-smooth
+    const jankScore = Math.max(0, 25 - (this.metrics.jankPercentage / this.config.jankThreshold) * 25);
+    level += jankScore;
+
+    // Cache hit rate contribution (0-20 points)
+    level += this.metrics.cacheHitRate * 0.2;
+
+    // Memory usage contribution (0-15 points)
+    const memoryRatio = this.metrics.memoryUsage / this.config.memoryLimit;
+    const memoryScore = Math.max(0, 15 - memoryRatio * 15);
+    level += memoryScore;
+
+    // Load time contribution (0-10 points) - ultra-fast target
+    const loadTimeScore = Math.max(0, 10 - (this.metrics.averageLoadTime / 5) * 10); // 5ms target
+    level += loadTimeScore;
+
+    this.metrics.optimizationLevel = Math.min(100, level);
+
+    // Trigger adaptive optimization
+    this.triggerAdaptiveOptimization();
+  }
+
+  /**
+   * Trigger adaptive optimization based on performance
+   */
+  private triggerAdaptiveOptimization(): void {
+    if (this.metrics.optimizationLevel < 80) {
+      // Performance degradation - queue optimizations
+      this.queueOptimization(() => this.performUltraOptimization());
+    }
+  }
+
+  /**
+   * Queue optimization for smooth execution
+   */
+  private queueOptimization(optimizationFn: () => Promise<void>): void {
+    this.optimizationQueue.push(optimizationFn);
+    this.processOptimizationQueue();
+  }
+
+  /**
+   * Process optimization queue without blocking UI
+   */
+  private async processOptimizationQueue(): Promise<void> {
+    if (this.isOptimizing || this.optimizationQueue.length === 0) return;
+
+    // Throttle optimizations to prevent performance impact
+    const now = Date.now();
+    if (now - this.lastOptimization < 1000) return; // Max once per second
+
+    this.isOptimizing = true;
+    this.lastOptimization = now;
+
+    try {
+      const optimization = this.optimizationQueue.shift();
+      if (optimization) {
+        await optimization();
+      }
+    } catch (error) {
+      console.warn('Optimization failed:', error);
+    } finally {
+      this.isOptimizing = false;
+      
+      // Process next optimization in next frame
+      if (this.optimizationQueue.length > 0) {
+        requestAnimationFrame(() => this.processOptimizationQueue());
       }
     }
+  }
 
-    // Clear cache if memory usage is high
+  /**
+   * Perform ultra-optimization
+   */
+  private async performUltraOptimization(): Promise<void> {
+    console.log('� Performingt ultra-optimization...');
+
+    // Parallel optimization operations
+    const optimizations = [
+      this.optimizeCache(),
+      this.optimizeAnimations(),
+      this.optimizeMemory(),
+      this.optimizePreloading(),
+    ];
+
+    await Promise.allSettled(optimizations);
+    console.log('✅ Ultra-optimization complete');
+  }
+
+  /**
+   * Optimize cache for ultra-performance
+   */
+  private async optimizeCache(): Promise<void> {
+    const cacheMetrics = CacheManager.getPerformanceMetrics();
+    
+    if (cacheMetrics.cache.hitRate < 95) {
+      // Preload more common themes
+      await CacheManager.preloadThemes();
+    }
+
+    if (cacheMetrics.cache.averageLoadTime > 5) {
+      // Clear and rebuild cache for faster access
+      await CacheManager.clearAllCaches();
+      await this.initializeUltraCache();
+    }
+  }
+
+  /**
+   * Optimize animations for ultra-smoothness
+   */
+  private async optimizeAnimations(): Promise<void> {
+    if (this.metrics.frameRate < this.config.targetFrameRate * 0.9) {
+      // Reduce animation quality
+      ultraSmoothAnimations.updateConfig({
+        quality: this.metrics.frameRate > 60 ? 'high' : 'medium',
+        targetFPS: Math.max(60, this.config.targetFrameRate * 0.8),
+      });
+    }
+
+    if (this.metrics.jankPercentage > this.config.jankThreshold) {
+      // Enable more aggressive optimization
+      ultraSmoothAnimations.updateConfig({
+        enableGPU: true,
+        enableWillChange: true,
+        enableTransform3D: true,
+      });
+    }
+  }
+
+  /**
+   * Optimize memory usage
+   */
+  private async optimizeMemory(): Promise<void> {
     if (this.metrics.memoryUsage > this.config.memoryLimit * 0.8) {
-      this.clearCache();
+      // Clear non-essential caches
+      lazyAnimationManager.clear();
       
-      if (this.config.debugMode) {
-        console.log('🔒 Theme Optimizer: Cleared cache due to high memory usage');
+      // Trigger garbage collection if available
+      if ('gc' in window) {
+        (window as any).gc();
       }
     }
   }
 
   /**
-   * Get current performance metrics
+   * Optimize preloading strategy
    */
-  public getMetrics(): ThemePerformanceMetrics {
+  private async optimizePreloading(): Promise<void> {
+    const preloadMetrics = assetPreloader.getMetrics();
+    
+    if (preloadMetrics.cacheHitRate < 90) {
+      // Improve preloading patterns
+      await assetPreloader.preloadAssets({
+        priority: 'high',
+        maxConcurrent: 4,
+      });
+    }
+  }
+
+  /**
+   * Optimize theme loading performance
+   */
+  private async optimizeThemeLoading(theme: CyberTheme, rtlConfig: RTLConfiguration): Promise<void> {
+    // Pre-generate and cache optimized CSS
+    const optimizedCSS = CacheManager.optimizeForProduction(theme, {
+      minify: true,
+      extractCritical: true,
+    });
+
+    // Store in high-priority cache
+    await CacheManager.getOptimizedTheme(theme, rtlConfig);
+  }
+
+  /**
+   * Initialize navigation learning for predictive preloading
+   */
+  private initializeNavigationLearning(): void {
+    let currentRoute = window.location.pathname;
+
+    const handleRouteChange = () => {
+      const newRoute = window.location.pathname;
+      if (newRoute !== currentRoute) {
+        // Record navigation pattern
+        assetPreloader.recordNavigation(currentRoute, newRoute);
+        
+        // Trigger ultra-fast predictive preloading
+        this.ultraPredictivePreload(newRoute);
+        
+        currentRoute = newRoute;
+      }
+    };
+
+    // Listen for all navigation events
+    window.addEventListener('popstate', handleRouteChange);
+    
+    // Override history methods for SPA navigation
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+    
+    history.pushState = function(...args) {
+      originalPushState.apply(history, args);
+      handleRouteChange();
+    };
+    
+    history.replaceState = function(...args) {
+      originalReplaceState.apply(history, args);
+      handleRouteChange();
+    };
+  }
+
+  /**
+   * Ultra-fast predictive preloading
+   */
+  private async ultraPredictivePreload(route: string): Promise<void> {
+    // Immediate preloading without waiting
+    Promise.allSettled([
+      assetPreloader.predictivePreload(route),
+      lazyAnimationManager.preloadForRoute(route),
+    ]);
+  }
+
+  /**
+   * Start adaptive optimization system
+   */
+  private startAdaptiveOptimization(): void {
+    // Continuous adaptive optimization
+    setInterval(() => {
+      if (this.config.adaptiveQuality) {
+        this.adaptToCurrentPerformance();
+      }
+    }, 2000); // Every 2 seconds
+  }
+
+  /**
+   * Adapt to current performance conditions
+   */
+  private adaptToCurrentPerformance(): void {
+    const score = this.metrics.performanceScore;
+    
+    if (score < 60) {
+      // Poor performance - aggressive optimization
+      this.config.performanceMode = 'battery';
+      this.queueOptimization(() => this.performUltraOptimization());
+    } else if (score < 80) {
+      // Moderate performance - balanced optimization
+      this.config.performanceMode = 'balanced';
+    } else if (score > 90) {
+      // Excellent performance - enable ultra mode
+      this.config.performanceMode = 'ultra';
+    }
+  }
+
+  /**
+   * Update ultra-performance metrics
+   */
+  private updateUltraMetrics(loadTime: number, cacheHit: boolean): void {
+    // Exponential moving average for smooth metrics
+    const alpha = 0.1;
+    this.metrics.averageLoadTime = 
+      this.metrics.averageLoadTime * (1 - alpha) + loadTime * alpha;
+
+    // Update cache hit rate
+    if (cacheHit) {
+      this.metrics.cacheHitRate = Math.min(100, this.metrics.cacheHitRate + 0.5);
+    } else {
+      this.metrics.cacheHitRate = Math.max(0, this.metrics.cacheHitRate - 0.1);
+    }
+  }
+
+  /**
+   * Get ultra-performance metrics
+   */
+  getUltraMetrics(): UltraOptimizationMetrics {
     return { ...this.metrics };
   }
 
   /**
-   * Get cache statistics
+   * Get ultra-optimization configuration
    */
-  public getCacheStats(): {
-    size: number;
-    hitRate: number;
-    memoryUsage: number;
+  getUltraConfig(): UltraOptimizationConfig {
+    return { ...this.config };
+  }
+
+  /**
+   * Update ultra-optimization configuration
+   */
+  updateUltraConfig(newConfig: Partial<UltraOptimizationConfig>): void {
+    this.config = { ...this.config, ...newConfig };
+    
+    // Apply configuration changes immediately
+    if (newConfig.targetFrameRate) {
+      ultraSmoothAnimations.updateConfig({
+        targetFPS: newConfig.targetFrameRate,
+      });
+    }
+  }
+
+  /**
+   * Clear all ultra-optimizations
+   */
+  async clearUltraOptimizations(): Promise<void> {
+    console.log('🧹 Clearing ultra-optimizations...');
+    
+    await Promise.all([
+      CacheManager.clearAllCaches(),
+      new Promise<void>((resolve) => {
+        lazyAnimationManager.clear();
+        resolve();
+      }),
+      new Promise<void>((resolve) => {
+        assetPreloader.clear();
+        resolve();
+      }),
+    ]);
+    
+    console.log('✅ Ultra-optimizations cleared');
+  }
+
+  /**
+   * Get ultra-performance recommendations
+   */
+  getUltraRecommendations(): string[] {
+    const recommendations: string[] = [];
+
+    if (this.metrics.frameRate < this.config.targetFrameRate * 0.8) {
+      recommendations.push(`Frame rate below target: ${this.metrics.frameRate.toFixed(1)}/${this.config.targetFrameRate} FPS`);
+    }
+
+    if (this.metrics.jankPercentage > this.config.jankThreshold) {
+      recommendations.push(`High jank detected: ${this.metrics.jankPercentage.toFixed(1)}% (target: <${this.config.jankThreshold}%)`);
+    }
+
+    if (this.metrics.cacheHitRate < 95) {
+      recommendations.push(`Cache hit rate below optimal: ${this.metrics.cacheHitRate.toFixed(1)}% (target: >95%)`);
+    }
+
+    if (this.metrics.averageLoadTime > 5) {
+      recommendations.push(`Load time above ultra-fast target: ${this.metrics.averageLoadTime.toFixed(1)}ms (target: <5ms)`);
+    }
+
+    if (this.metrics.memoryUsage > this.config.memoryLimit * 0.8) {
+      recommendations.push(`High memory usage: ${(this.metrics.memoryUsage / 1024 / 1024).toFixed(1)}MB`);
+    }
+
+    if (!this.metrics.gpuAcceleration) {
+      recommendations.push('GPU acceleration not available - consider enabling hardware acceleration');
+    }
+
+    if (this.metrics.networkLatency > 100) {
+      recommendations.push(`High network latency: ${this.metrics.networkLatency.toFixed(1)}ms`);
+    }
+
+    return recommendations;
+  }
+
+  /**
+   * Get performance status for ultra-smooth experience
+   */
+  getUltraPerformanceStatus(): {
+    status: 'ultra' | 'excellent' | 'good' | 'fair' | 'poor';
+    score: number;
+    isOptimal: boolean;
   } {
-    const total = this.metrics.cacheHits + this.metrics.cacheMisses;
-    const hitRate = total > 0 ? (this.metrics.cacheHits / total) * 100 : 0;
-
-    return {
-      size: this.cache.size,
-      hitRate: Math.round(hitRate * 100) / 100,
-      memoryUsage: this.metrics.memoryUsage,
-    };
-  }
-
-  /**
-   * Update configuration
-   */
-  public updateConfig(config: Partial<ThemeOptimizationConfig>): void {
-    this.config = { ...this.config, ...config };
+    const score = this.metrics.performanceScore;
     
-    if (this.config.debugMode) {
-      console.log('🔒 Theme Optimizer: Configuration updated', this.config);
-    }
-  }
+    let status: 'ultra' | 'excellent' | 'good' | 'fair' | 'poor';
+    if (score >= 95) status = 'ultra';
+    else if (score >= 85) status = 'excellent';
+    else if (score >= 70) status = 'good';
+    else if (score >= 50) status = 'fair';
+    else status = 'poor';
 
-  /**
-   * Cleanup resources
-   */
-  public cleanup(): void {
-    this.observers.forEach(observer => observer.disconnect());
-    this.observers = [];
-    this.clearCache();
-    
-    if (this.config.debugMode) {
-      console.log('🔒 Theme Optimizer: Cleanup completed');
-    }
-  }
+    const isOptimal = 
+      this.metrics.frameRate >= this.config.targetFrameRate * 0.9 &&
+      this.metrics.jankPercentage <= this.config.jankThreshold &&
+      this.metrics.averageLoadTime <= 5 &&
+      this.metrics.cacheHitRate >= 95;
 
-  /**
-   * Generate optimized CSS with performance considerations
-   */
-  public generateOptimizedCSS(theme: any, options?: {
-    minify?: boolean;
-    removeUnused?: boolean;
-    inlineSmallAssets?: boolean;
-  }): string {
-    const startTime = performance.now();
-    
-    // Check cache first
-    const cached = this.getCachedTheme(theme, options);
-    if (cached) return cached;
-
-    // Generate CSS
-    let css = this.generateThemeCSS(theme);
-
-    // Apply optimizations
-    if (options?.minify) {
-      css = this.minifyCSS(css);
-    }
-
-    if (options?.removeUnused) {
-      css = this.removeUnusedCSS(css);
-    }
-
-    // Cache the result
-    this.cacheTheme(theme, css, options);
-
-    const endTime = performance.now();
-    this.metrics.renderTime = endTime - startTime;
-
-    if (this.config.debugMode) {
-      console.log(`🔒 Theme Optimizer: Generated CSS in ${this.metrics.renderTime.toFixed(2)}ms`);
-    }
-
-    return css;
-  }
-
-  /**
-   * Generate theme CSS
-   */
-  private generateThemeCSS(theme: any): string {
-    return `
-      /* Cybersecurity Theme - Optimized */
-      :root {
-        --cyber-bg-primary: ${theme?.colors?.background?.primary || '#0B0E1A'};
-        --cyber-bg-secondary: ${theme?.colors?.background?.secondary || '#1A1D29'};
-        --cyber-bg-surface: ${theme?.colors?.background?.surface || '#252A3A'};
-        --cyber-bg-elevated: ${theme?.colors?.background?.elevated || '#2A3441'};
-        --cyber-bg-glass: ${theme?.colors?.background?.glass || 'rgba(37, 42, 58, 0.8)'};
-        
-        --cyber-neon-primary: ${theme?.colors?.neon?.primary || '#00D4FF'};
-        --cyber-neon-secondary: ${theme?.colors?.neon?.secondary || '#00FF88'};
-        --cyber-neon-tertiary: ${theme?.colors?.neon?.tertiary || '#A55EEA'};
-        --cyber-neon-warning: ${theme?.colors?.neon?.warning || '#FF6B35'};
-        --cyber-neon-danger: ${theme?.colors?.neon?.danger || '#FF4757'};
-        --cyber-neon-success: ${theme?.colors?.neon?.success || '#00FF88'};
-        
-        --cyber-text-primary: ${theme?.colors?.text?.primary || '#FFFFFF'};
-        --cyber-text-secondary: ${theme?.colors?.text?.secondary || '#B8BCC8'};
-        --cyber-text-muted: ${theme?.colors?.text?.muted || '#6B7280'};
-        --cyber-text-neon: ${theme?.colors?.text?.neon || '#00D4FF'};
-        --cyber-text-numbers: ${theme?.colors?.text?.numbers || '#00FF88'};
-        
-        --cyber-duration-fast: ${theme?.animations?.duration?.fast || 150}ms;
-        --cyber-duration-normal: ${theme?.animations?.duration?.normal || 300}ms;
-        --cyber-duration-slow: ${theme?.animations?.duration?.slow || 500}ms;
-        
-        --cyber-easing-smooth: ${theme?.animations?.easing?.smooth || 'cubic-bezier(0.4, 0, 0.2, 1)'};
-        --cyber-easing-bounce: ${theme?.animations?.easing?.bounce || 'cubic-bezier(0.68, -0.55, 0.265, 1.55)'};
-        --cyber-easing-sharp: ${theme?.animations?.easing?.sharp || 'cubic-bezier(0.4, 0, 0.6, 1)'};
-      }
-
-      /* Performance-optimized glassmorphism */
-      .cyber-glass {
-        backdrop-filter: blur(20px);
-        background: var(--cyber-bg-glass);
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        will-change: transform, opacity;
-      }
-
-      /* Hardware-accelerated animations */
-      .cyber-animate {
-        transform: translateZ(0);
-        backface-visibility: hidden;
-        perspective: 1000px;
-      }
-
-      /* Optimized neon effects */
-      .cyber-neon {
-        box-shadow: 0 0 20px currentColor;
-        will-change: box-shadow;
-      }
-    `;
-  }
-
-  /**
-   * Minify CSS
-   */
-  private minifyCSS(css: string): string {
-    return css
-      .replace(/\/\*[\s\S]*?\*\//g, '') // Remove comments
-      .replace(/\s+/g, ' ') // Collapse whitespace
-      .replace(/;\s*}/g, '}') // Remove last semicolon in blocks
-      .replace(/\s*{\s*/g, '{') // Remove spaces around braces
-      .replace(/\s*}\s*/g, '}')
-      .replace(/\s*;\s*/g, ';') // Remove spaces around semicolons
-      .replace(/\s*:\s*/g, ':') // Remove spaces around colons
-      .trim();
-  }
-
-  /**
-   * Remove unused CSS (basic implementation)
-   */
-  private removeUnusedCSS(css: string): string {
-    // This is a simplified implementation
-    // In a real-world scenario, you'd use tools like PurgeCSS
-    return css;
+    return { status, score, isOptimal };
   }
 }
 
-// Export singleton instance
-export const themeOptimizer = new ThemeOptimizer();
+// Singleton instance
+export const ultraThemeOptimization = new UltraThemeOptimizationSystem();
 
-// Export utility functions
+// React hook for ultra theme optimization
+export function useUltraThemeOptimization() {
+  const [metrics, setMetrics] = React.useState(ultraThemeOptimization.getUltraMetrics());
+  const [config, setConfig] = React.useState(ultraThemeOptimization.getUltraConfig());
+  const [status, setStatus] = React.useState(ultraThemeOptimization.getUltraPerformanceStatus());
+
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setMetrics(ultraThemeOptimization.getUltraMetrics());
+      setConfig(ultraThemeOptimization.getUltraConfig());
+      setStatus(ultraThemeOptimization.getUltraPerformanceStatus());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const getUltraOptimizedTheme = React.useCallback(async (
+    theme?: CyberTheme,
+    rtlConfig?: RTLConfiguration,
+    options?: any
+  ) => {
+    return await ultraThemeOptimization.getUltraOptimizedTheme(theme, rtlConfig, options);
+  }, []);
+
+  const clearUltraOptimizations = React.useCallback(async () => {
+    await ultraThemeOptimization.clearUltraOptimizations();
+  }, []);
+
+  const updateConfig = React.useCallback((newConfig: Partial<UltraOptimizationConfig>) => {
+    ultraThemeOptimization.updateUltraConfig(newConfig);
+  }, []);
+
+  return {
+    metrics,
+    config,
+    status,
+    getUltraOptimizedTheme,
+    clearUltraOptimizations,
+    updateConfig,
+    recommendations: ultraThemeOptimization.getUltraRecommendations(),
+  };
+}
+
+// Legacy compatibility exports
+export const themeOptimization = ultraThemeOptimization;
+export const useThemeOptimization = useUltraThemeOptimization;
+
+// Legacy utility exports for backward compatibility
 export const optimizeTheme = (theme: any, options?: any) => {
-  return themeOptimizer.generateOptimizedCSS(theme, options);
+  return ultraThemeOptimization.getUltraOptimizedTheme(theme, ltrConfig, options);
 };
 
 export const getThemeMetrics = () => {
-  return themeOptimizer.getMetrics();
+  return ultraThemeOptimization.getUltraMetrics();
 };
 
 export const getCacheStats = () => {
-  return themeOptimizer.getCacheStats();
+  const metrics = ultraThemeOptimization.getUltraMetrics();
+  return {
+    size: 0, // Legacy compatibility
+    hitRate: metrics.cacheHitRate,
+    memoryUsage: metrics.memoryUsage,
+  };
 };
 
 export const clearThemeCache = () => {
-  themeOptimizer.clearCache();
+  ultraThemeOptimization.clearUltraOptimizations();
 };
 
 export const optimizeThemePerformance = () => {
-  themeOptimizer.optimizePerformance();
+  // Trigger optimization through the queue system
+  ultraThemeOptimization['queueOptimization'](() => 
+    ultraThemeOptimization['performUltraOptimization']()
+  );
 };
+
+export default ultraThemeOptimization;

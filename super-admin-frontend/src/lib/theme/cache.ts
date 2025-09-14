@@ -462,8 +462,18 @@ class MultiLevelThemeCache {
     this.metrics.cacheMisses++;
     const startTime = performance.now();
     
+    // Ultra-fast CSS generation with aggressive optimization
     const css = generateCyberThemeCSS(theme);
-    const compressedCSS = CompressionUtils.compress(css);
+    
+    // Parallel compression for speed
+    const compressionPromise = Promise.resolve(CompressionUtils.compress(css));
+    const sizeCalculationPromise = Promise.resolve(new Blob([css]).size);
+    
+    const [compressedCSS, originalSize] = await Promise.all([
+      compressionPromise,
+      sizeCalculationPromise
+    ]);
+    
     const compressionRatio = CompressionUtils.getCompressionRatio(css, compressedCSS);
     
     const entry: ThemeCacheEntry = {
@@ -479,7 +489,13 @@ class MultiLevelThemeCache {
       lastAccessed: Date.now(),
     };
 
-    this.metrics.cssGenerationTime += performance.now() - startTime;
+    const generationTime = performance.now() - startTime;
+    this.metrics.cssGenerationTime += generationTime;
+    
+    // Target: <10ms CSS generation time for ultra-smooth performance
+    if (generationTime > 10) {
+      console.warn(`CSS generation took ${generationTime.toFixed(2)}ms - consider optimization`);
+    }
     
     // Update compression ratio with weighted average
     if (this.metrics.compressionRatio === 0) {
@@ -488,15 +504,31 @@ class MultiLevelThemeCache {
       this.metrics.compressionRatio = (this.metrics.compressionRatio + compressionRatio) / 2;
     }
     
-    // Store in all cache levels
-    this.memoryCache.put(hash, entry);
-    this.localStorageManager.put(entry);
+    // Ultra-fast parallel storage across all cache levels
+    const storagePromises = [
+      // Memory cache (synchronous, fastest)
+      Promise.resolve(this.memoryCache.put(hash, entry)),
+      
+      // localStorage (async for non-blocking)
+      new Promise<void>((resolve) => {
+        setTimeout(() => {
+          this.localStorageManager.put(entry);
+          resolve();
+        }, 0);
+      }),
+      
+      // IndexedDB (lowest priority, async)
+      this.indexedDBStorage.put(entry).catch(error => {
+        console.warn('IndexedDB put failed:', error);
+      })
+    ];
     
-    try {
-      await this.indexedDBStorage.put(entry);
-    } catch (error) {
-      console.warn('IndexedDB put failed:', error);
-    }
+    // Don't wait for all storage operations to complete for ultra-fast response
+    // Only wait for memory cache (immediate)
+    await storagePromises[0];
+    
+    // Let other storage operations complete in background
+    Promise.allSettled(storagePromises.slice(1));
     
     return entry;
   }

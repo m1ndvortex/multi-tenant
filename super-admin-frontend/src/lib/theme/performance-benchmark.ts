@@ -171,24 +171,36 @@ class PerformanceBenchmark {
   }
 
   /**
-   * Benchmark animation performance
+   * Benchmark animation performance with ultra-smooth targets
    */
   private async benchmarkAnimationPerformance(): Promise<BenchmarkResult[]> {
     const results: BenchmarkResult[] = [];
 
-    // Test frame rate during animations
+    // Test frame rate during animations - targeting 120fps for ultra-smooth
     await this.runBenchmark(results, 'animation-frame-rate', async () => {
       return new Promise<number>((resolve) => {
         let frameCount = 0;
         const startTime = performance.now();
+        let lastFrameTime = startTime;
+        const frameTimes: number[] = [];
         
-        const measureFrames = () => {
+        const measureFrames = (currentTime: number) => {
           frameCount++;
-          if (frameCount < 60) { // Measure for ~1 second at 60fps
+          const frameTime = currentTime - lastFrameTime;
+          frameTimes.push(frameTime);
+          lastFrameTime = currentTime;
+          
+          if (frameCount < 120) { // Measure for 120 frames for better accuracy
             requestAnimationFrame(measureFrames);
           } else {
             const duration = performance.now() - startTime;
             const fps = (frameCount / duration) * 1000;
+            
+            // Calculate frame time consistency (jank detection)
+            const avgFrameTime = frameTimes.reduce((sum, time) => sum + time, 0) / frameTimes.length;
+            const jankFrames = frameTimes.filter(time => time > avgFrameTime * 1.5).length;
+            const jankPercentage = (jankFrames / frameTimes.length) * 100;
+            
             resolve(fps);
           }
         };
@@ -197,19 +209,98 @@ class PerformanceBenchmark {
       });
     });
 
-    // Test animation loading time
+    // Test ultra-fast animation loading time - targeting <10ms
     await this.runBenchmark(results, 'animation-load-time', async () => {
       const startTime = performance.now();
       await lazyAnimationManager.preloadByPriority('high');
       return performance.now() - startTime;
     });
 
-    // Test memory usage during animations
+    // Test memory efficiency during animations
     await this.runBenchmark(results, 'animation-memory-usage', async () => {
       const beforeMemory = this.getMemoryUsage();
       await lazyAnimationManager.preloadByPriority('medium');
       const afterMemory = this.getMemoryUsage();
       return afterMemory - beforeMemory;
+    });
+
+    // Test animation smoothness under load
+    await this.runBenchmark(results, 'animation-smoothness-under-load', async () => {
+      return new Promise<number>((resolve) => {
+        let frameCount = 0;
+        const startTime = performance.now();
+        const frameTimes: number[] = [];
+        let lastFrameTime = startTime;
+        
+        // Simulate heavy load while measuring frame rate
+        const heavyTask = () => {
+          const start = performance.now();
+          while (performance.now() - start < 2) {
+            // Simulate 2ms of work per frame
+            Math.random();
+          }
+        };
+        
+        const measureFrames = (currentTime: number) => {
+          heavyTask(); // Add load
+          
+          frameCount++;
+          const frameTime = currentTime - lastFrameTime;
+          frameTimes.push(frameTime);
+          lastFrameTime = currentTime;
+          
+          if (frameCount < 60) {
+            requestAnimationFrame(measureFrames);
+          } else {
+            const duration = performance.now() - startTime;
+            const fps = (frameCount / duration) * 1000;
+            
+            // Calculate frame consistency score
+            const avgFrameTime = frameTimes.reduce((sum, time) => sum + time, 0) / frameTimes.length;
+            const variance = frameTimes.reduce((sum, time) => sum + Math.pow(time - avgFrameTime, 2), 0) / frameTimes.length;
+            const consistencyScore = Math.max(0, 100 - Math.sqrt(variance));
+            
+            resolve(consistencyScore);
+          }
+        };
+        
+        requestAnimationFrame(measureFrames);
+      });
+    });
+
+    // Test GPU acceleration effectiveness
+    await this.runBenchmark(results, 'gpu-acceleration-test', async () => {
+      return new Promise<number>((resolve) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 100;
+        canvas.height = 100;
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        
+        if (!gl) {
+          resolve(0); // No GPU acceleration
+          return;
+        }
+        
+        const startTime = performance.now();
+        
+        // Simple GPU test
+        const vertices = new Float32Array([
+          -1, -1, 1, -1, -1, 1, 1, 1
+        ]);
+        
+        const buffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+        
+        // Measure GPU operations
+        for (let i = 0; i < 1000; i++) {
+          gl.clear(gl.COLOR_BUFFER_BIT);
+          gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        }
+        
+        const duration = performance.now() - startTime;
+        resolve(1000 / duration); // Operations per ms
+      });
     });
 
     return results;

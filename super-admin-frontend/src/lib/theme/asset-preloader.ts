@@ -318,7 +318,7 @@ export class AssetPreloader {
   }
 
   /**
-   * Determine if asset should be preloaded
+   * Determine if asset should be preloaded for ultra-smooth performance
    */
   private shouldPreloadAsset(asset: PreloadableAsset, minPriority: string): boolean {
     const priorityWeight = this.getPriorityWeight(asset.priority);
@@ -334,18 +334,53 @@ export class AssetPreloader {
       return false;
     }
 
-    // Check device capabilities
-    if (this.userAnalytics.deviceCapabilities.isLowEndDevice && asset.priority !== 'critical') {
-      return false;
+    // Ultra-aggressive filtering for low-end devices to maintain smoothness
+    if (this.userAnalytics.deviceCapabilities.isLowEndDevice) {
+      if (asset.priority !== 'critical' && asset.priority !== 'high') {
+        return false;
+      }
+      // Smaller size threshold for low-end devices
+      if (asset.size > 5120) { // 5KB threshold for low-end
+        return false;
+      }
     }
 
-    // Check connection speed
-    if (this.userAnalytics.deviceCapabilities.connectionSpeed === 'slow' && 
-        asset.size > 10240 && asset.priority !== 'critical') { // 10KB threshold
-      return false;
+    // Stricter connection speed filtering for ultra-smooth loading
+    if (this.userAnalytics.deviceCapabilities.connectionSpeed === 'slow') {
+      if (asset.size > 5120 && asset.priority !== 'critical') { // Reduced to 5KB
+        return false;
+      }
+    }
+
+    // Memory pressure consideration
+    if (this.userAnalytics.deviceCapabilities.memorySize > 0) {
+      const memoryUsageRatio = this.getCurrentMemoryUsage() / this.userAnalytics.deviceCapabilities.memorySize;
+      if (memoryUsageRatio > 0.7 && asset.priority !== 'critical') { // 70% memory usage threshold
+        return false;
+      }
+    }
+
+    // Frame rate consideration - don't preload if performance is degrading
+    if (typeof window !== 'undefined' && 'requestAnimationFrame' in window) {
+      // This would be set by performance monitoring
+      const currentFPS = (window as any).__currentFPS || 60;
+      if (currentFPS < 55 && asset.priority !== 'critical') {
+        return false;
+      }
     }
 
     return true;
+  }
+
+  /**
+   * Get current memory usage estimate
+   */
+  private getCurrentMemoryUsage(): number {
+    if (typeof performance !== 'undefined' && 'memory' in performance) {
+      const memory = (performance as any).memory;
+      return memory ? memory.usedJSHeapSize : 0;
+    }
+    return 0;
   }
 
   /**

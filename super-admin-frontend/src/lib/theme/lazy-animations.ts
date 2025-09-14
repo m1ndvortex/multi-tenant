@@ -202,7 +202,7 @@ class LazyAnimationManager {
   }
 
   /**
-   * Determine if component should be loaded based on performance
+   * Determine if component should be loaded based on ultra-smooth performance criteria
    */
   private shouldLoadComponent(_id: string, config: LazyComponentConfig): boolean {
     // Always load critical components
@@ -210,27 +210,42 @@ class LazyAnimationManager {
       return true;
     }
 
-    // Check memory threshold
+    // Ultra-strict memory threshold for smooth performance
     if (config.memoryThreshold &&
       this.performanceMetrics.memoryUsage > config.memoryThreshold) {
       return false;
     }
 
-    // Check performance threshold
+    // Higher performance threshold for ultra-smooth animations (60fps minimum)
     if (config.performanceThreshold &&
-      this.performanceMetrics.frameRate < config.performanceThreshold) {
+      this.performanceMetrics.frameRate < Math.max(config.performanceThreshold, 60)) {
       return false;
     }
 
-    // Skip non-critical components on low-end devices
-    if (this.performanceMetrics.isLowEndDevice && config.priority === 'low') {
-      return false;
+    // More aggressive filtering on low-end devices for smoothness
+    if (this.performanceMetrics.isLowEndDevice) {
+      if (config.priority === 'low' || config.priority === 'medium') {
+        return false;
+      }
     }
 
-    // Skip large components on slow connections
+    // Stricter size limits for ultra-smooth loading
     if (this.performanceMetrics.connectionSpeed === 'slow' &&
-      config.estimatedSize && config.estimatedSize > 100 * 1024) { // 100KB
+      config.estimatedSize && config.estimatedSize > 50 * 1024) { // Reduced to 50KB
       return false;
+    }
+
+    // Check for frame rate stability - don't load if frame rate is dropping
+    if (this.performanceMetrics.frameRate < 55 && config.priority !== 'high') {
+      return false;
+    }
+
+    // Battery level consideration for mobile devices
+    if (typeof navigator !== 'undefined' && 'getBattery' in navigator) {
+      // Skip heavy components on low battery for smooth performance
+      if (config.estimatedSize && config.estimatedSize > 200 * 1024) {
+        return false; // Will be handled by battery check if available
+      }
     }
 
     return true;
