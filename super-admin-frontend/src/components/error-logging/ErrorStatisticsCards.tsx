@@ -37,7 +37,11 @@ const ErrorStatisticsCards: React.FC<ErrorStatisticsCardsProps> = ({
   /**
    * Get severity color class
    */
-  const getSeverityColor = (severity: string): string => {
+  const getSeverityColor = (severity: string | undefined | null): string => {
+    if (!severity) {
+      return 'text-gray-600 bg-gray-50 border-gray-200';
+    }
+    
     switch (severity.toLowerCase()) {
       case 'critical':
         return 'text-red-600 bg-red-50 border-red-200';
@@ -55,7 +59,11 @@ const ErrorStatisticsCards: React.FC<ErrorStatisticsCardsProps> = ({
   /**
    * Get alert level color
    */
-  const getAlertLevelColor = (level: string): string => {
+  const getAlertLevelColor = (level: string | undefined | null): string => {
+    if (!level) {
+      return 'bg-gray-500';
+    }
+    
     switch (level.toLowerCase()) {
       case 'critical':
         return 'bg-red-500';
@@ -73,22 +81,28 @@ const ErrorStatisticsCards: React.FC<ErrorStatisticsCardsProps> = ({
   /**
    * Format number with K/M suffixes
    */
-  const formatNumber = (num: number): string => {
-    if (num >= 1000000) {
-      return `${(num / 1000000).toFixed(1)}M`;
+  const formatNumber = (num: number | undefined | null): string => {
+    // Handle undefined, null, or NaN values
+    if (num == null || isNaN(num)) {
+      return '0';
     }
-    if (num >= 1000) {
-      return `${(num / 1000).toFixed(1)}K`;
+    
+    const numValue = Number(num);
+    if (numValue >= 1000000) {
+      return `${(numValue / 1000000).toFixed(1)}M`;
     }
-    return num.toString();
+    if (numValue >= 1000) {
+      return `${(numValue / 1000).toFixed(1)}K`;
+    }
+    return numValue.toString();
   };
 
   /**
    * Calculate resolution rate percentage
    */
   const getResolutionRate = (): number => {
-    if (!statistics || statistics.total_errors === 0) return 0;
-    return Math.round((statistics.resolved_errors_count / statistics.total_errors) * 100);
+    if (!statistics || (statistics.total_errors || 0) === 0) return 0;
+    return Math.round(((statistics.resolved_errors_count || 0) / (statistics.total_errors || 1)) * 100);
   };
 
   /**
@@ -157,7 +171,7 @@ const ErrorStatisticsCards: React.FC<ErrorStatisticsCardsProps> = ({
             </div>
             <div className="text-right">
               <Badge variant="destructive" className="text-xs">
-                {statistics.critical_errors_last_hour} Critical
+                {statistics.critical_errors_last_hour || 0} Critical
               </Badge>
             </div>
           </div>
@@ -166,10 +180,10 @@ const ErrorStatisticsCards: React.FC<ErrorStatisticsCardsProps> = ({
           <div className="mt-3">
             <div className="flex justify-between text-xs text-gray-500 mb-1">
               <span>Active</span>
-              <span>{statistics.active_errors_count}/{statistics.total_errors}</span>
+              <span>{statistics.active_errors_count || 0}/{statistics.total_errors || 0}</span>
             </div>
             <Progress 
-              value={statistics.total_errors > 0 ? (statistics.active_errors_count / statistics.total_errors) * 100 : 0}
+              value={(statistics.total_errors || 0) > 0 ? ((statistics.active_errors_count || 0) / (statistics.total_errors || 1)) * 100 : 0}
               className="h-2"
             />
           </div>
@@ -228,14 +242,14 @@ const ErrorStatisticsCards: React.FC<ErrorStatisticsCardsProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <div className="text-2xl font-bold text-orange-600">
-                {statistics.error_rate_per_minute.toFixed(1)}
+                {(statistics.error_rate_per_minute || 0).toFixed(1)}
               </div>
               <p className="text-xs text-gray-500 mt-1">
                 Errors per minute
               </p>
             </div>
             <div className="text-right">
-              {getTrendIndicator(statistics.error_rate_per_minute)}
+              {getTrendIndicator(statistics.error_rate_per_minute || 0)}
             </div>
           </div>
           
@@ -267,7 +281,7 @@ const ErrorStatisticsCards: React.FC<ErrorStatisticsCardsProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <div className="text-2xl font-bold text-blue-600 capitalize">
-                {statistics.alert_level}
+                {statistics.alert_level || 'Normal'}
               </div>
               <p className="text-xs text-gray-500 mt-1">
                 Current alert level
@@ -286,7 +300,7 @@ const ErrorStatisticsCards: React.FC<ErrorStatisticsCardsProps> = ({
             <div className="flex items-center gap-2 text-xs text-gray-500">
               <Activity className="h-3 w-3" />
               <span>
-                Updated: {new Date(statistics.last_updated).toLocaleTimeString()}
+                Updated: {statistics.last_updated ? new Date(statistics.last_updated).toLocaleTimeString() : 'N/A'}
               </span>
             </div>
           </div>
@@ -303,7 +317,7 @@ const ErrorStatisticsCards: React.FC<ErrorStatisticsCardsProps> = ({
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {Object.entries(statistics.severity_breakdown).map(([severity, count]) => (
+            {Object.entries(statistics.severity_breakdown || {}).map(([severity, count]) => (
               <div key={severity} className="text-center">
                 <div className={cn(
                   'rounded-lg p-3 border',
@@ -321,11 +335,11 @@ const ErrorStatisticsCards: React.FC<ErrorStatisticsCardsProps> = ({
           </div>
           
           {/* Top Error Sources */}
-          {statistics.top_error_endpoints.length > 0 && (
+          {(statistics.top_error_endpoints || []).length > 0 && (
             <div className="mt-6">
               <h4 className="text-sm font-medium text-gray-700 mb-3">Top Error Endpoints</h4>
               <div className="space-y-2">
-                {statistics.top_error_endpoints.slice(0, 3).map((endpoint, index) => (
+                {(statistics.top_error_endpoints || []).slice(0, 3).map((endpoint, index) => (
                   <div key={index} className="flex items-center justify-between text-sm">
                     <span className="font-mono text-gray-600 truncate">
                       {endpoint.endpoint}
@@ -333,7 +347,7 @@ const ErrorStatisticsCards: React.FC<ErrorStatisticsCardsProps> = ({
                     <div className="flex items-center gap-2">
                       <span className="text-gray-500">{endpoint.count}</span>
                       <Badge variant="outline" className="text-xs">
-                        {endpoint.percentage.toFixed(1)}%
+                        {(endpoint.percentage || 0).toFixed(1)}%
                       </Badge>
                     </div>
                   </div>
