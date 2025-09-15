@@ -1,5 +1,16 @@
 import { vi } from 'vitest';
 import '@testing-library/jest-dom';
+// Polyfill WebSocket for jsdom environment using 'ws'
+// Only if not provided by the environment
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+if (typeof globalThis.WebSocket === 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const WS = require('ws');
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  globalThis.WebSocket = WS;
+}
 
 // Mock ResizeObserver
 global.ResizeObserver = vi.fn().mockImplementation(() => ({
@@ -59,3 +70,12 @@ Object.defineProperty(HTMLElement.prototype, 'releasePointerCapture', {
   writable: true,
   value: vi.fn(),
 });
+
+// Ensure env is available in tests (allows setting VITE_API_URL via process.env)
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+if (!(import.meta as any).env) {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  (import.meta as any).env = {};
+}

@@ -51,9 +51,9 @@ class ApiClient {
       requestConfig.body = JSON.stringify(data);
     }
 
-    // Handle query parameters
+    // Handle query parameters for all methods
     let requestUrl = `${this.baseURL}${url}`;
-    if (config.params && method === 'GET') {
+    if (config.params) {
       const searchParams = new URLSearchParams();
       Object.entries(config.params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {

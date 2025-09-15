@@ -2,7 +2,7 @@
  * Configuration constants for the tenant frontend application
  */
 
-export const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || '';
+export const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || (typeof process !== 'undefined' ? (process as any).env?.VITE_API_URL : '') || '';
 
 export const APP_CONFIG = {
   name: 'HesaabPlus',

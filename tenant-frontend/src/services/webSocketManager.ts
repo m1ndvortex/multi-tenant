@@ -42,15 +42,28 @@ class WebSocketManager {
   }
 
   private getWebSocketUrl(): string {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.hostname;
-    const port = import.meta.env.DEV ? '8000' : window.location.port;
-    
-    // Always use tenant endpoint for tenant frontend
+    // Prefer explicit API URL from env (works in tests/Node and browser)
+    // Try import.meta.env first (Vite), then process.env (Vitest/Node), then window location
+    const envApiUrl = (import.meta as any)?.env?.VITE_API_URL || (typeof process !== 'undefined' ? (process as any).env?.VITE_API_URL : undefined);
+
     const tenantId = this.getTenantId();
     const endpoint = `/ws/tenant/${tenantId}`;
-    
-    return `${protocol}//${host}:${port}${endpoint}`;
+
+    if (envApiUrl) {
+      try {
+        const api = new URL(envApiUrl);
+        const wsProtocol = api.protocol === 'https:' ? 'wss:' : 'ws:';
+        return `${wsProtocol}//${api.host}${endpoint}`;
+      } catch (e) {
+        console.warn('Invalid VITE_API_URL, falling back to window location:', envApiUrl);
+      }
+    }
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.hostname;
+    const port = (window.location as any).port as string | undefined;
+    const portSegment = port ? `:${port}` : '';
+    return `${protocol}//${host}${portSegment}${endpoint}`;
   }
 
   private getTenantId(): string {
@@ -73,7 +86,8 @@ class WebSocketManager {
       }
     }
 
-    // Fallback to default
+    // Fallback to default with warning for visibility
+    console.warn('Tenant ID not found; falling back to default tenant context');
     return 'default';
   }
 
@@ -87,9 +101,16 @@ class WebSocketManager {
       console.log('Connecting to WebSocket:', url);
       
       this.ws = new WebSocket(url);
+      // Fail fast if we can't establish a connection within a short window
+      const connectTimeout = setTimeout(() => {
+        if (this.ws && this.ws.readyState !== WebSocket.OPEN) {
+          console.error('WebSocket connection timeout');
+        }
+      }, 1500);
       
       this.ws.onopen = () => {
         console.log('WebSocket connected for tenant');
+        clearTimeout(connectTimeout);
         this.reconnectAttempts = 0;
         this.reconnectInterval = 1000;
         this.notifyConnectionStatus(true);
@@ -107,6 +128,8 @@ class WebSocketManager {
 
       this.ws.onclose = (event) => {
         console.log('WebSocket disconnected:', event.code, event.reason);
+        // Clear any pending connect timeout on close
+        try { clearTimeout(connectTimeout); } catch {}
         this.notifyConnectionStatus(false);
         this.stopPingInterval();
         
@@ -353,6 +376,10 @@ class WebSocketManager {
   // Manual cache invalidation trigger (for testing)
   public async triggerCacheInvalidation(cacheKey: string): Promise<void> {
     try {
+      if (!cacheKey || cacheKey.trim().length === 0) {
+        console.error('Cache key is required to trigger invalidation');
+        return;
+      }
       const tenantId = this.getTenantId();
       await apiClient.post('/ws/invalidate-cache', {}, {
         params: { 

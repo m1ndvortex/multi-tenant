@@ -42,15 +42,28 @@ class WebSocketManager {
   }
 
   private getWebSocketUrl(): string {
+    // Prefer explicit API URL from env (supports Vitest/Node and browser)
+    const envApiUrl = (import.meta as any)?.env?.VITE_API_URL || (typeof process !== 'undefined' ? (process as any).env?.VITE_API_URL : undefined);
+
+    // Determine endpoint based on app type
+    const appType = (import.meta as any)?.env?.VITE_APP_TYPE || 'super-admin';
+    const endpoint = appType === 'super-admin' ? '/ws/admin' : `/ws/tenant/${this.getTenantId()}`;
+
+    if (envApiUrl) {
+      try {
+        const api = new URL(envApiUrl);
+        const wsProtocol = api.protocol === 'https:' ? 'wss:' : 'ws:';
+        return `${wsProtocol}//${api.host}${endpoint}`;
+      } catch (e) {
+        console.warn('Invalid VITE_API_URL, falling back to window location:', envApiUrl);
+      }
+    }
+
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.hostname;
-    const port = import.meta.env.DEV ? '8000' : window.location.port;
-    
-    // Determine endpoint based on app type
-    const appType = import.meta.env.VITE_APP_TYPE || 'super-admin';
-    const endpoint = appType === 'super-admin' ? '/ws/admin' : `/ws/tenant/${this.getTenantId()}`;
-    
-    return `${protocol}//${host}:${port}${endpoint}`;
+    const port = (window.location as any).port as string | undefined;
+    const portSegment = port ? `:${port}` : '';
+    return `${protocol}//${host}${portSegment}${endpoint}`;
   }
 
   private getTenantId(): string {

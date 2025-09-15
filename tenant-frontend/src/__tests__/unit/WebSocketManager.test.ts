@@ -25,7 +25,7 @@ describe('Tenant WebSocketManager Integration Tests', () => {
     
     while (retries < maxRetries) {
       try {
-        const response = await fetch(`${BACKEND_URL}/health`);
+  const response = await fetch(`${BACKEND_URL}/api/health/`);
         if (response.ok) break;
       } catch (error) {
         console.log(`Waiting for backend... (${retries + 1}/${maxRetries})`);
@@ -40,6 +40,29 @@ describe('Tenant WebSocketManager Integration Tests', () => {
 
     // Set test tenant ID in localStorage
     localStorage.setItem('tenant_id', TEST_TENANT_ID);
+
+    // Authenticate as super admin to allow invalidation endpoints
+    try {
+      const credsResp = await fetch('http://host.docker.internal:3000/../backend/test_login.json').catch(() => null);
+      const fallback = { email: 'admin@hesaabplus.com', password: 'admin123' };
+      const creds = fallback; // In container, read constants
+
+      const resp = await fetch(`${BACKEND_URL}/api/auth/super-admin/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: creds.email, password: creds.password })
+      });
+      if (resp.ok) {
+        const json = await resp.json();
+        // Store token for both super admin and tenant key so ApiClient sends Authorization
+        localStorage.setItem('super_admin_token', json.access_token);
+        localStorage.setItem('tenant_token', json.access_token);
+      } else {
+        console.warn('Super admin login failed in tests; invalidation tests may fail');
+      }
+    } catch (e) {
+      console.warn('Super admin auth setup failed:', e);
+    }
   });
 
   beforeEach(() => {

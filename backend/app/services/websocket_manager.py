@@ -136,6 +136,39 @@ class WebSocketConnectionManager:
             # Broadcast to all tenants
             for tid in self.tenant_connections:
                 await self.broadcast_to_tenant(tid, message)
+
+        # Additionally, emit a lightweight data_update for common entities inferred from cache key
+        try:
+            inferred_entity = None
+            key_lower = cache_key.lower()
+            if any(k in key_lower for k in ("invoice", "invoices")):
+                inferred_entity = "invoice"
+            elif any(k in key_lower for k in ("customer", "customers")):
+                inferred_entity = "customer"
+            elif any(k in key_lower for k in ("product", "products")):
+                inferred_entity = "product"
+            elif "dashboard" in key_lower:
+                inferred_entity = "dashboard"
+            elif any(k in key_lower for k in ("installment", "installments")):
+                inferred_entity = "installment"
+
+            if inferred_entity:
+                update_payload = {
+                    "source": "cache_invalidation",
+                    "cache_key": cache_key,
+                    "meta": (data or {})
+                }
+                if target_type == "tenant" and tenant_id:
+                    await self.notify_data_update("update", inferred_entity, update_payload, tenant_id=tenant_id)
+                elif target_type == "all":
+                    # Notify all current tenant connections
+                    for tid in self.tenant_connections:
+                        await self.notify_data_update("update", inferred_entity, update_payload, tenant_id=tid)
+                else:
+                    # Admin-only invalidations still notify admins
+                    await self.notify_data_update("update", inferred_entity, update_payload, tenant_id=None)
+        except Exception as e:
+            logger.error(f"Failed to emit inferred data_update for cache key {cache_key}: {e}")
     
     async def notify_data_update(self, update_type: str, entity: str, data: dict, tenant_id: Optional[str] = None):
         """Notify about data updates"""
@@ -159,7 +192,8 @@ class WebSocketConnectionManager:
         try:
             # Create Redis connection for pub/sub
             self.redis_pubsub = redis.from_url(settings.redis_url).pubsub()
-            await self.redis_pubsub.subscribe(
+            # Use pattern subscription so we can listen to all dynamic channels
+            await self.redis_pubsub.psubscribe(
                 "cache_invalidation:*",
                 "data_update:*",
                 "system_notification:*"
@@ -183,7 +217,12 @@ class WebSocketConnectionManager:
             self.pubsub_task = None
         
         if self.redis_pubsub:
-            await self.redis_pubsub.unsubscribe()
+            # Use punsubscribe to match psubscribe used when starting listener
+            try:
+                await self.redis_pubsub.punsubscribe()
+            except Exception:
+                # Fallback in case implementation requires unsubscribe
+                await self.redis_pubsub.unsubscribe()
             await self.redis_pubsub.close()
             self.redis_pubsub = None
             
@@ -193,10 +232,11 @@ class WebSocketConnectionManager:
         """Background task to listen for Redis pub/sub messages"""
         try:
             async for message in self.redis_pubsub.listen():
-                if message['type'] == 'message':
+                # Handle both direct and pattern messages
+                if message['type'] in ('message', 'pmessage'):
                     try:
                         # Parse channel and data
-                        channel = message['channel'].decode('utf-8')
+                        channel = message['channel'].decode('utf-8') if isinstance(message.get('channel'), (bytes, bytearray)) else str(message.get('channel'))
                         data = json.loads(message['data'].decode('utf-8'))
                         
                         if channel.startswith('cache_invalidation:'):
