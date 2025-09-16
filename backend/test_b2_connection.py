@@ -54,7 +54,13 @@ def test_b2_connection():
         with tempfile.NamedTemporaryFile(suffix='.txt', delete=False) as download_file:
             download_path = Path(download_file.name)
         
-        downloaded_path = cloud_storage.download_from_b2(object_key, download_path)
+        # Convert s3://bucket/key to the full object key part for download
+        if location.startswith("s3://"):
+            full_key = "/".join(location.split("/", 3)[3:])
+        else:
+            full_key = object_key
+
+        downloaded_path = cloud_storage.download_from_b2(full_key, download_path)
         
         # Verify content
         with open(downloaded_path, 'r') as f:
@@ -76,7 +82,7 @@ def test_b2_connection():
         
         # Clean up test file
         print("\n5. Cleaning up...")
-        if cloud_storage.delete_from_b2(object_key):
+        if cloud_storage.delete_from_b2(full_key):
             print("Test file deleted successfully")
         
         # Clean up local files

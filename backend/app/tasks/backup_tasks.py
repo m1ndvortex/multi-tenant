@@ -13,11 +13,11 @@ logger = logging.getLogger(__name__)
 
 
 @celery_app.task(bind=True, name="app.tasks.backup_tenant_data")
-def backup_tenant_data(self, tenant_id: str):
+def backup_tenant_data(self, tenant_id: str, storage_provider: str = "backblaze_b2"):
     """Backup data for a specific tenant"""
     db = None
     try:
-        logger.info(f"Starting backup for tenant: {tenant_id}")
+        logger.info(f"Starting backup for tenant: {tenant_id} to {storage_provider}")
         
         # Create database session
         db = SessionLocal()
@@ -125,6 +125,25 @@ def full_platform_backup(self):
         
         # Execute disaster recovery backup
         result = create_disaster_recovery_backup.apply()
+        
+        return result.get()
+        
+    except Exception as exc:
+        logger.error(f"Full platform backup failed: {exc}")
+        raise self.retry(exc=exc, countdown=300, max_retries=2)
+
+
+@celery_app.task(bind=True, name="app.tasks.backup_full_platform")
+def backup_full_platform(self, storage_provider: str = "backblaze_b2"):
+    """Backup full platform data for disaster recovery"""
+    try:
+        logger.info(f"Starting full platform backup to {storage_provider}")
+        
+        # Import disaster recovery task
+        from app.tasks.disaster_recovery_tasks import create_disaster_recovery_backup
+        
+        # Execute disaster recovery backup with specified storage provider
+        result = create_disaster_recovery_backup.apply(args=[storage_provider])
         
         return result.get()
         

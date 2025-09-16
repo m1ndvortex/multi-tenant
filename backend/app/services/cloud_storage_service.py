@@ -92,7 +92,11 @@ class CloudStorageService:
                     endpoint_url=settings.cloudflare_r2_endpoint,
                     aws_access_key_id=settings.cloudflare_r2_access_key,
                     aws_secret_access_key=settings.cloudflare_r2_secret_key,
-                    region_name='auto'
+                    region_name='auto',
+                    config=boto3.session.Config(
+                        signature_version='s3v4',
+                        s3={'addressing_style': 'virtual'}
+                    )
                 )
                 logger.info("Cloudflare R2 client initialized successfully")
             except Exception as e:
@@ -100,12 +104,38 @@ class CloudStorageService:
         else:
             logger.warning("Cloudflare R2 credentials not configured")
     
-    def upload_to_b2(self, file_path: Path, object_key: str, metadata: Dict = None) -> str:
-        """Upload file to Backblaze B2"""
+    def generate_backup_path(self, backup_type: str, tenant_id: str = None, timestamp: datetime = None) -> str:
+        """Generate organized backup path with clean folder structure"""
+        if not timestamp:
+            timestamp = datetime.now(timezone.utc)
+        
+        year = timestamp.strftime("%Y")
+        month = timestamp.strftime("%m")
+        day = timestamp.strftime("%d")
+        
+        if backup_type == "emergency":
+            # emergency-backups/2024/01/15/
+            return f"emergency-backups/{year}/{month}/{day}"
+        elif backup_type == "tenant":
+            # tenant-backups/2024/01/15/tenant_123/
+            return f"tenant-backups/{year}/{month}/{day}/tenant_{tenant_id}"
+        elif backup_type == "disaster_recovery":
+            # disaster-recovery/2024/01/15/
+            return f"disaster-recovery/{year}/{month}/{day}"
+        else:
+            # general-backups/2024/01/15/
+            return f"general-backups/{year}/{month}/{day}"
+
+    def upload_to_b2(self, file_path: Path, object_key: str, metadata: Dict = None, backup_type: str = "general", tenant_id: str = None) -> str:
+        """Upload file to Backblaze B2 with organized folder structure"""
         if not self.b2_client:
             raise Exception("Backblaze B2 client not initialized")
         
         try:
+            # Generate organized path
+            folder_path = self.generate_backup_path(backup_type, tenant_id)
+            full_object_key = f"{folder_path}/{object_key}"
+            
             # Prepare metadata
             s3_metadata = {}
             if metadata:
@@ -116,17 +146,22 @@ class CloudStorageService:
             s3_metadata.update({
                 "x-amz-meta-uploaded-at": datetime.now(timezone.utc).isoformat(),
                 "x-amz-meta-service": "hesaabplus-backup",
-                "x-amz-meta-file-size": str(file_path.stat().st_size)
+                "x-amz-meta-file-size": str(file_path.stat().st_size),
+                "x-amz-meta-backup-type": backup_type,
+                "x-amz-meta-folder-path": folder_path
             })
             
+            if tenant_id:
+                s3_metadata["x-amz-meta-tenant-id"] = tenant_id
+            
             # Upload file
-            logger.info(f"Uploading {file_path} to Backblaze B2 as {object_key}")
+            logger.info(f"Uploading {file_path} to Backblaze B2 as {full_object_key}")
             
             with open(file_path, 'rb') as file_data:
                 self.b2_client.upload_fileobj(
                     file_data,
                     settings.backblaze_b2_bucket,
-                    object_key,
+                    full_object_key,
                     ExtraArgs={
                         'Metadata': s3_metadata,
                         'ServerSideEncryption': 'AES256'
@@ -134,7 +169,7 @@ class CloudStorageService:
                 )
             
             # Return the object location
-            location = f"s3://{settings.backblaze_b2_bucket}/{object_key}"
+            location = f"s3://{settings.backblaze_b2_bucket}/{full_object_key}"
             logger.info(f"Successfully uploaded to Backblaze B2: {location}")
             return location
             
@@ -146,12 +181,16 @@ class CloudStorageService:
             logger.error(f"Backblaze B2 upload failed: {e}")
             raise
     
-    def upload_to_r2(self, file_path: Path, object_key: str, metadata: Dict = None) -> str:
-        """Upload file to Cloudflare R2"""
+    def upload_to_r2(self, file_path: Path, object_key: str, metadata: Dict = None, backup_type: str = "general", tenant_id: str = None) -> str:
+        """Upload file to Cloudflare R2 with organized folder structure"""
         if not self.r2_client:
             raise Exception("Cloudflare R2 client not initialized")
         
         try:
+            # Generate organized path
+            folder_path = self.generate_backup_path(backup_type, tenant_id)
+            full_object_key = f"{folder_path}/{object_key}"
+            
             # Prepare metadata
             s3_metadata = {}
             if metadata:
@@ -162,24 +201,29 @@ class CloudStorageService:
             s3_metadata.update({
                 "x-amz-meta-uploaded-at": datetime.now(timezone.utc).isoformat(),
                 "x-amz-meta-service": "hesaabplus-backup",
-                "x-amz-meta-file-size": str(file_path.stat().st_size)
+                "x-amz-meta-file-size": str(file_path.stat().st_size),
+                "x-amz-meta-backup-type": backup_type,
+                "x-amz-meta-folder-path": folder_path
             })
             
+            if tenant_id:
+                s3_metadata["x-amz-meta-tenant-id"] = tenant_id
+            
             # Upload file
-            logger.info(f"Uploading {file_path} to Cloudflare R2 as {object_key}")
+            logger.info(f"Uploading {file_path} to Cloudflare R2 as {full_object_key}")
             
             with open(file_path, 'rb') as file_data:
                 self.r2_client.upload_fileobj(
                     file_data,
                     settings.cloudflare_r2_bucket,
-                    object_key,
+                    full_object_key,
                     ExtraArgs={
                         'Metadata': s3_metadata
                     }
                 )
             
             # Return the object location
-            location = f"s3://{settings.cloudflare_r2_bucket}/{object_key}"
+            location = f"s3://{settings.cloudflare_r2_bucket}/{full_object_key}"
             logger.info(f"Successfully uploaded to Cloudflare R2: {location}")
             return location
             
@@ -407,11 +451,30 @@ class CloudStorageService:
         if self.r2_client:
             try:
                 start_time = time.time()
-                self.r2_client.head_bucket(Bucket=settings.cloudflare_r2_bucket)
-                response_time = time.time() - start_time
-                results["cloudflare_r2"]["available"] = True
-                results["cloudflare_r2"]["response_time"] = response_time
-                self.health_status[StorageProvider.CLOUDFLARE_R2] = StorageHealthStatus.HEALTHY
+                # Some R2 tokens (Object-scoped) do not allow HeadBucket; try it first, then fall back
+                try:
+                    self.r2_client.head_bucket(Bucket=settings.cloudflare_r2_bucket)
+                    response_time = time.time() - start_time
+                    results["cloudflare_r2"]["available"] = True
+                    results["cloudflare_r2"]["response_time"] = response_time
+                    self.health_status[StorageProvider.CLOUDFLARE_R2] = StorageHealthStatus.HEALTHY
+                except Exception as head_err:
+                    # Fallback: attempt a lightweight ListObjectsV2 which is permitted by object-scoped tokens
+                    try:
+                        start_time = time.time()
+                        self.r2_client.list_objects_v2(
+                            Bucket=settings.cloudflare_r2_bucket,
+                            MaxKeys=1
+                        )
+                        response_time = time.time() - start_time
+                        results["cloudflare_r2"]["available"] = True
+                        results["cloudflare_r2"]["response_time"] = response_time
+                        self.health_status[StorageProvider.CLOUDFLARE_R2] = StorageHealthStatus.HEALTHY
+                        # Keep a note that head_bucket failed but list worked
+                        results["cloudflare_r2"]["error"] = f"head_bucket failed: {head_err}"
+                    except Exception as list_err:
+                        results["cloudflare_r2"]["error"] = f"head_bucket failed: {head_err}; list_objects_v2 failed: {list_err}"
+                        self.health_status[StorageProvider.CLOUDFLARE_R2] = StorageHealthStatus.UNAVAILABLE
             except Exception as e:
                 results["cloudflare_r2"]["error"] = str(e)
                 self.health_status[StorageProvider.CLOUDFLARE_R2] = StorageHealthStatus.UNAVAILABLE

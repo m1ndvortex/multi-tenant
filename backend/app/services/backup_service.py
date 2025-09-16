@@ -264,10 +264,10 @@ class BackupService:
             # Step 4: Calculate checksum
             checksum = self.calculate_checksum(encrypted_path)
             
-            # Step 5: Upload to both cloud storage providers
+            # Step 5: Upload to both cloud storage providers with organized structure
             final_filename = f"{backup_name}.sql.gz.enc"
             
-            # Upload to Backblaze B2 (primary)
+            # Upload to Backblaze B2 (primary) with tenant backup structure
             b2_location = None
             try:
                 b2_location = self.cloud_storage.upload_to_b2(
@@ -278,13 +278,15 @@ class BackupService:
                         "backup_type": "tenant_daily",
                         "checksum": checksum,
                         "created_at": datetime.now(timezone.utc).isoformat()
-                    }
+                    },
+                    backup_type="tenant",
+                    tenant_id=tenant_id
                 )
                 logger.info(f"Uploaded to Backblaze B2: {b2_location}")
             except Exception as e:
                 logger.error(f"Backblaze B2 upload failed: {e}")
             
-            # Upload to Cloudflare R2 (secondary)
+            # Upload to Cloudflare R2 (secondary) with tenant backup structure
             r2_location = None
             try:
                 r2_location = self.cloud_storage.upload_to_r2(
@@ -295,7 +297,9 @@ class BackupService:
                         "backup_type": "tenant_daily",
                         "checksum": checksum,
                         "created_at": datetime.now(timezone.utc).isoformat()
-                    }
+                    },
+                    backup_type="tenant",
+                    tenant_id=tenant_id
                 )
                 logger.info(f"Uploaded to Cloudflare R2: {r2_location}")
             except Exception as e:
@@ -464,4 +468,438 @@ class BackupService:
             
         except Exception as e:
             logger.error(f"Backup integrity verification failed for {backup_id}: {e}")
+            raise
+    
+    def get_all_tenant_backups(self, offset: int = 0, limit: int = 10, tenant_id: Optional[str] = None, 
+                              status: Optional[str] = None, provider: Optional[str] = None) -> List[Dict]:
+        """Get all tenant backups with filtering and pagination"""
+        try:
+            query = self.db.query(BackupLog).filter(BackupLog.backup_type == BackupType.TENANT_DAILY)
+            
+            # Apply filters
+            if tenant_id:
+                query = query.filter(BackupLog.tenant_id == tenant_id)
+            
+            if status:
+                try:
+                    status_enum = BackupStatus(status)
+                    query = query.filter(BackupLog.status == status_enum)
+                except ValueError:
+                    pass  # Invalid status, ignore filter
+            
+            # Provider filter would need to be applied to storage_locations JSON
+            if provider:
+                # This is a simplified approach - in production you might want to use JSON operators
+                query = query.filter(BackupLog.storage_locations.isnot(None))
+            
+            backups = query.order_by(BackupLog.created_at.desc()).offset(offset).limit(limit).all()
+            
+            backup_list = []
+            for backup in backups:
+                # Filter by provider if specified
+                if provider:
+                    has_provider = False
+                    for location in backup.storage_locations or []:
+                        if location.get("provider") == provider:
+                            has_provider = True
+                            break
+                    if not has_provider:
+                        continue
+                
+                # Map to frontend expected format
+                storage_provider = "backblaze_b2"  # Default
+                if backup.storage_locations:
+                    for location in backup.storage_locations:
+                        if location.get("provider") == "cloudflare_r2":
+                            storage_provider = "cloudflare_r2"
+                            break
+                
+                backup_info = {
+                    "id": str(backup.id),
+                    "tenant_id": str(backup.tenant_id) if backup.tenant_id else None,
+                    "tenant_name": f"Tenant {backup.tenant_id}" if backup.tenant_id else "Unknown",
+                    "backup_date": backup.created_at.isoformat(),
+                    "file_size": backup.compressed_size or backup.file_size or 0,
+                    "storage_provider": storage_provider,
+                    "file_path": backup.backup_name,
+                    "encryption_status": "encrypted",
+                    "integrity_status": "verified" if backup.status.value == "completed" else "pending",
+                    "created_at": backup.created_at.isoformat()
+                }
+                backup_list.append(backup_info)
+            
+            return backup_list
+            
+        except Exception as e:
+            logger.error(f"Failed to get all tenant backups: {e}")
+            raise
+    
+    def get_tenant_backups_count(self, tenant_id: Optional[str] = None, status: Optional[str] = None, 
+                                provider: Optional[str] = None) -> int:
+        """Get count of tenant backups with filtering"""
+        try:
+            query = self.db.query(BackupLog).filter(BackupLog.backup_type == BackupType.TENANT_DAILY)
+            
+            if tenant_id:
+                query = query.filter(BackupLog.tenant_id == tenant_id)
+            
+            if status:
+                try:
+                    status_enum = BackupStatus(status)
+                    query = query.filter(BackupLog.status == status_enum)
+                except ValueError:
+                    pass
+            
+            if provider:
+                query = query.filter(BackupLog.storage_locations.isnot(None))
+            
+            return query.count()
+            
+        except Exception as e:
+            logger.error(f"Failed to get tenant backups count: {e}")
+            return 0
+    
+    def get_disaster_recovery_backups(self, offset: int = 0, limit: int = 10, 
+                                    backup_type: Optional[str] = None) -> List[Dict]:
+        """Get disaster recovery (full platform) backups"""
+        try:
+            query = self.db.query(BackupLog).filter(BackupLog.backup_type == BackupType.FULL_PLATFORM)
+            
+            if backup_type:
+                # Additional filtering by backup type if needed
+                pass
+            
+            backups = query.order_by(BackupLog.created_at.desc()).offset(offset).limit(limit).all()
+            
+            backup_list = []
+            for backup in backups:
+                backup_info = {
+                    "backup_id": str(backup.id),
+                    "backup_name": backup.backup_name,
+                    "backup_type": backup.backup_type.value,
+                    "status": backup.status.value,
+                    "created_at": backup.created_at.isoformat(),
+                    "completed_at": backup.completed_at.isoformat() if backup.completed_at else None,
+                    "file_size": backup.file_size,
+                    "compressed_size": backup.compressed_size,
+                    "checksum": backup.checksum,
+                    "storage_locations": backup.storage_locations,
+                    "duration_seconds": backup.duration_seconds,
+                    "error_message": backup.error_message
+                }
+                backup_list.append(backup_info)
+            
+            return backup_list
+            
+        except Exception as e:
+            logger.error(f"Failed to get disaster recovery backups: {e}")
+            raise
+    
+    def get_disaster_recovery_backups_count(self, backup_type: Optional[str] = None) -> int:
+        """Get count of disaster recovery backups"""
+        try:
+            query = self.db.query(BackupLog).filter(BackupLog.backup_type == BackupType.FULL_PLATFORM)
+            return query.count()
+            
+        except Exception as e:
+            logger.error(f"Failed to get disaster recovery backups count: {e}")
+            return 0
+    
+    def get_backups_since(self, since_date: datetime) -> List[Dict]:
+        """Get backups created since a specific date"""
+        try:
+            backups = (
+                self.db.query(BackupLog)
+                .filter(BackupLog.created_at >= since_date)
+                .order_by(BackupLog.created_at.desc())
+                .all()
+            )
+            
+            backup_list = []
+            for backup in backups:
+                backup_info = {
+                    "backup_id": str(backup.id),
+                    "backup_name": backup.backup_name,
+                    "tenant_id": str(backup.tenant_id) if backup.tenant_id else None,
+                    "backup_type": backup.backup_type.value,
+                    "status": backup.status.value,
+                    "created_at": backup.created_at.isoformat(),
+                    "completed_at": backup.completed_at.isoformat() if backup.completed_at else None,
+                    "file_size": backup.file_size,
+                    "compressed_size": backup.compressed_size,
+                    "checksum": backup.checksum,
+                    "storage_locations": backup.storage_locations,
+                    "duration_seconds": backup.duration_seconds,
+                    "error_message": backup.error_message
+                }
+                backup_list.append(backup_info)
+            
+            return backup_list
+            
+        except Exception as e:
+            logger.error(f"Failed to get backups since {since_date}: {e}")
+            raise
+    
+    def get_backups_older_than(self, cutoff_date: datetime) -> List[Dict]:
+        """Get backups older than a specific date"""
+        try:
+            backups = (
+                self.db.query(BackupLog)
+                .filter(BackupLog.created_at < cutoff_date)
+                .filter(BackupLog.status == BackupStatus.COMPLETED)
+                .order_by(BackupLog.created_at.asc())
+                .all()
+            )
+            
+            backup_list = []
+            for backup in backups:
+                backup_info = {
+                    "backup_id": str(backup.id),
+                    "backup_name": backup.backup_name,
+                    "tenant_id": str(backup.tenant_id) if backup.tenant_id else None,
+                    "backup_type": backup.backup_type.value,
+                    "status": backup.status.value,
+                    "created_at": backup.created_at.isoformat(),
+                    "completed_at": backup.completed_at.isoformat() if backup.completed_at else None,
+                    "file_size": backup.file_size,
+                    "compressed_size": backup.compressed_size,
+                    "checksum": backup.checksum,
+                    "storage_locations": backup.storage_locations,
+                    "duration_seconds": backup.duration_seconds
+                }
+                backup_list.append(backup_info)
+            
+            return backup_list
+            
+        except Exception as e:
+            logger.error(f"Failed to get backups older than {cutoff_date}: {e}")
+            raise
+    
+    def restore_tenant_backup(self, backup_id: str, target_tenant_id: str = None, storage_provider: str = "backblaze_b2") -> Dict:
+        """Restore tenant backup from cloud storage"""
+        temp_files = []
+        
+        try:
+            # Get backup information
+            backup = self.db.query(BackupLog).filter(BackupLog.id == backup_id).first()
+            if not backup:
+                raise Exception(f"Backup {backup_id} not found")
+            
+            if backup.status != BackupStatus.COMPLETED:
+                raise Exception(f"Backup {backup_id} is not completed (status: {backup.status.value})")
+            
+            # Use original tenant_id if target not specified
+            if not target_tenant_id:
+                target_tenant_id = str(backup.tenant_id)
+            
+            logger.info(f"Starting restore of backup {backup_id} for tenant {target_tenant_id}")
+            
+            # Find storage location for specified provider
+            storage_location = None
+            for location in backup.storage_locations or []:
+                if location.get("provider") == storage_provider:
+                    storage_location = location["location"]
+                    break
+            
+            if not storage_location:
+                raise Exception(f"Backup not found in {storage_provider}")
+            
+            # Step 1: Download encrypted backup file
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            encrypted_file = self.temp_dir / f"restore_{backup_id}_{timestamp}.enc"
+            temp_files.append(encrypted_file)
+            
+            if storage_provider == "backblaze_b2":
+                self.cloud_storage.download_from_b2(storage_location, encrypted_file)
+            elif storage_provider == "cloudflare_r2":
+                self.cloud_storage.download_from_r2(storage_location, encrypted_file)
+            else:
+                raise Exception(f"Unsupported storage provider: {storage_provider}")
+            
+            logger.info(f"Downloaded backup file: {encrypted_file}")
+            
+            # Step 2: Verify checksum
+            actual_checksum = self.calculate_checksum(encrypted_file)
+            if actual_checksum != backup.checksum:
+                raise Exception(f"Checksum mismatch: expected {backup.checksum}, got {actual_checksum}")
+            
+            logger.info("Backup file integrity verified")
+            
+            # Step 3: Decrypt the file
+            compressed_file = self.temp_dir / f"restore_{backup_id}_{timestamp}.gz"
+            temp_files.append(compressed_file)
+            self.decrypt_file(encrypted_file, str(backup.tenant_id), compressed_file)
+            
+            # Step 4: Decompress the file
+            sql_file = self.temp_dir / f"restore_{backup_id}_{timestamp}.sql"
+            temp_files.append(sql_file)
+            
+            with gzip.open(compressed_file, 'rb') as f_in:
+                with open(sql_file, 'wb') as f_out:
+                    f_out.writelines(f_in)
+            
+            logger.info(f"Decompressed backup file: {sql_file}")
+            
+            # Step 5: Restore to database
+            # Parse database URL for connection parameters
+            db_url = settings.database_url
+            if db_url.startswith("postgresql://"):
+                db_url = db_url.replace("postgresql://", "")
+                if "@" in db_url:
+                    auth_part, host_part = db_url.split("@", 1)
+                    if ":" in auth_part:
+                        username, password = auth_part.split(":", 1)
+                    else:
+                        username = auth_part
+                        password = ""
+                    
+                    if "/" in host_part:
+                        host_port, database = host_part.split("/", 1)
+                    else:
+                        host_port = host_part
+                        database = "hesaabplus"
+                    
+                    if ":" in host_port:
+                        host, port = host_port.split(":", 1)
+                    else:
+                        host = host_port
+                        port = "5432"
+                else:
+                    host = "postgres"
+                    port = "5432"
+                    database = "hesaabplus"
+                    username = "hesaab"
+                    password = os.getenv("POSTGRES_PASSWORD", "")
+            
+            # Execute SQL restore
+            psql_cmd = [
+                "psql",
+                f"--host={host}",
+                f"--port={port}",
+                f"--username={username}",
+                f"--dbname={database}",
+                "--no-password",
+                "--quiet",
+                f"--file={sql_file}"
+            ]
+            
+            env = os.environ.copy()
+            env["PGPASSWORD"] = password
+            
+            logger.info(f"Executing SQL restore for tenant {target_tenant_id}")
+            result = subprocess.run(
+                psql_cmd,
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=600  # 10 minutes timeout
+            )
+            
+            if result.returncode != 0:
+                logger.error(f"SQL restore failed: {result.stderr}")
+                raise Exception(f"SQL restore failed: {result.stderr}")
+            
+            logger.info(f"Backup restore completed successfully for tenant {target_tenant_id}")
+            
+            return {
+                "status": "success",
+                "backup_id": backup_id,
+                "original_tenant_id": str(backup.tenant_id),
+                "target_tenant_id": target_tenant_id,
+                "storage_provider": storage_provider,
+                "restored_at": datetime.now(timezone.utc).isoformat(),
+                "file_size": sql_file.stat().st_size,
+                "message": f"Successfully restored backup {backup.backup_name}"
+            }
+            
+        except Exception as e:
+            logger.error(f"Backup restore failed for {backup_id}: {e}")
+            raise
+        
+        finally:
+            # Clean up temporary files
+            for temp_file in temp_files:
+                try:
+                    if temp_file.exists():
+                        temp_file.unlink()
+                        logger.debug(f"Cleaned up temporary file: {temp_file}")
+                except Exception as e:
+                    logger.warning(f"Failed to clean up {temp_file}: {e}")
+    
+    def delete_backup(self, backup_id: str, delete_from_storage: bool = True) -> Dict:
+        """Delete backup from database and optionally from cloud storage"""
+        try:
+            backup = self.db.query(BackupLog).filter(BackupLog.id == backup_id).first()
+            if not backup:
+                raise Exception(f"Backup {backup_id} not found")
+            
+            deleted_from_storage = []
+            storage_errors = []
+            
+            # Delete from cloud storage if requested
+            if delete_from_storage and backup.storage_locations:
+                for location_info in backup.storage_locations:
+                    provider = location_info.get("provider")
+                    location = location_info.get("location")
+                    
+                    if not provider or not location:
+                        continue
+                    
+                    try:
+                        if provider == "backblaze_b2":
+                            success = self.cloud_storage.delete_from_b2(location)
+                            if success:
+                                deleted_from_storage.append(provider)
+                            else:
+                                storage_errors.append(f"Failed to delete from {provider}")
+                        elif provider == "cloudflare_r2":
+                            success = self.cloud_storage.delete_from_r2(location)
+                            if success:
+                                deleted_from_storage.append(provider)
+                            else:
+                                storage_errors.append(f"Failed to delete from {provider}")
+                    except Exception as e:
+                        storage_errors.append(f"Error deleting from {provider}: {str(e)}")
+                        logger.error(f"Failed to delete backup from {provider}: {e}")
+            
+            # Delete from database
+            backup_info = {
+                "backup_id": str(backup.id),
+                "backup_name": backup.backup_name,
+                "tenant_id": str(backup.tenant_id) if backup.tenant_id else None,
+                "created_at": backup.created_at.isoformat()
+            }
+            
+            self.db.delete(backup)
+            self.db.commit()
+            
+            logger.info(f"Deleted backup {backup_id} from database")
+            
+            return {
+                "status": "success",
+                "backup_id": backup_id,
+                "backup_info": backup_info,
+                "deleted_from_storage": deleted_from_storage,
+                "storage_errors": storage_errors,
+                "deleted_at": datetime.now(timezone.utc).isoformat(),
+                "message": f"Backup {backup_info['backup_name']} deleted successfully"
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to delete backup {backup_id}: {e}")
+            raise
+    
+    def delete_backup_record(self, backup_id: str) -> bool:
+        """Delete backup record from database only (legacy method)"""
+        try:
+            backup = self.db.query(BackupLog).filter(BackupLog.id == backup_id).first()
+            if backup:
+                self.db.delete(backup)
+                self.db.commit()
+                logger.info(f"Deleted backup record: {backup_id}")
+                return True
+            return False
+            
+        except Exception as e:
+            logger.error(f"Failed to delete backup record {backup_id}: {e}")
             raise
