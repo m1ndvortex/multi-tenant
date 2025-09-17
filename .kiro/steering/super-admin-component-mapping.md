@@ -1,3 +1,8 @@
+---
+
+inclusion: manual
+
+---
 # Super Admin Dashboard Component Mapping Guide
 
 ## Purpose

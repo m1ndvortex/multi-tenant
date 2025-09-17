@@ -24,7 +24,9 @@ from .notification import NotificationTemplate, NotificationLog, NotificationSta
 from .backup import (
     BackupLog, BackupStatus, BackupType, RestoreLog, StorageLocation, 
     CustomerBackupLog, DataExportLog, ExportSchedule, ExportFormat, 
-    ExportType, ExportStatus
+    ExportType, ExportStatus, BackupOperation, OperationStatus,
+    DisasterRecoveryBackup, DisasterRecoveryType, RollbackPoint,
+    OperationLog, LogLevel, NewStorageProvider
 )
 from .gold_price import GoldPrice, GoldPriceHistory
 from .invoice_access_log import InvoiceAccessLog
@@ -95,6 +97,14 @@ __all__ = [
     "ExportFormat",
     "ExportType",
     "ExportStatus",
+    "BackupOperation",
+    "OperationStatus",
+    "DisasterRecoveryBackup",
+    "DisasterRecoveryType",
+    "RollbackPoint",
+    "OperationLog",
+    "LogLevel",
+    "NewStorageProvider",
     "GoldPrice",
     "GoldPriceHistory",
     "InvoiceAccessLog",
