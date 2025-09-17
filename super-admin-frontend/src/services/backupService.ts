@@ -6,6 +6,7 @@ import {
   BackupFilters,
   PaginatedBackupsResponse,
   PaginatedDisasterRecoveryResponse,
+  DisasterRecoveryBackup,
 } from '@/types/backup';
 import { apiClient } from './apiClient';
 
@@ -13,9 +14,10 @@ class BackupService {
   private async request<T>(endpoint: string, options: { method?: string; body?: any } = {}): Promise<T> {
     try {
       const { method = 'GET', body } = options;
-      
+      try { console.log('[BackupService.request] start', { method, endpoint }); } catch {}
       let response: any;
       if (method === 'GET') {
+        // apiClient.get/.post/etc already return parsed data (not AxiosResponse)
         response = await apiClient.get(endpoint);
       } else if (method === 'POST') {
         response = await apiClient.post(endpoint, body);
@@ -27,7 +29,9 @@ class BackupService {
         throw new Error(`Unsupported method: ${method}`);
       }
 
-      return response.data as T;
+      // response is already the data shape T
+      try { console.log('[BackupService.request] done', { endpoint, hasResponse: response !== undefined, typeof: typeof response }); (window as any).__last_req = { endpoint, response }; } catch {}
+      return response as T;
     } catch (error: any) {
       // Handle axios errors
       if (error.response) {
@@ -95,12 +99,94 @@ class BackupService {
       page: page.toString(),
       limit: limit.toString(),
     });
+    // Fetch raw payload and normalize to UI shape
+  let raw: any;
+  try { console.log('[DR] about to fetch via apiClient.get'); } catch {}
+  try {
+    raw = await apiClient.get(`/api/super-admin/backups/disaster-recovery?${params}`);
+  } catch (e) {
+    try { console.error('[DR] apiClient.get failed, will fallback', e); } catch {}
+  }
+  if (raw === undefined) {
+    try {
+      console.warn('[DR] raw is undefined after apiClient.get, trying fetch fallback');
+      const token = typeof window !== 'undefined' ? localStorage.getItem('super_admin_token') : null;
+      const resp = await fetch(`/api/super-admin/backups/disaster-recovery?${params}`, {
+        headers: {
+          'Accept': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        credentials: 'include'
+      });
+      if (resp.ok) {
+        raw = await resp.json();
+      } else {
+        console.error('[DR] fetch fallback failed', resp.status);
+      }
+    } catch (e2) {
+      try { console.error('[DR] fetch fallback threw', e2); } catch {}
+    }
+  }
+  try { (window as any).__dr_raw = raw; } catch {}
+  try { console.log('[DR] raw payload', raw); } catch {}
 
-    return this.request<PaginatedDisasterRecoveryResponse>(`/api/super-admin/backups/disaster-recovery?${params}`);
+    const normalize = (b: any): DisasterRecoveryBackup => {
+      const locations: Array<{ provider: string; location?: string }> = Array.isArray(b?.storage_locations)
+        ? b.storage_locations
+        : [];
+      const r2 = locations.find((l) => l.provider === 'cloudflare_r2');
+      const b2 = locations.find((l) => l.provider === 'backblaze_b2');
+
+      const toProviderStatus = (overall: string | undefined, hasLoc: boolean): 'uploaded' | 'failed' | 'pending' => {
+        const s = (overall || '').toLowerCase();
+        if (s === 'completed') return hasLoc ? 'uploaded' : 'failed';
+        if (s === 'failed' || s === 'error') return 'failed';
+        return 'pending';
+      };
+
+      return {
+        id: String(b?.backup_id || b?.id || ''),
+        backup_date: String(b?.completed_at || b?.created_at || new Date().toISOString()),
+        backup_type: (b?.backup_type as any) || 'full_platform',
+        file_size: Number(b?.compressed_size ?? b?.file_size ?? 0),
+        cloudflare_r2_status: toProviderStatus(b?.status, !!r2),
+        backblaze_b2_status: toProviderStatus(b?.status, !!b2),
+        cloudflare_r2_path: r2?.location,
+        backblaze_b2_path: b2?.location,
+        integrity_status: (b?.integrity_status as any) || 'pending',
+        created_at: String(b?.created_at || b?.completed_at || new Date().toISOString()),
+      };
+    };
+
+    const normalizedBackups: DisasterRecoveryBackup[] = Array.isArray(raw?.backups)
+      ? raw.backups.map(normalize)
+      : [];
+  try { console.log('[DR] normalized backups', { count: normalizedBackups.length, sample: normalizedBackups[0] }); } catch {}
+
+    const pagination = raw?.pagination && typeof raw.pagination === 'object'
+      ? {
+          page: Number(raw.pagination.page ?? page),
+          limit: Number(raw.pagination.limit ?? limit),
+          total: Number(raw.pagination.total ?? normalizedBackups.length),
+          totalPages: Number(raw.pagination.totalPages ?? 1),
+        }
+      : {
+          page,
+          limit,
+          total: normalizedBackups.length,
+          totalPages: 1,
+        };
+
+    const result = {
+      backups: normalizedBackups,
+      pagination,
+    };
+    try { console.log('[DR] result to UI', result); (window as any).__dr_result = result; } catch {}
+    return result;
   }
 
   async createDisasterRecoveryBackup(): Promise<{ job_id: string }> {
-    return this.request<{ job_id: string }>('/api/super-admin/backups/disaster-recovery', {
+    return this.request<{ job_id: string }>('/api/super-admin/backups/disaster-recovery/create', {
       method: 'POST',
     });
   }

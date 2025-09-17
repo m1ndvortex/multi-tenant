@@ -34,6 +34,8 @@ const DisasterRecoveryManagement: React.FC<DisasterRecoveryManagementProps> = ({
   } = useBackups();
 
   const { data: backupsData, isLoading, refetch } = useDisasterRecoveryBackups(page, 10);
+  try { console.log('[DR/UI] query data', backupsData); } catch {}
+  const safeBackups: DisasterRecoveryBackup[] = backupsData?.backups ?? [];
   const createBackupMutation = useCreateDisasterRecoveryBackup();
   const verifyIntegrityMutation = useVerifyBackupIntegrity();
 
@@ -117,6 +119,8 @@ const DisasterRecoveryManagement: React.FC<DisasterRecoveryManagementProps> = ({
         </div>
       </CardHeader>
       <CardContent>
+        {/* Debug: show count */}
+        <div className="text-xs text-slate-400 mb-2">DR count: {safeBackups.length}</div>
         {/* Status Overview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <Card variant="gradient-blue">
@@ -125,7 +129,7 @@ const DisasterRecoveryManagement: React.FC<DisasterRecoveryManagementProps> = ({
                 <div>
                   <p className="text-sm font-medium text-blue-700">Cloudflare R2</p>
                   <p className="text-2xl font-bold text-blue-900">
-                    {backupsData?.backups.filter(b => b.cloudflare_r2_status === 'uploaded').length || 0}
+                    {safeBackups.filter(b => b.cloudflare_r2_status === 'uploaded').length}
                   </p>
                   <p className="text-xs text-blue-600">پشتیبان موفق</p>
                 </div>
@@ -140,7 +144,7 @@ const DisasterRecoveryManagement: React.FC<DisasterRecoveryManagementProps> = ({
                 <div>
                   <p className="text-sm font-medium text-green-700">Backblaze B2</p>
                   <p className="text-2xl font-bold text-green-900">
-                    {backupsData?.backups.filter(b => b.backblaze_b2_status === 'uploaded').length || 0}
+                    {safeBackups.filter(b => b.backblaze_b2_status === 'uploaded').length}
                   </p>
                   <p className="text-xs text-green-600">پشتیبان موفق</p>
                 </div>
@@ -155,7 +159,7 @@ const DisasterRecoveryManagement: React.FC<DisasterRecoveryManagementProps> = ({
                 <div>
                   <p className="text-sm font-medium text-purple-700">کل حجم</p>
                   <p className="text-2xl font-bold text-purple-900">
-                    {formatBytes(backupsData?.backups.reduce((sum, b) => sum + b.file_size, 0) || 0)}
+                    {formatBytes(safeBackups.reduce((sum, b) => sum + b.file_size, 0))}
                   </p>
                   <p className="text-xs text-purple-600">فضای استفاده شده</p>
                 </div>
@@ -189,14 +193,14 @@ const DisasterRecoveryManagement: React.FC<DisasterRecoveryManagementProps> = ({
                     </div>
                   </TableCell>
                 </TableRow>
-              ) : backupsData?.backups.length === 0 ? (
+              ) : safeBackups.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8 text-slate-500">
                     هیچ پشتیبان فاجعه‌ای یافت نشد
                   </TableCell>
                 </TableRow>
               ) : (
-                backupsData?.backups.map((backup) => (
+                safeBackups.map((backup) => (
                   <TableRow key={backup.id} className="hover:bg-slate-50">
                     <TableCell>
                       <div className="flex items-center gap-2">

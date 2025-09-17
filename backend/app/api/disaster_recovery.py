@@ -39,7 +39,7 @@ async def create_backup(
     Create a new disaster recovery backup
     """
     try:
-        logger.info(f"Disaster recovery backup requested by admin: {current_admin.get('user_id')}")
+        logger.info(f"Disaster recovery backup requested by admin: {current_admin.id}")
         
         # Start backup task in background
         task = create_disaster_recovery_backup.delay()

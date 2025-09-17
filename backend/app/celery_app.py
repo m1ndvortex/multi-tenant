@@ -16,7 +16,8 @@ celery_app = Celery(
     include=[
         "app.tasks",
         "app.tasks.customer_backup_tasks",
-        "app.tasks.marketing_tasks"
+        "app.tasks.marketing_tasks",
+        "app.tasks.disaster_recovery_tasks"
     ]
 )
 
