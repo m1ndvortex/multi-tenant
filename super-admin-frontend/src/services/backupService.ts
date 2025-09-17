@@ -194,15 +194,49 @@ class BackupService {
   async restoreDisasterRecoveryBackup(
     backupId: string,
     storageProvider: 'cloudflare_r2' | 'backblaze_b2',
-    confirmationPhrase: string
-  ): Promise<RestoreOperation> {
-    return this.request<RestoreOperation>('/api/super-admin/backups/disaster-recovery/restore', {
+    confirmationPhrase: string,
+    createRollback: boolean = true
+  ): Promise<{ task_id: string; message: string }> {
+    const params = new URLSearchParams({
+      backup_id: backupId,
+      storage_provider: storageProvider,
+      confirmation_phrase: confirmationPhrase,
+      create_rollback: createRollback.toString(),
+    });
+
+    return this.request<{ task_id: string; message: string }>(`/api/disaster-recovery/restore?${params}`, {
+      method: 'POST',
+    });
+  }
+
+  async checkRestorePrerequisites(backupId: string): Promise<any> {
+    return this.request(`/api/disaster-recovery/restore/prerequisites/${backupId}`, {
+      method: 'GET',
+    });
+  }
+
+  async rollbackToPoint(
+    rollbackId: string,
+    storageProvider: 'cloudflare_r2' | 'backblaze_b2'
+  ): Promise<{ task_id: string; message: string }> {
+    return this.request<{ task_id: string; message: string }>('/api/disaster-recovery/rollback', {
       method: 'POST',
       body: {
-        backup_id: backupId,
+        rollback_id: rollbackId,
         storage_provider: storageProvider,
-        confirmation_phrase: confirmationPhrase,
       },
+    });
+  }
+
+  async listRollbackPoints(): Promise<{ rollback_points: any[] }> {
+    return this.request<{ rollback_points: any[] }>('/api/disaster-recovery/rollback-points', {
+      method: 'GET',
+    });
+  }
+
+  async getRestoreStatus(taskId: string): Promise<any> {
+    return this.request(`/api/disaster-recovery/restore/status/${taskId}`, {
+      method: 'GET',
     });
   }
 
@@ -213,12 +247,14 @@ class BackupService {
 
   // Backup Integrity Management
   async verifyBackupIntegrity(backupId: string, backupType: 'tenant' | 'disaster_recovery'): Promise<{ job_id: string }> {
-    return this.request<{ job_id: string }>('/api/super-admin/backups/verify-integrity', {
+    const params = new URLSearchParams({
+      backup_id: backupId,
+      backup_type: backupType,
+      storage_provider: 'backblaze_b2'
+    });
+
+    return this.request<{ job_id: string }>(`/api/super-admin/backups/verify-integrity?${params}`, {
       method: 'POST',
-      body: {
-        backup_id: backupId,
-        backup_type: backupType,
-      },
     });
   }
 

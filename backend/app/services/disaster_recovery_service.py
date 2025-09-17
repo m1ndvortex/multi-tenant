@@ -621,3 +621,531 @@ class DisasterRecoveryService:
         except Exception as e:
             logger.error(f"Failed to get disaster recovery backup info for {backup_id}: {e}")
             raise
+    
+    def create_rollback_point(self, initiated_by: str) -> Dict:
+        """Create a rollback point before disaster recovery restore"""
+        rollback_log = None
+        temp_files = []
+        
+        try:
+            # Create rollback backup log entry
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            rollback_name = f"rollback_point_{timestamp}"
+            
+            rollback_log = BackupLog(
+                backup_type=BackupType.FULL_PLATFORM,
+                backup_name=rollback_name,
+                status=BackupStatus.PENDING,
+                backup_metadata={
+                    "backup_purpose": "rollback_point",
+                    "initiated_by": initiated_by,
+                    "created_for": "disaster_recovery_restore"
+                }
+            )
+            self.db.add(rollback_log)
+            self.db.commit()
+            
+            # Start rollback point creation
+            rollback_log.start_backup()
+            self.db.commit()
+            
+            logger.info("Creating rollback point before disaster recovery restore")
+            
+            # Create current state backup (same as disaster recovery backup)
+            db_dump_path = self.create_full_database_dump()
+            temp_files.append(db_dump_path)
+            
+            config_backup_path = self.create_container_configuration_backup()
+            temp_files.append(config_backup_path)
+            
+            # Create combined archive
+            combined_filename = f"{rollback_name}_combined.tar"
+            combined_path = self.temp_dir / combined_filename
+            
+            tar_cmd = [
+                "tar", "-cf", str(combined_path),
+                "-C", str(self.temp_dir),
+                db_dump_path.name, config_backup_path.name
+            ]
+            
+            result = subprocess.run(tar_cmd, capture_output=True, text=True, timeout=300)
+            if result.returncode != 0:
+                raise Exception(f"Rollback point archive creation failed: {result.stderr}")
+            
+            temp_files.append(combined_path)
+            
+            # Compress and encrypt
+            compressed_path = self.compress_file(combined_path)
+            temp_files.append(compressed_path)
+            
+            encrypted_path = self.encrypt_file(compressed_path)
+            temp_files.append(encrypted_path)
+            
+            checksum = self.calculate_checksum(encrypted_path)
+            
+            # Upload to both storage providers with rollback prefix
+            final_filename = f"rollback/{rollback_name}.tar.gz.enc"
+            
+            # Upload to Backblaze B2
+            b2_location = None
+            try:
+                b2_location = self.cloud_storage.upload_to_b2(
+                    encrypted_path, final_filename,
+                    metadata={
+                        "backup_type": "rollback_point",
+                        "checksum": checksum,
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                        "initiated_by": initiated_by
+                    }
+                )
+                logger.info(f"Rollback point uploaded to B2: {b2_location}")
+            except Exception as e:
+                logger.error(f"B2 rollback upload failed: {e}")
+            
+            # Upload to Cloudflare R2
+            r2_location = None
+            try:
+                r2_location = self.cloud_storage.upload_to_r2(
+                    encrypted_path, final_filename,
+                    metadata={
+                        "backup_type": "rollback_point",
+                        "checksum": checksum,
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                        "initiated_by": initiated_by
+                    }
+                )
+                logger.info(f"Rollback point uploaded to R2: {r2_location}")
+            except Exception as e:
+                logger.error(f"R2 rollback upload failed: {e}")
+            
+            if not b2_location and not r2_location:
+                raise Exception("Failed to upload rollback point to any storage provider")
+            
+            # Update rollback log
+            storage_locations = []
+            if b2_location:
+                storage_locations.append({
+                    "provider": "backblaze_b2",
+                    "location": b2_location,
+                    "uploaded_at": datetime.now(timezone.utc).isoformat()
+                })
+            if r2_location:
+                storage_locations.append({
+                    "provider": "cloudflare_r2",
+                    "location": r2_location,
+                    "uploaded_at": datetime.now(timezone.utc).isoformat()
+                })
+            
+            total_original_size = db_dump_path.stat().st_size + config_backup_path.stat().st_size
+            
+            rollback_log.complete_backup(
+                file_size=total_original_size,
+                compressed_size=encrypted_path.stat().st_size,
+                checksum=checksum,
+                storage_locations=storage_locations
+            )
+            self.db.commit()
+            
+            logger.info("Rollback point created successfully")
+            
+            return {
+                "status": "success",
+                "rollback_id": str(rollback_log.id),
+                "rollback_name": rollback_name,
+                "file_size": total_original_size,
+                "compressed_size": encrypted_path.stat().st_size,
+                "checksum": checksum,
+                "storage_locations": storage_locations,
+                "duration_seconds": rollback_log.duration_seconds
+            }
+            
+        except Exception as e:
+            logger.error(f"Rollback point creation failed: {e}")
+            if rollback_log:
+                rollback_log.fail_backup(str(e))
+                self.db.commit()
+            raise
+        
+        finally:
+            # Clean up temporary files
+            for temp_file in temp_files:
+                try:
+                    if temp_file.exists():
+                        temp_file.unlink()
+                except Exception as e:
+                    logger.warning(f"Failed to clean up {temp_file}: {e}")
+    
+    def download_and_prepare_dr_backup(self, backup_id: str, storage_provider: str = "backblaze_b2") -> Path:
+        """Download and prepare disaster recovery backup for restore"""
+        try:
+            backup = self.db.query(BackupLog).filter(
+                BackupLog.id == backup_id,
+                BackupLog.backup_type == BackupType.FULL_PLATFORM
+            ).first()
+            
+            if not backup:
+                raise Exception(f"Disaster recovery backup {backup_id} not found")
+            
+            if backup.status != BackupStatus.COMPLETED:
+                raise Exception(f"Backup {backup_id} is not completed (status: {backup.status.value})")
+            
+            # Find storage location
+            storage_location = None
+            for location in backup.storage_locations or []:
+                if location.get("provider") == storage_provider:
+                    storage_location = location["location"]
+                    break
+            
+            if not storage_location:
+                raise Exception(f"Backup not found in {storage_provider}")
+            
+            # Download encrypted backup file
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            encrypted_file = self.temp_dir / f"dr_restore_{backup_id}_{timestamp}.enc"
+            
+            if storage_provider == "backblaze_b2":
+                self.cloud_storage.download_from_b2(storage_location, encrypted_file)
+            elif storage_provider == "cloudflare_r2":
+                self.cloud_storage.download_from_r2(storage_location, encrypted_file)
+            else:
+                raise Exception(f"Unsupported storage provider: {storage_provider}")
+            
+            # Verify checksum
+            actual_checksum = self.calculate_checksum(encrypted_file)
+            if actual_checksum != backup.checksum:
+                raise Exception(f"Backup integrity check failed. Expected: {backup.checksum}, Got: {actual_checksum}")
+            
+            # Decrypt the file
+            compressed_file = self.temp_dir / f"dr_restore_{backup_id}_{timestamp}.gz"
+            self.decrypt_file(encrypted_file, compressed_file)
+            
+            # Decompress the file
+            combined_file = self.temp_dir / f"dr_restore_{backup_id}_{timestamp}.tar"
+            with gzip.open(compressed_file, 'rb') as f_in:
+                with open(combined_file, 'wb') as f_out:
+                    f_out.writelines(f_in)
+            
+            # Clean up intermediate files
+            encrypted_file.unlink()
+            compressed_file.unlink()
+            
+            logger.info(f"Disaster recovery backup {backup_id} prepared for restore: {combined_file}")
+            return combined_file
+            
+        except Exception as e:
+            logger.error(f"Failed to prepare DR backup {backup_id} for restore: {e}")
+            raise
+    
+    def restore_disaster_recovery_backup(self, backup_id: str, storage_provider: str = "backblaze_b2", 
+                                       initiated_by: str = None, create_rollback: bool = True,
+                                       confirmation_phrase: str = None) -> Dict:
+        """Restore complete platform from disaster recovery backup"""
+        from app.models.backup import RestoreLog
+        
+        restore_log = None
+        temp_files = []
+        rollback_info = None
+        
+        try:
+            # Validate confirmation phrase
+            if confirmation_phrase != "RESTORE PLATFORM":
+                raise Exception("Invalid confirmation phrase. Must be 'RESTORE PLATFORM'")
+            
+            # Get backup information
+            backup = self.db.query(BackupLog).filter(
+                BackupLog.id == backup_id,
+                BackupLog.backup_type == BackupType.FULL_PLATFORM
+            ).first()
+            
+            if not backup:
+                raise Exception(f"Disaster recovery backup {backup_id} not found")
+            
+            # Create restore log entry
+            restore_log = RestoreLog(
+                backup_log_id=backup_id,
+                status=BackupStatus.PENDING,
+                initiated_by=initiated_by,
+                restore_point=backup.created_at,
+                restore_metadata={
+                    "restore_type": "disaster_recovery",
+                    "storage_provider": storage_provider,
+                    "confirmation_phrase": confirmation_phrase,
+                    "rollback_enabled": create_rollback
+                }
+            )
+            self.db.add(restore_log)
+            self.db.commit()
+            
+            # Start restore process
+            restore_log.start_restore()
+            self.db.commit()
+            
+            logger.info(f"Starting disaster recovery restore from backup {backup_id}")
+            
+            # Step 1: Create rollback point if requested
+            if create_rollback:
+                logger.info("Creating rollback point before disaster recovery restore")
+                rollback_info = self.create_rollback_point(initiated_by)
+                restore_log.restore_metadata["rollback_point"] = rollback_info
+                self.db.commit()
+            
+            # Step 2: Download and prepare backup
+            logger.info("Downloading and preparing disaster recovery backup")
+            combined_backup_file = self.download_and_prepare_dr_backup(backup_id, storage_provider)
+            temp_files.append(combined_backup_file)
+            
+            # Step 3: Extract backup components
+            extract_dir = self.temp_dir / f"dr_extract_{backup_id}"
+            extract_dir.mkdir(exist_ok=True)
+            temp_files.append(extract_dir)
+            
+            # Extract tar archive
+            tar_cmd = ["tar", "-xf", str(combined_backup_file), "-C", str(extract_dir)]
+            result = subprocess.run(tar_cmd, capture_output=True, text=True, timeout=300)
+            
+            if result.returncode != 0:
+                raise Exception(f"Failed to extract backup archive: {result.stderr}")
+            
+            # Find extracted files
+            sql_files = list(extract_dir.glob("platform_full_backup_*.sql"))
+            config_files = list(extract_dir.glob("platform_config_*.tar.gz"))
+            
+            if not sql_files:
+                raise Exception("Database dump file not found in backup")
+            if not config_files:
+                raise Exception("Configuration backup file not found in backup")
+            
+            sql_file = sql_files[0]
+            config_file = config_files[0]
+            
+            # Step 4: Restore database
+            logger.info("Restoring database from disaster recovery backup")
+            self._restore_database_from_dump(sql_file)
+            
+            # Step 5: Restore configuration files
+            logger.info("Restoring configuration files from disaster recovery backup")
+            self._restore_configuration_files(config_file)
+            
+            # Step 6: Complete restore
+            restore_log.complete_restore()
+            self.db.commit()
+            
+            logger.info("Disaster recovery restore completed successfully")
+            
+            return {
+                "status": "success",
+                "restore_id": str(restore_log.id),
+                "backup_id": backup_id,
+                "storage_provider": storage_provider,
+                "duration_seconds": restore_log.duration_seconds,
+                "rollback_info": rollback_info,
+                "restored_at": datetime.now(timezone.utc).isoformat(),
+                "message": f"Successfully restored platform from backup {backup.backup_name}"
+            }
+            
+        except Exception as e:
+            logger.error(f"Disaster recovery restore failed: {e}")
+            
+            if restore_log:
+                restore_log.fail_restore(str(e))
+                self.db.commit()
+            
+            raise
+        
+        finally:
+            # Clean up temporary files
+            for temp_file in temp_files:
+                try:
+                    if temp_file.exists():
+                        if temp_file.is_file():
+                            temp_file.unlink()
+                        elif temp_file.is_dir():
+                            shutil.rmtree(temp_file)
+                except Exception as e:
+                    logger.warning(f"Failed to clean up {temp_file}: {e}")
+    
+    def _restore_database_from_dump(self, sql_file: Path):
+        """Restore database from SQL dump file"""
+        try:
+            # Parse database URL
+            db_url = settings.database_url
+            if db_url.startswith("postgresql://"):
+                db_url = db_url.replace("postgresql://", "")
+                if "@" in db_url:
+                    auth_part, host_part = db_url.split("@", 1)
+                    if ":" in auth_part:
+                        username, password = auth_part.split(":", 1)
+                    else:
+                        username = auth_part
+                        password = ""
+                    
+                    if "/" in host_part:
+                        host_port, database = host_part.split("/", 1)
+                    else:
+                        host_port = host_part
+                        database = "hesaabplus"
+                    
+                    if ":" in host_port:
+                        host, port = host_port.split(":", 1)
+                    else:
+                        host = host_port
+                        port = "5432"
+                else:
+                    host = "postgres"
+                    port = "5432"
+                    database = "hesaabplus"
+                    username = "hesaab"
+                    password = os.getenv("POSTGRES_PASSWORD", "")
+            
+            # Restore database using psql
+            psql_cmd = [
+                "psql",
+                f"--host={host}",
+                f"--port={port}",
+                f"--username={username}",
+                f"--dbname={database}",
+                "--no-password",
+                "--quiet",
+                f"--file={sql_file}"
+            ]
+            
+            env = os.environ.copy()
+            env["PGPASSWORD"] = password
+            
+            logger.info("Executing database restore")
+            result = subprocess.run(
+                psql_cmd,
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=1800  # 30 minutes timeout
+            )
+            
+            if result.returncode != 0:
+                raise Exception(f"Database restore failed: {result.stderr}")
+            
+            logger.info("Database restore completed successfully")
+            
+        except Exception as e:
+            logger.error(f"Database restore failed: {e}")
+            raise
+    
+    def _restore_configuration_files(self, config_file: Path):
+        """Restore configuration files from backup"""
+        try:
+            # Extract configuration backup to temporary directory
+            config_extract_dir = self.temp_dir / "config_restore"
+            config_extract_dir.mkdir(exist_ok=True)
+            
+            # Extract tar.gz archive
+            tar_cmd = ["tar", "-xzf", str(config_file), "-C", str(config_extract_dir)]
+            result = subprocess.run(tar_cmd, capture_output=True, text=True, timeout=300)
+            
+            if result.returncode != 0:
+                raise Exception(f"Failed to extract configuration backup: {result.stderr}")
+            
+            # Copy configuration files to their proper locations
+            # Note: In production, you might want to be more selective about which files to restore
+            config_files_to_restore = [
+                "docker-compose.yml",
+                ".env",
+                "Dockerfile",
+                "backend/requirements.txt",
+                "backend/alembic.ini"
+            ]
+            
+            restored_files = []
+            for config_file_path in config_files_to_restore:
+                source_path = config_extract_dir / config_file_path
+                dest_path = Path("/app") / config_file_path
+                
+                if source_path.exists() and dest_path.parent.exists():
+                    try:
+                        shutil.copy2(source_path, dest_path)
+                        restored_files.append(config_file_path)
+                        logger.info(f"Restored configuration file: {config_file_path}")
+                    except Exception as e:
+                        logger.warning(f"Failed to restore {config_file_path}: {e}")
+            
+            # Clean up extraction directory
+            shutil.rmtree(config_extract_dir)
+            
+            logger.info(f"Configuration restore completed. Restored {len(restored_files)} files")
+            
+        except Exception as e:
+            logger.error(f"Configuration restore failed: {e}")
+            raise
+    
+    def rollback_to_point(self, rollback_id: str, storage_provider: str = "backblaze_b2", 
+                         initiated_by: str = None) -> Dict:
+        """Rollback to a previous rollback point"""
+        try:
+            # Find rollback point backup
+            rollback_backup = self.db.query(BackupLog).filter(
+                BackupLog.id == rollback_id,
+                BackupLog.backup_type == BackupType.FULL_PLATFORM
+            ).first()
+            
+            if not rollback_backup:
+                raise Exception(f"Rollback point {rollback_id} not found")
+            
+            # Check if this is actually a rollback point
+            if not rollback_backup.backup_metadata or rollback_backup.backup_metadata.get("backup_purpose") != "rollback_point":
+                raise Exception(f"Backup {rollback_id} is not a rollback point")
+            
+            logger.info(f"Starting rollback to point {rollback_id}")
+            
+            # Use the same restore process but without creating another rollback point
+            result = self.restore_disaster_recovery_backup(
+                backup_id=rollback_id,
+                storage_provider=storage_provider,
+                initiated_by=initiated_by,
+                create_rollback=False,  # Don't create rollback point for rollback operation
+                confirmation_phrase="RESTORE PLATFORM"
+            )
+            
+            result["operation_type"] = "rollback"
+            result["rollback_point_id"] = rollback_id
+            
+            logger.info(f"Rollback to point {rollback_id} completed successfully")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Rollback to point {rollback_id} failed: {e}")
+            raise
+    
+    def list_rollback_points(self, limit: int = 20) -> List[Dict]:
+        """List available rollback points"""
+        try:
+            rollback_backups = (
+                self.db.query(BackupLog)
+                .filter(
+                    BackupLog.backup_type == BackupType.FULL_PLATFORM,
+                    BackupLog.status == BackupStatus.COMPLETED,
+                    BackupLog.backup_metadata.op('->>')('backup_purpose') == 'rollback_point'
+                )
+                .order_by(BackupLog.created_at.desc())
+                .limit(limit)
+                .all()
+            )
+            
+            rollback_list = []
+            for backup in rollback_backups:
+                rollback_info = {
+                    "rollback_id": str(backup.id),
+                    "rollback_name": backup.backup_name,
+                    "created_at": backup.created_at.isoformat(),
+                    "file_size": backup.file_size,
+                    "compressed_size": backup.compressed_size,
+                    "checksum": backup.checksum,
+                    "storage_locations": backup.storage_locations,
+                    "initiated_by": backup.backup_metadata.get("initiated_by") if backup.backup_metadata else None,
+                    "created_for": backup.backup_metadata.get("created_for") if backup.backup_metadata else None
+                }
+                rollback_list.append(rollback_info)
+            
+            return rollback_list
+            
+        except Exception as e:
+            logger.error(f"Failed to list rollback points: {e}")
+            raise

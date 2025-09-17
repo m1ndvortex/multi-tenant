@@ -24,6 +24,123 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/super-admin/backups", tags=["Super Admin - Backup Management"])
 
 
+@router.post("/verify-integrity")
+async def verify_backup_integrity(
+    backup_id: str,
+    backup_type: str,
+    storage_provider: str = "backblaze_b2",
+    current_admin: User = Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Verify backup integrity for both tenant and disaster recovery backups"""
+    try:
+        # Validate backup type
+        if backup_type not in ["tenant", "disaster_recovery"]:
+            raise HTTPException(status_code=400, detail="Invalid backup type")
+        
+        # Validate storage provider
+        if storage_provider not in ["backblaze_b2", "cloudflare_r2"]:
+            raise HTTPException(status_code=400, detail="Invalid storage provider")
+        
+        logger.info(f"Backup integrity verification requested for {backup_id} (type: {backup_type})")
+        
+        # Import backup tasks
+        from app.tasks.backup_tasks import verify_backup_integrity as verify_tenant_backup
+        from app.tasks.disaster_recovery_tasks import verify_disaster_recovery_backup
+        
+        # Start appropriate verification task based on backup type
+        if backup_type == "disaster_recovery":
+            task = verify_disaster_recovery_backup.delay(backup_id, storage_provider)  # type: ignore[attr-defined]
+        else:
+            task = verify_tenant_backup.delay(backup_id, storage_provider)  # type: ignore[attr-defined]
+        
+        return {
+            "status": "started",
+            "message": f"Backup integrity verification started for {backup_id}",
+            "job_id": task.id,
+            "backup_id": backup_id,
+            "backup_type": backup_type,
+            "storage_provider": storage_provider
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to start backup integrity verification: {e}")
+        raise HTTPException(status_code=500, detail="Failed to start verification task")
+
+
+@router.post("/restore")
+async def restore_backup(
+    backup_id: str,
+    backup_type: str,
+    storage_provider: str = "backblaze_b2",
+    confirmation_phrase: str = "",
+    current_admin: User = Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Restore backup for both tenant and disaster recovery backups"""
+    try:
+        # Validate backup type
+        if backup_type not in ["tenant", "disaster_recovery"]:
+            raise HTTPException(status_code=400, detail="Invalid backup type")
+        
+        # Validate storage provider
+        if storage_provider not in ["backblaze_b2", "cloudflare_r2"]:
+            raise HTTPException(status_code=400, detail="Invalid storage provider")
+        
+        # Validate confirmation phrase for disaster recovery
+        # Accept either legacy "CONFIRM RESTORE" or UI phrase "RESTORE PLATFORM" to avoid mismatch
+        if backup_type == "disaster_recovery":
+            valid_phrases = {"CONFIRM RESTORE", "RESTORE PLATFORM"}
+            if confirmation_phrase not in valid_phrases:
+                raise HTTPException(status_code=400, detail="Invalid confirmation phrase for disaster recovery restore")
+        
+        logger.info(f"Backup restore requested for {backup_id} (type: {backup_type})")
+        
+        # Import restore tasks
+        from app.tasks.restore_tasks import restore_single_tenant_task
+        from app.tasks.disaster_recovery_tasks import restore_disaster_recovery_backup
+        
+        # Start appropriate restore task based on backup type
+        if backup_type == "disaster_recovery":
+            # Queue Celery DR restore task
+            task = restore_disaster_recovery_backup.delay(backup_id, storage_provider, "current")  # type: ignore[attr-defined]
+            return {
+                "status": "started",
+                "message": f"Disaster recovery restore started for {backup_id}",
+                "job_id": task.id,
+                "backup_id": backup_id,
+                "backup_type": backup_type,
+                "storage_provider": storage_provider
+            }
+        else:
+            # For tenant backup restore
+            task = restore_single_tenant_task.delay(backup_id, storage_provider)  # type: ignore[attr-defined]
+            return {
+                "status": "started",
+                "message": f"Tenant backup restore started for {backup_id}",
+                "job_id": task.id,
+                "backup_id": backup_id,
+                "backup_type": backup_type,
+                "storage_provider": storage_provider
+            }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to start backup restore: {e}")
+        raise HTTPException(status_code=500, detail="Failed to start restore task")
+from app.tasks.backup_tasks import backup_tenant_data, backup_full_platform
+from app.schemas.backup import (
+    BackupResponse, BackupListResponse, BackupInfoResponse,
+    StorageUsageResponse, ConnectivityTestResponse, TaskStatusResponse
+)
+from app.models.user import User
+
+logger = logging.getLogger(__name__)
+
+
 @router.get("/tenants", response_model=Dict[str, Any])
 async def get_tenant_backups(
     page: int = Query(default=1, ge=1, description="Page number"),
@@ -99,7 +216,7 @@ async def create_tenant_backup(
         # Start backup tasks for each tenant
         task_ids = []
         for tenant in valid_tenants:
-            task = backup_tenant_data.delay(str(tenant.id), storage_provider)
+            task = backup_tenant_data.delay(str(tenant.id), storage_provider)  # type: ignore[attr-defined]
             task_ids.append(task.id)
         
         logger.info(f"Super admin {current_admin.id} started backup for {len(valid_tenants)} tenants")
@@ -185,7 +302,7 @@ async def create_full_platform_backup(
     """Create full platform backup for disaster recovery"""
     try:
         # Start full platform backup task
-        task = backup_full_platform.delay(storage_provider)
+        task = backup_full_platform.delay(storage_provider)  # type: ignore[attr-defined]
         
         logger.info(f"Super admin {current_admin.id} started full platform backup")
         

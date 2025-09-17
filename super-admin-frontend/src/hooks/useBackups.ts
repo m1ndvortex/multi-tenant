@@ -57,6 +57,64 @@ export const useBackups = () => {
     });
   };
 
+  const useRestoreDisasterRecovery = () => {
+    return useMutation({
+      mutationFn: ({ backupId, storageProvider, confirmationPhrase, createRollback }: { 
+        backupId: string; 
+        storageProvider: 'cloudflare_r2' | 'backblaze_b2'; 
+        confirmationPhrase: string;
+        createRollback?: boolean;
+      }) =>
+        backupService.restoreDisasterRecoveryBackup(backupId, storageProvider, confirmationPhrase, createRollback),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['restore-operations'] });
+        queryClient.invalidateQueries({ queryKey: ['rollback-points'] });
+        toast({
+          title: 'بازیابی فاجعه آغاز شد',
+          description: 'فرآیند بازیابی کامل پلتفرم شروع شد.',
+        });
+      },
+      onError: (err: any) => {
+        toast({
+          title: 'خطا در بازیابی فاجعه',
+          description: err?.message || 'امکان شروع فرآیند بازیابی فاجعه وجود ندارد.',
+          variant: 'destructive',
+        });
+      },
+    });
+  };
+
+  // Rollback Points
+  const useListRollbackPoints = () => {
+    return useQuery({
+      queryKey: ['rollback-points'],
+      queryFn: () => backupService.listRollbackPoints(),
+      staleTime: 30000,
+    });
+  };
+
+  const useRollbackToPoint = () => {
+    return useMutation({
+      mutationFn: ({ rollbackId, storageProvider }: { rollbackId: string; storageProvider: 'cloudflare_r2' | 'backblaze_b2' }) =>
+        backupService.rollbackToPoint(rollbackId, storageProvider),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['restore-operations'] });
+        queryClient.invalidateQueries({ queryKey: ['rollback-points'] });
+        toast({
+          title: 'بازگشت آغاز شد',
+          description: 'فرآیند بازگشت به نقطه قبلی شروع شد.',
+        });
+      },
+      onError: (err: any) => {
+        toast({
+          title: 'خطا در بازگشت',
+          description: err?.message || 'امکان بازگشت به نقطه قبلی وجود ندارد.',
+          variant: 'destructive',
+        });
+      },
+    });
+  };
+
   // Disaster Recovery Backups
   const useDisasterRecoveryBackups = (page: number = 1, limit: number = 10) => {
     return useQuery({
@@ -158,6 +216,7 @@ export const useBackups = () => {
     useTenantBackups,
     useCreateTenantBackup,
     useRestoreTenantBackup,
+    useRestoreDisasterRecovery,
     useDisasterRecoveryBackups,
     useCreateDisasterRecoveryBackup,
     useStorageUsage,
@@ -165,5 +224,7 @@ export const useBackups = () => {
     useVerifyBackupIntegrity,
     useRestoreOperations,
     useCancelRestoreOperation,
+    useListRollbackPoints,
+    useRollbackToPoint,
   };
 };

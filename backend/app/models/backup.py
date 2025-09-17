@@ -274,6 +274,12 @@ class RestoreLog(BaseModel):
         comment="Snapshot of data before restore"
     )
     
+    restore_metadata = Column(
+        JSONB,
+        nullable=True,
+        comment="Additional restore operation metadata"
+    )
+    
     # Relationships
     backup_log = relationship("BackupLog")
     tenant = relationship("Tenant")

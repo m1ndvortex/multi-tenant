@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import { useBackups } from '@/hooks/useBackups';
 import { DisasterRecoveryBackup } from '@/types/backup';
@@ -16,7 +17,9 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   RefreshCwIcon,
-  DownloadIcon
+  DownloadIcon,
+  HistoryIcon,
+  UndoIcon
 } from 'lucide-react';
 
 interface DisasterRecoveryManagementProps {
@@ -25,12 +28,15 @@ interface DisasterRecoveryManagementProps {
 
 const DisasterRecoveryManagement: React.FC<DisasterRecoveryManagementProps> = ({ onRestoreClick }) => {
   const [page, setPage] = useState(1);
-
+  const [activeTab, setActiveTab] = useState('backups');
+  const [rollbackPoints, setRollbackPoints] = useState<any[]>([]);
 
   const { 
     useDisasterRecoveryBackups, 
     useCreateDisasterRecoveryBackup,
-    useVerifyBackupIntegrity 
+    useVerifyBackupIntegrity,
+    useListRollbackPoints,
+    useRollbackToPoint
   } = useBackups();
 
   const { data: backupsData, isLoading, refetch } = useDisasterRecoveryBackups(page, 10);
@@ -38,6 +44,10 @@ const DisasterRecoveryManagement: React.FC<DisasterRecoveryManagementProps> = ({
   const safeBackups: DisasterRecoveryBackup[] = backupsData?.backups ?? [];
   const createBackupMutation = useCreateDisasterRecoveryBackup();
   const verifyIntegrityMutation = useVerifyBackupIntegrity();
+  
+  // Rollback points query
+  const { data: rollbackData, isLoading: rollbackLoading, refetch: refetchRollback } = useListRollbackPoints();
+  const rollbackMutation = useRollbackToPoint();
 
   const handleCreateBackup = () => {
     createBackupMutation.mutate();
@@ -45,6 +55,10 @@ const DisasterRecoveryManagement: React.FC<DisasterRecoveryManagementProps> = ({
 
   const handleVerifyIntegrity = (backupId: string) => {
     verifyIntegrityMutation.mutate({ backupId, backupType: 'disaster_recovery' });
+  };
+
+  const handleRollback = (rollbackId: string, storageProvider: 'cloudflare_r2' | 'backblaze_b2') => {
+    rollbackMutation.mutate({ rollbackId, storageProvider });
   };
 
   const getStorageStatusBadge = (status: string) => {
@@ -100,8 +114,11 @@ const DisasterRecoveryManagement: React.FC<DisasterRecoveryManagementProps> = ({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => refetch()}
-              disabled={isLoading}
+              onClick={() => {
+                refetch();
+                if (activeTab === 'rollback') refetchRollback();
+              }}
+              disabled={isLoading || rollbackLoading}
             >
               <RefreshCwIcon className="w-4 h-4 ml-2" />
               بروزرسانی
@@ -119,6 +136,26 @@ const DisasterRecoveryManagement: React.FC<DisasterRecoveryManagementProps> = ({
         </div>
       </CardHeader>
       <CardContent>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 bg-slate-800/50 border border-slate-600/30">
+            <TabsTrigger 
+              value="backups" 
+              className="flex items-center gap-2 text-slate-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/20 data-[state=active]:to-purple-600/20 data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-purple-400/50"
+            >
+              <ServerIcon className="w-4 h-4" />
+              پشتیبان‌های فاجعه
+            </TabsTrigger>
+            <TabsTrigger 
+              value="rollback"
+              className="flex items-center gap-2 text-slate-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500/20 data-[state=active]:to-orange-600/20 data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-orange-400/50"
+            >
+              <HistoryIcon className="w-4 h-4" />
+              نقاط بازگشت
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Disaster Recovery Backups Tab */}
+          <TabsContent value="backups" className="space-y-6">
         {/* Debug: show count */}
         <div className="text-xs text-slate-400 mb-2">DR count: {safeBackups.length}</div>
         {/* Status Overview */}
@@ -297,6 +334,149 @@ const DisasterRecoveryManagement: React.FC<DisasterRecoveryManagementProps> = ({
             </div>
           </div>
         )}
+          </TabsContent>
+
+          {/* Rollback Points Tab */}
+          <TabsContent value="rollback" className="space-y-6">
+            {/* Rollback Points Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <Card variant="gradient-orange">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-orange-700">نقاط بازگشت</p>
+                      <p className="text-2xl font-bold text-orange-900">
+                        {rollbackData?.rollback_points?.length || 0}
+                      </p>
+                      <p className="text-xs text-orange-600">موجود</p>
+                    </div>
+                    <HistoryIcon className="w-8 h-8 text-orange-500" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card variant="gradient-green">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-green-700">آخرین نقطه</p>
+                      <p className="text-lg font-bold text-green-900">
+                        {rollbackData?.rollback_points?.[0] ? 
+                          formatDate(rollbackData.rollback_points[0].created_at) : 'ندارد'
+                        }
+                      </p>
+                      <p className="text-xs text-green-600">تاریخ ایجاد</p>
+                    </div>
+                    <CheckCircleIcon className="w-8 h-8 text-green-500" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card variant="gradient-blue">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-blue-700">کل حجم</p>
+                      <p className="text-2xl font-bold text-blue-900">
+                        {formatBytes(rollbackData?.rollback_points?.reduce((sum: number, rp: any) => sum + (rp.compressed_size || 0), 0) || 0)}
+                      </p>
+                      <p className="text-xs text-blue-600">فضای استفاده شده</p>
+                    </div>
+                    <HardDriveIcon className="w-8 h-8 text-blue-500" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Rollback Points Table */}
+            <div className="rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gradient-to-r from-slate-50 to-slate-100">
+                    <TableHead>نام نقطه بازگشت</TableHead>
+                    <TableHead>تاریخ ایجاد</TableHead>
+                    <TableHead>حجم فایل</TableHead>
+                    <TableHead>ایجاد شده توسط</TableHead>
+                    <TableHead>وضعیت</TableHead>
+                    <TableHead>عملیات</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rollbackLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8">
+                        <div className="flex items-center justify-center">
+                          <RefreshCwIcon className="w-4 h-4 animate-spin ml-2" />
+                          در حال بارگذاری...
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : !rollbackData?.rollback_points?.length ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-slate-500">
+                        هیچ نقطه بازگشتی یافت نشد
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    rollbackData.rollback_points.map((rollbackPoint: any) => (
+                      <TableRow key={rollbackPoint.rollback_id} className="hover:bg-slate-50">
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <HistoryIcon className="w-4 h-4 text-orange-500" />
+                            <span className="font-medium">{rollbackPoint.rollback_name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{formatDate(rollbackPoint.created_at)}</TableCell>
+                        <TableCell>{formatBytes(rollbackPoint.compressed_size || 0)}</TableCell>
+                        <TableCell>
+                          <span className="text-sm text-slate-600">
+                            {rollbackPoint.initiated_by || 'سیستم'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="default" className="bg-green-100 text-green-800">
+                            آماده
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRollback(rollbackPoint.rollback_id, 'cloudflare_r2')}
+                              disabled={rollbackMutation.isPending}
+                            >
+                              <UndoIcon className="w-3 h-3 ml-1" />
+                              بازگشت
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Rollback Information */}
+            <Card className="bg-amber-50 border-amber-200">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <AlertTriangleIcon className="w-5 h-5 text-amber-500 mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold text-amber-800 mb-2">درباره نقاط بازگشت</h4>
+                    <ul className="text-sm text-amber-700 space-y-1">
+                      <li>• نقاط بازگشت به صورت خودکار قبل از هر بازیابی فاجعه ایجاد می‌شوند</li>
+                      <li>• می‌توانید در صورت مشکل در بازیابی، به آخرین حالت کارکرد برگردید</li>
+                      <li>• هر نقطه بازگشت شامل کامل پایگاه داده و تنظیمات سیستم است</li>
+                      <li>• بازگشت به نقطه قبلی تمام تغییرات بعد از آن تاریخ را حذف می‌کند</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );

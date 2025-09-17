@@ -75,6 +75,103 @@ def verify_disaster_recovery_backup(self, backup_id: str, storage_provider: str 
             db.close()
 
 
+@celery_app.task(bind=True, name="app.tasks.restore_disaster_recovery_backup_task")
+def restore_disaster_recovery_backup_task(self, backup_id: str, storage_provider: str = "backblaze_b2",
+                                        initiated_by: str = None, create_rollback: bool = True,
+                                        confirmation_phrase: str = None):
+    """Celery task for disaster recovery restore"""
+    db = None
+    try:
+        logger.info(f"Starting disaster recovery restore task for backup {backup_id}")
+        
+        # Create database session
+        db = SessionLocal()
+        
+        # Initialize disaster recovery service
+        dr_service = DisasterRecoveryService(db)
+        
+        # Perform disaster recovery restore
+        result = dr_service.restore_disaster_recovery_backup(
+            backup_id=backup_id,
+            storage_provider=storage_provider,
+            initiated_by=initiated_by,
+            create_rollback=create_rollback,
+            confirmation_phrase=confirmation_phrase
+        )
+        
+        logger.info(f"Disaster recovery restore completed successfully: {result}")
+        return result
+        
+    except Exception as exc:
+        logger.error(f"Disaster recovery restore failed for backup {backup_id}: {exc}")
+        raise self.retry(exc=exc, countdown=300, max_retries=1)  # Only retry once for DR restore
+    
+    finally:
+        if db:
+            db.close()
+
+
+@celery_app.task(bind=True, name="app.tasks.rollback_to_point_task")
+def rollback_to_point_task(self, rollback_id: str, storage_provider: str = "backblaze_b2",
+                          initiated_by: str = None):
+    """Celery task for rollback to previous point"""
+    db = None
+    try:
+        logger.info(f"Starting rollback task to point {rollback_id}")
+        
+        # Create database session
+        db = SessionLocal()
+        
+        # Initialize disaster recovery service
+        dr_service = DisasterRecoveryService(db)
+        
+        # Perform rollback
+        result = dr_service.rollback_to_point(
+            rollback_id=rollback_id,
+            storage_provider=storage_provider,
+            initiated_by=initiated_by
+        )
+        
+        logger.info(f"Rollback completed successfully: {result}")
+        return result
+        
+    except Exception as exc:
+        logger.error(f"Rollback failed for point {rollback_id}: {exc}")
+        raise self.retry(exc=exc, countdown=300, max_retries=1)  # Only retry once for rollback
+    
+    finally:
+        if db:
+            db.close()
+
+
+@celery_app.task(bind=True, name="app.tasks.create_rollback_point_task")
+def create_rollback_point_task(self, initiated_by: str):
+    """Celery task for creating rollback point"""
+    db = None
+    try:
+        logger.info("Starting rollback point creation task")
+        
+        # Create database session
+        db = SessionLocal()
+        
+        # Initialize disaster recovery service
+        dr_service = DisasterRecoveryService(db)
+        
+        # Create rollback point
+        result = dr_service.create_rollback_point(initiated_by=initiated_by)
+        
+        logger.info(f"Rollback point created successfully: {result}")
+        return result
+        
+    except Exception as exc:
+        logger.error(f"Rollback point creation failed: {exc}")
+        raise self.retry(exc=exc, countdown=300, max_retries=2)
+    
+    finally:
+        if db:
+            db.close()
+
+
 @celery_app.task(bind=True, name="app.tasks.automated_disaster_recovery_verification")
 def automated_disaster_recovery_verification(self):
     """Automated verification of recent disaster recovery backups"""
@@ -196,6 +293,9 @@ def disaster_recovery_monitoring(self):
         # Get recent disaster recovery backups
         recent_backups = dr_service.list_disaster_recovery_backups(limit=30)
         
+        # Get rollback points
+        rollback_points = dr_service.list_rollback_points(limit=10)
+        
         # Calculate monitoring metrics
         total_backups = len(recent_backups)
         successful_backups = len([b for b in recent_backups if b.get("file_size", 0) > 0])
@@ -223,7 +323,9 @@ def disaster_recovery_monitoring(self):
                 "total_backups": total_backups,
                 "successful_backups": successful_backups,
                 "recent_backup_exists": recent_backup_exists,
-                "latest_backup": recent_backups[0] if recent_backups else None
+                "latest_backup": recent_backups[0] if recent_backups else None,
+                "rollback_points": len(rollback_points),
+                "latest_rollback_point": rollback_points[0] if rollback_points else None
             },
             "storage_connectivity": storage_connectivity,
             "storage_usage": storage_usage,

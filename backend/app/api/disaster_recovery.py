@@ -223,6 +223,230 @@ async def get_storage_status(
         raise HTTPException(status_code=500, detail=f"Failed to get storage status: {str(e)}")
 
 
+@router.post("/restore", response_model=Dict)
+async def restore_disaster_recovery_backup(
+    backup_id: str,
+    storage_provider: str = "backblaze_b2",
+    confirmation_phrase: str = "",
+    create_rollback: bool = True,
+    current_admin=Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Restore platform from disaster recovery backup
+    """
+    try:
+        if storage_provider not in ["backblaze_b2", "cloudflare_r2"]:
+            raise HTTPException(status_code=400, detail="Invalid storage provider")
+        
+        if confirmation_phrase != "RESTORE PLATFORM":
+            raise HTTPException(status_code=400, detail="Invalid confirmation phrase")
+        
+        logger.info(f"Disaster recovery restore requested for backup {backup_id}")
+        
+        # Start restore task in background
+        from app.tasks.disaster_recovery_tasks import restore_disaster_recovery_backup_task
+        task = restore_disaster_recovery_backup_task.delay(
+            backup_id=backup_id,
+            storage_provider=storage_provider,
+            initiated_by=str(current_admin.id),
+            create_rollback=create_rollback,
+            confirmation_phrase=confirmation_phrase
+        )
+        
+        return {
+            "status": "accepted",
+            "message": "Disaster recovery restore started",
+            "task_id": task.id,
+            "backup_id": backup_id,
+            "storage_provider": storage_provider,
+            "estimated_duration": "30-60 minutes",
+            "warning": "Platform will be unavailable during restore"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to start disaster recovery restore: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to start restore: {str(e)}")
+
+
+@router.get("/restore/prerequisites/{backup_id}", response_model=Dict)
+async def check_restore_prerequisites(
+    backup_id: str,
+    current_admin=Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Check prerequisites for disaster recovery restore
+    """
+    try:
+        dr_service = DisasterRecoveryService(db)
+        
+        # Get backup info
+        backup_info = dr_service.get_disaster_recovery_backup_info(backup_id)
+        if not backup_info:
+            raise HTTPException(status_code=404, detail="Backup not found")
+        
+        # Check storage connectivity
+        connectivity = dr_service.cloud_storage.test_connectivity()
+        
+        # Check available storage providers
+        available_providers = []
+        for location in backup_info.get("storage_locations", []):
+            provider = location.get("provider")
+            if provider and connectivity.get(provider, {}).get("available", False):
+                available_providers.append(provider)
+        
+        # Check system requirements
+        prerequisites = {
+            "backup_available": True,
+            "backup_status": backup_info["status"],
+            "available_storage_providers": available_providers,
+            "storage_connectivity": connectivity,
+            "estimated_downtime": "30-60 minutes",
+            "requirements": [
+                "Platform will be completely unavailable during restore",
+                "All current data will be replaced with backup data",
+                "Data created after backup date will be lost",
+                "All users will be logged out",
+                "Services will restart automatically after restore"
+            ],
+            "recommendations": [
+                "Create rollback point before restore",
+                "Notify all users about planned downtime",
+                "Ensure no critical operations are running",
+                "Have emergency contacts available"
+            ]
+        }
+        
+        return {
+            "status": "success",
+            "backup_id": backup_id,
+            "prerequisites": prerequisites
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to check restore prerequisites: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to check prerequisites: {str(e)}")
+
+
+@router.post("/rollback", response_model=Dict)
+async def rollback_to_point(
+    rollback_id: str,
+    storage_provider: str = "backblaze_b2",
+    current_admin=Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Rollback to a previous rollback point
+    """
+    try:
+        if storage_provider not in ["backblaze_b2", "cloudflare_r2"]:
+            raise HTTPException(status_code=400, detail="Invalid storage provider")
+        
+        logger.info(f"Rollback requested to point {rollback_id}")
+        
+        # Start rollback task in background
+        from app.tasks.disaster_recovery_tasks import rollback_to_point_task
+        task = rollback_to_point_task.delay(
+            rollback_id=rollback_id,
+            storage_provider=storage_provider,
+            initiated_by=str(current_admin.id)
+        )
+        
+        return {
+            "status": "accepted",
+            "message": "Rollback operation started",
+            "task_id": task.id,
+            "rollback_id": rollback_id,
+            "storage_provider": storage_provider,
+            "estimated_duration": "20-40 minutes"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to start rollback: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to start rollback: {str(e)}")
+
+
+@router.get("/rollback-points", response_model=Dict)
+async def list_rollback_points(
+    limit: int = 20,
+    current_admin=Depends(get_super_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    List available rollback points
+    """
+    try:
+        dr_service = DisasterRecoveryService(db)
+        rollback_points = dr_service.list_rollback_points(limit=limit)
+        
+        return {
+            "status": "success",
+            "rollback_points": rollback_points,
+            "total_count": len(rollback_points)
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to list rollback points: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to list rollback points: {str(e)}")
+
+
+@router.get("/restore/status/{task_id}", response_model=Dict)
+async def get_restore_status(
+    task_id: str,
+    current_admin=Depends(get_super_admin_user)
+):
+    """
+    Get disaster recovery restore task status
+    """
+    try:
+        from app.celery_app import celery_app
+        
+        task_result = celery_app.AsyncResult(task_id)
+        
+        if task_result.state == 'PENDING':
+            response = {
+                "status": "pending",
+                "message": "Restore task is waiting to be processed"
+            }
+        elif task_result.state == 'PROGRESS':
+            response = {
+                "status": "in_progress",
+                "message": "Restore is currently being processed",
+                "progress": task_result.info
+            }
+        elif task_result.state == 'SUCCESS':
+            response = {
+                "status": "completed",
+                "message": "Restore completed successfully",
+                "result": task_result.result
+            }
+        elif task_result.state == 'FAILURE':
+            response = {
+                "status": "failed",
+                "message": "Restore failed",
+                "error": str(task_result.info)
+            }
+        else:
+            response = {
+                "status": task_result.state.lower(),
+                "message": f"Restore is in {task_result.state} state"
+            }
+        
+        response["task_id"] = task_id
+        return response
+        
+    except Exception as e:
+        logger.error(f"Failed to get restore status for {task_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve restore status")
+
+
 @router.get("/health", response_model=Dict)
 async def health_check(
     current_admin=Depends(get_super_admin_user),

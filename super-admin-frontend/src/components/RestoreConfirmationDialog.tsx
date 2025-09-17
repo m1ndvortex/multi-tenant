@@ -37,8 +37,9 @@ const RestoreConfirmationDialog: React.FC<RestoreConfirmationDialogProps> = ({
   const [rollbackEnabled, setRollbackEnabled] = useState(true);
   const [acknowledgeRisks, setAcknowledgeRisks] = useState(false);
 
-  const { useRestoreTenantBackup } = useBackups();
-  const restoreMutation = useRestoreTenantBackup();
+  const { useRestoreTenantBackup, useRestoreDisasterRecovery } = useBackups();
+  const restoreTenantMutation = useRestoreTenantBackup();
+  const restoreDRMutation = useRestoreDisasterRecovery();
 
   const requiredPhrase = backupType === 'disaster_recovery' ? 'RESTORE PLATFORM' : 'RESTORE DATA';
   const isConfirmationValid = confirmationPhrase === requiredPhrase && acknowledgeRisks;
@@ -55,12 +56,31 @@ const RestoreConfirmationDialog: React.FC<RestoreConfirmationDialogProps> = ({
       rollback_enabled: rollbackEnabled,
     };
 
-    restoreMutation.mutate(restoreData, {
-      onSuccess: () => {
-        onClose();
-        resetForm();
-      },
-    });
+    if (backupType === 'disaster_recovery') {
+      // Call DR restore endpoint which returns a job id
+      restoreDRMutation.mutate(
+        {
+          backupId: backup.id,
+          storageProvider,
+          confirmationPhrase,
+          createRollback: rollbackEnabled,
+        },
+        {
+          onSuccess: () => {
+            onClose();
+            resetForm();
+          },
+        }
+      );
+    } else {
+      // Tenant restore path
+      restoreTenantMutation.mutate(restoreData, {
+        onSuccess: () => {
+          onClose();
+          resetForm();
+        },
+      });
+    }
   };
 
   const resetForm = () => {
@@ -255,9 +275,9 @@ const RestoreConfirmationDialog: React.FC<RestoreConfirmationDialogProps> = ({
             <Button
               variant="destructive"
               onClick={handleRestore}
-              disabled={!isConfirmationValid || restoreMutation.isPending}
+              disabled={!isConfirmationValid || (backupType === 'disaster_recovery' ? restoreDRMutation.isPending : restoreTenantMutation.isPending)}
             >
-              {restoreMutation.isPending ? 'در حال بازیابی...' : 'شروع بازیابی'}
+              {backupType === 'disaster_recovery' ? (restoreDRMutation.isPending ? 'در حال بازیابی...' : 'شروع بازیابی') : (restoreTenantMutation.isPending ? 'در حال بازیابی...' : 'شروع بازیابی')}
             </Button>
           </div>
         </div>
