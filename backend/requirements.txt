@@ -19,7 +19,7 @@ redis==5.0.1
 
 # HTTP Client
 httpx==0.25.2
-requests==2.31.0
+requests==2.32.4
 
 # File Processing
 Pillow==10.1.0
